@@ -28,6 +28,14 @@ export const searchRecipes = createServerFn({ method: "POST" })
       cuisine: z.string().optional(),
       maxReadyTime: z.number().int().positive().max(360).optional(),
       number: z.number().int().min(1).max(24).default(12),
+      // Per-serving macro targets — any may be omitted (null/undefined = ignore).
+      kcal: z.number().positive().nullable().optional(),
+      protein_g: z.number().positive().nullable().optional(),
+      carbs_g: z.number().positive().nullable().optional(),
+      fat_g: z.number().positive().nullable().optional(),
+      // When true, recipes only need to be in the ballpark (they can be tuned via swaps/scaling).
+      // When false, recipes must already fit within a tight window (±15%).
+      allowSubs: z.boolean().default(true),
     }).parse,
   )
   .handler(async ({ data }) => {
@@ -42,6 +50,33 @@ export const searchRecipes = createServerFn({ method: "POST" })
     if (data.diet) params.set("diet", data.diet);
     if (data.cuisine) params.set("cuisine", data.cuisine);
     if (data.maxReadyTime) params.set("maxReadyTime", String(data.maxReadyTime));
+
+    // Macro range matching. Strict mode = ±15%; loose mode = one-sided so
+    // recipes can be tuned: cap the "too high" macros, floor the protein.
+    const tight = !data.allowSubs;
+    const setRange = (
+      minKey: string,
+      maxKey: string,
+      target: number | null | undefined,
+      mode: "two-sided" | "cap" | "floor",
+    ) => {
+      if (target == null) return;
+      if (tight) {
+        params.set(minKey, String(Math.max(0, Math.round(target * 0.85))));
+        params.set(maxKey, String(Math.round(target * 1.15)));
+      } else if (mode === "cap") {
+        params.set(maxKey, String(Math.round(target * 1.5)));
+      } else if (mode === "floor") {
+        params.set(minKey, String(Math.max(0, Math.round(target * 0.5))));
+      } else {
+        params.set(minKey, String(Math.max(0, Math.round(target * 0.7))));
+        params.set(maxKey, String(Math.round(target * 1.3)));
+      }
+    };
+    setRange("minCalories", "maxCalories", data.kcal, "cap");
+    setRange("minProtein", "maxProtein", data.protein_g, "floor");
+    setRange("minCarbs", "maxCarbs", data.carbs_g, "cap");
+    setRange("minFat", "maxFat", data.fat_g, "cap");
 
     const res = await fetch(`${BASE}/recipes/complexSearch?${params}`);
     if (!res.ok) {
@@ -161,10 +196,10 @@ export const suggestSwaps = createServerFn({ method: "POST" })
         fat_g: z.number(),
       }),
       target: z.object({
-        kcal: z.number(),
-        protein_g: z.number(),
-        carbs_g: z.number(),
-        fat_g: z.number(),
+        kcal: z.number().nullable().optional(),
+        protein_g: z.number().nullable().optional(),
+        carbs_g: z.number().nullable().optional(),
+        fat_g: z.number().nullable().optional(),
       }),
       servings: z.number().positive(),
     }).parse,
@@ -181,14 +216,20 @@ export const suggestSwaps = createServerFn({ method: "POST" })
       fat_g: m.fat_g / data.servings,
     });
     const cur = perServing(data.current);
-    const tgt = data.target; // user already enters per-serving target
+    const tgt = data.target;
+    const tgtLine = [
+      tgt.kcal != null ? `${tgt.kcal} kcal` : null,
+      tgt.protein_g != null ? `${tgt.protein_g}g protein` : null,
+      tgt.carbs_g != null ? `${tgt.carbs_g}g carbs` : null,
+      tgt.fat_g != null ? `${tgt.fat_g}g fat` : null,
+    ].filter(Boolean).join(", ") || "no specific targets — just generally healthier";
 
     const prompt = `Recipe: ${data.title}
 Ingredients (per recipe):
 ${data.ingredients.map((i) => `- ${i.amount} ${i.unit} ${i.name}`).join("\n")}
 
 Current macros per serving: ${Math.round(cur.kcal)} kcal, ${cur.protein_g.toFixed(1)}g protein, ${cur.carbs_g.toFixed(1)}g carbs, ${cur.fat_g.toFixed(1)}g fat.
-Target macros per serving: ${tgt.kcal} kcal, ${tgt.protein_g}g protein, ${tgt.carbs_g}g carbs, ${tgt.fat_g}g fat.
+Target macros per serving: ${tgtLine}.
 
 Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be specific (e.g. "sour cream" -> "non-fat Greek yogurt"). For each: estimate per-recipe macro delta (negative = reduces).`;
 
@@ -258,7 +299,6 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
       aiSwaps = [];
     }
 
-    // Hybrid step: re-price each swap using Spoonacular ingredient nutrition (per 100g) when possible.
     const repriced = await Promise.all(
       aiSwaps.slice(0, 5).map(async (s) => {
         const aiDelta = {
@@ -268,7 +308,6 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
           fat_g: Math.round(s.delta_fat_g * 10) / 10,
         };
         try {
-          // Find amount of original ingredient (in grams) to estimate accurate macro change
           const orig = data.ingredients.find((i) =>
             i.name.toLowerCase().includes(String(s.from).toLowerCase()) ||
             String(s.from).toLowerCase().includes(i.name.toLowerCase()),
@@ -281,8 +320,6 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
           ]);
           if (!origInfo || !subInfo) return { ...s, ...aiDelta, verified: false };
 
-          // Approximate amount in grams from amount+unit using Spoonacular's convert isn't free; assume same mass.
-          // Use 100g as comparison basis if unit isn't grams.
           const grams = orig.unit === "g" || orig.unit === "gram" ? orig.amount : 100;
           const factor = grams / 100;
           const delta = {

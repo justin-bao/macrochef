@@ -3,9 +3,10 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { MacroInputs } from "@/components/MacroInputs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Search, Sparkles, Target, Calculator } from "lucide-react";
-import type { Macros } from "@/lib/macros";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -22,20 +23,32 @@ export const Route = createFileRoute("/")({
 function HomePage() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
-  const [macros, setMacros] = useState<Macros>({ kcal: 600, protein_g: 40, carbs_g: 60, fat_g: 20 });
+  const [macros, setMacros] = useState<MacrosOptional>({
+    kcal: 600,
+    protein_g: 40,
+    carbs_g: null,
+    fat_g: null,
+  });
+  const [allowSubs, setAllowSubs] = useState(true);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!q.trim()) return;
     navigate({
       to: "/search",
-      search: { q: q.trim(), kcal: macros.kcal, p: macros.protein_g, c: macros.carbs_g, f: macros.fat_g },
+      search: {
+        q: q.trim(),
+        kcal: macros.kcal ?? undefined,
+        p: macros.protein_g ?? undefined,
+        c: macros.carbs_g ?? undefined,
+        f: macros.fat_g ?? undefined,
+        subs: allowSubs,
+      },
     });
   };
 
   return (
     <div>
-      {/* Hero */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-secondary/60 to-background" />
         <div className="mx-auto max-w-4xl px-4 pt-16 pb-10 text-center sm:pt-24">
@@ -51,7 +64,6 @@ function HomePage() {
         </div>
       </section>
 
-      {/* Search */}
       <section className="mx-auto max-w-3xl px-4 pb-16">
         <Card className="p-6 sm:p-8 shadow-lg shadow-foreground/5">
           <form onSubmit={submit} className="space-y-5">
@@ -76,12 +88,24 @@ function HomePage() {
               <div className="mb-2 flex items-center gap-2 text-sm font-medium">
                 <Target className="h-4 w-4 text-primary" /> Target macros (per serving)
               </div>
+              <p className="mb-2 text-xs text-muted-foreground">Leave any field blank to ignore it.</p>
               <MacroInputs value={macros} onChange={setMacros} />
+            </div>
+
+            <div className="flex items-start justify-between gap-4 rounded-lg border bg-muted/30 p-3">
+              <div>
+                <Label htmlFor="allow-subs" className="text-sm font-medium">Allow substitutions</Label>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {allowSubs
+                    ? "We'll find recipes that can be tuned with swaps (e.g. keto bread, sugar-free sweetener) to fit your macros."
+                    : "Only show recipes that already fit your macros — no substitutions needed."}
+                </p>
+              </div>
+              <Switch id="allow-subs" checked={allowSubs} onCheckedChange={setAllowSubs} />
             </div>
           </form>
         </Card>
 
-        {/* Feature cards */}
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           <FeatureCard
             icon={<Sparkles className="h-5 w-5" />}

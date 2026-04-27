@@ -5,17 +5,19 @@ import { searchRecipes, type SearchResult } from "@/lib/recipes.functions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { MacroInputs } from "@/components/MacroInputs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search } from "lucide-react";
-import type { Macros } from "@/lib/macros";
 
 const searchSchema = z.object({
   q: z.string().catch(""),
-  kcal: z.coerce.number().catch(600),
-  p: z.coerce.number().catch(40),
-  c: z.coerce.number().catch(60),
-  f: z.coerce.number().catch(20),
+  kcal: z.coerce.number().optional().catch(undefined),
+  p: z.coerce.number().optional().catch(undefined),
+  c: z.coerce.number().optional().catch(undefined),
+  f: z.coerce.number().optional().catch(undefined),
+  subs: z.coerce.boolean().catch(true),
 });
 
 export const Route = createFileRoute("/search")({
@@ -33,12 +35,13 @@ function SearchPage() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [q, setQ] = useState(search.q);
-  const [macros, setMacros] = useState<Macros>({
-    kcal: search.kcal,
-    protein_g: search.p,
-    carbs_g: search.c,
-    fat_g: search.f,
+  const [macros, setMacros] = useState<MacrosOptional>({
+    kcal: search.kcal ?? null,
+    protein_g: search.p ?? null,
+    carbs_g: search.c ?? null,
+    fat_g: search.f ?? null,
   });
+  const [allowSubs, setAllowSubs] = useState(search.subs);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +51,17 @@ function SearchPage() {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    searchRecipes({ data: { query: search.q, number: 12 } })
+    searchRecipes({
+      data: {
+        query: search.q,
+        number: 12,
+        kcal: search.kcal ?? null,
+        protein_g: search.p ?? null,
+        carbs_g: search.c ?? null,
+        fat_g: search.f ?? null,
+        allowSubs: search.subs,
+      },
+    })
       .then((r) => {
         if (cancelled) return;
         setResults(r.results);
@@ -59,12 +72,19 @@ function SearchPage() {
     return () => {
       cancelled = true;
     };
-  }, [search.q]);
+  }, [search.q, search.kcal, search.p, search.c, search.f, search.subs]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({
-      search: { q: q.trim(), kcal: macros.kcal, p: macros.protein_g, c: macros.carbs_g, f: macros.fat_g },
+      search: {
+        q: q.trim(),
+        kcal: macros.kcal ?? undefined,
+        p: macros.protein_g ?? undefined,
+        c: macros.carbs_g ?? undefined,
+        f: macros.fat_g ?? undefined,
+        subs: allowSubs,
+      },
     });
   };
 
@@ -79,7 +99,21 @@ function SearchPage() {
             </div>
             <Button type="submit">Search</Button>
           </div>
-          <MacroInputs value={macros} onChange={setMacros} />
+          <div>
+            <p className="mb-2 text-xs text-muted-foreground">Leave any macro blank to ignore it.</p>
+            <MacroInputs value={macros} onChange={setMacros} />
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 p-3">
+            <div>
+              <Label htmlFor="allow-subs" className="text-sm font-medium">Allow substitutions</Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {allowSubs
+                  ? "Show recipes that can be tuned with swaps to fit your macros."
+                  : "Only show recipes that already fit — no swaps needed."}
+              </p>
+            </div>
+            <Switch id="allow-subs" checked={allowSubs} onCheckedChange={setAllowSubs} />
+          </div>
         </form>
       </Card>
 
@@ -97,7 +131,10 @@ function SearchPage() {
         )}
 
         {!loading && !error && results.length === 0 && search.q && (
-          <p className="text-center text-muted-foreground">No recipes found. Try a different search.</p>
+          <p className="text-center text-muted-foreground">
+            No recipes found.{" "}
+            {!allowSubs && "Try enabling substitutions or relaxing some macros."}
+          </p>
         )}
 
         {!loading && !error && !search.q && (
@@ -111,7 +148,13 @@ function SearchPage() {
                 key={r.id}
                 to="/recipe/$id"
                 params={{ id: String(r.id) }}
-                search={{ kcal: macros.kcal, p: macros.protein_g, c: macros.carbs_g, f: macros.fat_g }}
+                search={{
+                  kcal: macros.kcal ?? undefined,
+                  p: macros.protein_g ?? undefined,
+                  c: macros.carbs_g ?? undefined,
+                  f: macros.fat_g ?? undefined,
+                  subs: allowSubs,
+                }}
               >
                 <Card className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md p-0 h-full">
                   <div className="aspect-[4/3] bg-muted overflow-hidden">
