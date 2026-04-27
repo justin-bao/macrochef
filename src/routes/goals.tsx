@@ -61,7 +61,17 @@ function GoalsPage() {
       <p className="mt-1 text-muted-foreground">These will pre-fill on every recipe search.</p>
 
       <Card className="mt-6 p-6 space-y-5">
-        <MacroInputs value={macros} onChange={setMacros} />
+        <MacroInputs
+          value={{ kcal: macros.kcal, protein_g: macros.protein_g, carbs_g: macros.carbs_g, fat_g: macros.fat_g }}
+          onChange={(m) =>
+            setMacros({
+              kcal: m.kcal ?? 0,
+              protein_g: m.protein_g ?? 0,
+              carbs_g: m.carbs_g ?? 0,
+              fat_g: m.fat_g ?? 0,
+            })
+          }
+        />
         <div className="flex justify-end gap-2">
           <Link to="/"><Button variant="ghost">Cancel</Button></Link>
           <Button onClick={save} disabled={busy}>{busy ? "Saving…" : "Save goals"}</Button>

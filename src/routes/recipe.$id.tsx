@@ -6,14 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MacroBar } from "@/components/MacroBar";
-import { MacroInputs } from "@/components/MacroInputs";
+import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Sparkles, Calculator, BookmarkPlus, Clock, ExternalLink, RotateCcw, CheckCircle2 } from "lucide-react";
 import {
   applySwaps,
   scaleIngredients,
   sumMacros,
   type Ingredient,
-  type Macros,
   type Swap,
 } from "@/lib/macros";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,10 +20,11 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
-  kcal: z.coerce.number().catch(600),
-  p: z.coerce.number().catch(40),
-  c: z.coerce.number().catch(60),
-  f: z.coerce.number().catch(20),
+  kcal: z.coerce.number().optional().catch(undefined),
+  p: z.coerce.number().optional().catch(undefined),
+  c: z.coerce.number().optional().catch(undefined),
+  f: z.coerce.number().optional().catch(undefined),
+  subs: z.coerce.boolean().catch(true),
 });
 
 export const Route = createFileRoute("/recipe/$id")({
@@ -43,13 +43,14 @@ function RecipePage() {
   const search = Route.useSearch();
   const { user } = useAuth();
 
-  const target: Macros = {
-    kcal: search.kcal,
-    protein_g: search.p,
-    carbs_g: search.c,
-    fat_g: search.f,
+  const target: MacrosOptional = {
+    kcal: search.kcal ?? null,
+    protein_g: search.p ?? null,
+    carbs_g: search.c ?? null,
+    fat_g: search.f ?? null,
   };
-  const [editingTarget, setEditingTarget] = useState(target);
+  const allowSubs = search.subs;
+  const [editingTarget, setEditingTarget] = useState<MacrosOptional>(target);
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +116,10 @@ function RecipePage() {
 
   const scaleToTarget = () => {
     if (!recipe || perServing.kcal === 0) return;
+    if (editingTarget.kcal == null) {
+      toast.error("Set a calorie target first.");
+      return;
+    }
     const factor = editingTarget.kcal / (recipe.macros.kcal / recipe.servings);
     setScaleFactor(factor);
     toast.success(`Ingredients scaled to ${editingTarget.kcal} kcal/serving`);
@@ -250,10 +255,10 @@ function RecipePage() {
               )}
             </div>
             <div className="space-y-3">
-              <MacroBar label="Calories" value={perServing.kcal} target={editingTarget.kcal} unit="kcal" color="kcal" />
-              <MacroBar label="Protein" value={perServing.protein_g} target={editingTarget.protein_g} color="protein" />
-              <MacroBar label="Carbs" value={perServing.carbs_g} target={editingTarget.carbs_g} color="carbs" />
-              <MacroBar label="Fat" value={perServing.fat_g} target={editingTarget.fat_g} color="fat" />
+              <MacroBar label="Calories" value={perServing.kcal} target={editingTarget.kcal ?? undefined} unit="kcal" color="kcal" />
+              <MacroBar label="Protein" value={perServing.protein_g} target={editingTarget.protein_g ?? undefined} color="protein" />
+              <MacroBar label="Carbs" value={perServing.carbs_g} target={editingTarget.carbs_g ?? undefined} color="carbs" />
+              <MacroBar label="Fat" value={perServing.fat_g} target={editingTarget.fat_g ?? undefined} color="fat" />
             </div>
           </Card>
 
@@ -261,13 +266,18 @@ function RecipePage() {
             <h3 className="font-semibold">Tune to target</h3>
             <p className="mt-1 text-sm text-muted-foreground">Two ways to hit your numbers.</p>
             <div className="mt-3 space-y-2">
-              <Button onClick={scaleToTarget} variant="secondary" className="w-full justify-start">
-                <Calculator className="mr-2 h-4 w-4" /> Scale ingredients to {editingTarget.kcal} kcal
+              <Button onClick={scaleToTarget} variant="secondary" className="w-full justify-start" disabled={editingTarget.kcal == null}>
+                <Calculator className="mr-2 h-4 w-4" />
+                {editingTarget.kcal != null
+                  ? `Scale ingredients to ${editingTarget.kcal} kcal`
+                  : "Set a calorie target to scale"}
               </Button>
-              <Button onClick={generateSwaps} disabled={loadingSwaps} className="w-full justify-start">
-                <Sparkles className="mr-2 h-4 w-4" />
-                {loadingSwaps ? "Finding swaps…" : "Suggest substitutions"}
-              </Button>
+              {allowSubs && (
+                <Button onClick={generateSwaps} disabled={loadingSwaps} className="w-full justify-start">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {loadingSwaps ? "Finding swaps…" : "Suggest substitutions"}
+                </Button>
+              )}
             </div>
 
             {swaps.length > 0 && (
