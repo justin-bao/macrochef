@@ -116,6 +116,10 @@ function RecipePage() {
 
   const scaleToTarget = () => {
     if (!recipe || perServing.kcal === 0) return;
+    if (editingTarget.kcal == null) {
+      toast.error("Set a calorie target first.");
+      return;
+    }
     const factor = editingTarget.kcal / (recipe.macros.kcal / recipe.servings);
     setScaleFactor(factor);
     toast.success(`Ingredients scaled to ${editingTarget.kcal} kcal/serving`);
@@ -251,10 +255,10 @@ function RecipePage() {
               )}
             </div>
             <div className="space-y-3">
-              <MacroBar label="Calories" value={perServing.kcal} target={editingTarget.kcal} unit="kcal" color="kcal" />
-              <MacroBar label="Protein" value={perServing.protein_g} target={editingTarget.protein_g} color="protein" />
-              <MacroBar label="Carbs" value={perServing.carbs_g} target={editingTarget.carbs_g} color="carbs" />
-              <MacroBar label="Fat" value={perServing.fat_g} target={editingTarget.fat_g} color="fat" />
+              <MacroBar label="Calories" value={perServing.kcal} target={editingTarget.kcal ?? undefined} unit="kcal" color="kcal" />
+              <MacroBar label="Protein" value={perServing.protein_g} target={editingTarget.protein_g ?? undefined} color="protein" />
+              <MacroBar label="Carbs" value={perServing.carbs_g} target={editingTarget.carbs_g ?? undefined} color="carbs" />
+              <MacroBar label="Fat" value={perServing.fat_g} target={editingTarget.fat_g ?? undefined} color="fat" />
             </div>
           </Card>
 
@@ -262,13 +266,18 @@ function RecipePage() {
             <h3 className="font-semibold">Tune to target</h3>
             <p className="mt-1 text-sm text-muted-foreground">Two ways to hit your numbers.</p>
             <div className="mt-3 space-y-2">
-              <Button onClick={scaleToTarget} variant="secondary" className="w-full justify-start">
-                <Calculator className="mr-2 h-4 w-4" /> Scale ingredients to {editingTarget.kcal} kcal
+              <Button onClick={scaleToTarget} variant="secondary" className="w-full justify-start" disabled={editingTarget.kcal == null}>
+                <Calculator className="mr-2 h-4 w-4" />
+                {editingTarget.kcal != null
+                  ? `Scale ingredients to ${editingTarget.kcal} kcal`
+                  : "Set a calorie target to scale"}
               </Button>
-              <Button onClick={generateSwaps} disabled={loadingSwaps} className="w-full justify-start">
-                <Sparkles className="mr-2 h-4 w-4" />
-                {loadingSwaps ? "Finding swaps…" : "Suggest substitutions"}
-              </Button>
+              {allowSubs && (
+                <Button onClick={generateSwaps} disabled={loadingSwaps} className="w-full justify-start">
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  {loadingSwaps ? "Finding swaps…" : "Suggest substitutions"}
+                </Button>
+              )}
             </div>
 
             {swaps.length > 0 && (
