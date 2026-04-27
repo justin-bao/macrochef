@@ -43,13 +43,14 @@ function RecipePage() {
   const search = Route.useSearch();
   const { user } = useAuth();
 
-  const target: Macros = {
-    kcal: search.kcal,
-    protein_g: search.p,
-    carbs_g: search.c,
-    fat_g: search.f,
+  const target: MacrosOptional = {
+    kcal: search.kcal ?? null,
+    protein_g: search.p ?? null,
+    carbs_g: search.c ?? null,
+    fat_g: search.f ?? null,
   };
-  const [editingTarget, setEditingTarget] = useState(target);
+  const allowSubs = search.subs;
+  const [editingTarget, setEditingTarget] = useState<MacrosOptional>(target);
   const [recipe, setRecipe] = useState<RecipeDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
