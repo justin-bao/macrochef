@@ -14,7 +14,75 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      macro_goals: {
+        Row: {
+          carbs_g: number
+          fat_g: number
+          kcal: number
+          protein_g: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          carbs_g?: number
+          fat_g?: number
+          kcal?: number
+          protein_g?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          carbs_g?: number
+          fat_g?: number
+          kcal?: number
+          protein_g?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_recipes: {
+        Row: {
+          applied_swaps: Json | null
+          computed_macros: Json | null
+          created_at: string
+          id: string
+          image: string | null
+          scaled_ingredients: Json | null
+          servings: number | null
+          spoonacular_id: number
+          target_macros: Json | null
+          title: string
+          user_id: string
+        }
+        Insert: {
+          applied_swaps?: Json | null
+          computed_macros?: Json | null
+          created_at?: string
+          id?: string
+          image?: string | null
+          scaled_ingredients?: Json | null
+          servings?: number | null
+          spoonacular_id: number
+          target_macros?: Json | null
+          title: string
+          user_id: string
+        }
+        Update: {
+          applied_swaps?: Json | null
+          computed_macros?: Json | null
+          created_at?: string
+          id?: string
+          image?: string | null
+          scaled_ingredients?: Json | null
+          servings?: number | null
+          spoonacular_id?: number
+          target_macros?: Json | null
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
