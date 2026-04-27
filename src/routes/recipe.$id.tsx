@@ -6,14 +6,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MacroBar } from "@/components/MacroBar";
-import { MacroInputs } from "@/components/MacroInputs";
+import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Sparkles, Calculator, BookmarkPlus, Clock, ExternalLink, RotateCcw, CheckCircle2 } from "lucide-react";
 import {
   applySwaps,
   scaleIngredients,
   sumMacros,
   type Ingredient,
-  type Macros,
   type Swap,
 } from "@/lib/macros";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,10 +20,11 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
-  kcal: z.coerce.number().catch(600),
-  p: z.coerce.number().catch(40),
-  c: z.coerce.number().catch(60),
-  f: z.coerce.number().catch(20),
+  kcal: z.coerce.number().optional().catch(undefined),
+  p: z.coerce.number().optional().catch(undefined),
+  c: z.coerce.number().optional().catch(undefined),
+  f: z.coerce.number().optional().catch(undefined),
+  subs: z.coerce.boolean().catch(true),
 });
 
 export const Route = createFileRoute("/recipe/$id")({
