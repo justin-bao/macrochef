@@ -72,20 +72,23 @@ function HomePage() {
         <Card className="p-6 sm:p-8 shadow-lg shadow-foreground/5">
           <form onSubmit={submit} className="space-y-5">
             <div>
-              <label className="text-sm font-medium">What do you want to cook?</label>
+              <label className="text-sm font-medium">What do you want to cook? <span className="font-normal text-muted-foreground">(optional)</span></label>
               <div className="mt-1.5 flex gap-2">
                 <div className="relative flex-1">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
-                    placeholder="grilled chicken bowl, pad thai, lentil curry…"
+                    placeholder="pad thai, italian, high-protein breakfast, or leave blank…"
                     className="pl-9 h-11"
                     autoFocus
                   />
                 </div>
-                <Button type="submit" size="lg">Find recipes</Button>
+                <Button type="submit" size="lg" disabled={!canSubmit}>Find recipes</Button>
               </div>
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Try a specific dish, a cuisine ("thai", "mediterranean"), or leave blank to browse everything that fits your macros.
+              </p>
             </div>
 
             <div>
