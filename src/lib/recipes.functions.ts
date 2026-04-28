@@ -40,19 +40,26 @@ export const searchRecipes = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const key = requireKey();
+    // Fetch a wider candidate pool so we can rank by closeness rather than
+    // just filter. Spoonacular caps `number` at 100.
+    const anyTarget =
+      data.kcal != null || data.protein_g != null || data.carbs_g != null || data.fat_g != null;
+    const fetchCount = anyTarget ? Math.min(100, Math.max(data.number * 4, 40)) : data.number;
     const params = new URLSearchParams({
       apiKey: key,
       query: data.query,
-      number: String(data.number),
+      number: String(fetchCount),
       addRecipeNutrition: "true",
       instructionsRequired: "true",
+      sort: "popularity",
     });
     if (data.diet) params.set("diet", data.diet);
     if (data.cuisine) params.set("cuisine", data.cuisine);
     if (data.maxReadyTime) params.set("maxReadyTime", String(data.maxReadyTime));
 
-    // Macro range matching. Strict mode = ±15%; loose mode = one-sided so
-    // recipes can be tuned: cap the "too high" macros, floor the protein.
+    // Loose pre-filter so we don't waste the candidate pool on wildly off recipes.
+    // Tight mode (no subs) uses ±25%; loose mode (subs allowed) uses ±60% one-sided
+    // depending on macro direction. Final ordering is by distance below.
     const tight = !data.allowSubs;
     const setRange = (
       minKey: string,
@@ -62,15 +69,15 @@ export const searchRecipes = createServerFn({ method: "POST" })
     ) => {
       if (target == null) return;
       if (tight) {
-        params.set(minKey, String(Math.max(0, Math.round(target * 0.85))));
-        params.set(maxKey, String(Math.round(target * 1.15)));
+        params.set(minKey, String(Math.max(0, Math.round(target * 0.75))));
+        params.set(maxKey, String(Math.round(target * 1.25)));
       } else if (mode === "cap") {
-        params.set(maxKey, String(Math.round(target * 1.5)));
+        params.set(maxKey, String(Math.round(target * 1.6)));
       } else if (mode === "floor") {
-        params.set(minKey, String(Math.max(0, Math.round(target * 0.5))));
+        params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
       } else {
-        params.set(minKey, String(Math.max(0, Math.round(target * 0.7))));
-        params.set(maxKey, String(Math.round(target * 1.3)));
+        params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
+        params.set(maxKey, String(Math.round(target * 1.6)));
       }
     };
     setRange("minCalories", "maxCalories", data.kcal, "cap");
@@ -85,7 +92,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
       return { results: [] as SearchResult[], error: `Search failed (${res.status})` };
     }
     const json = (await res.json()) as { results: any[] };
-    const results: SearchResult[] = (json.results ?? []).map((r) => {
+    let results: SearchResult[] = (json.results ?? []).map((r) => {
       const nut = r.nutrition?.nutrients ?? [];
       const find = (n: string) => nut.find((x: any) => x.name === n)?.amount;
       return {
@@ -98,6 +105,31 @@ export const searchRecipes = createServerFn({ method: "POST" })
         fat_g: find("Fat"),
       };
     });
+
+    // Rank by total normalized absolute distance from the provided targets.
+    // Each provided macro contributes |actual - target| / target. Missing
+    // targets are skipped. Recipes missing the macro value are penalized.
+    if (anyTarget) {
+      const targets: { key: keyof SearchResult; target: number }[] = [];
+      if (data.kcal != null) targets.push({ key: "kcal", target: data.kcal });
+      if (data.protein_g != null) targets.push({ key: "protein_g", target: data.protein_g });
+      if (data.carbs_g != null) targets.push({ key: "carbs_g", target: data.carbs_g });
+      if (data.fat_g != null) targets.push({ key: "fat_g", target: data.fat_g });
+
+      const score = (r: SearchResult) =>
+        targets.reduce((sum, { key, target }) => {
+          const actual = r[key] as number | undefined;
+          if (actual == null) return sum + 1; // penalty for missing
+          return sum + Math.abs(actual - target) / Math.max(1, target);
+        }, 0);
+
+      results = results
+        .map((r) => ({ r, s: score(r) }))
+        .sort((a, b) => a.s - b.s)
+        .slice(0, data.number)
+        .map(({ r }) => r);
+    }
+
     return { results, error: null };
   });
 
