@@ -24,7 +24,7 @@ export type SearchResult = {
 export const searchRecipes = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      query: z.string().trim().min(1).max(120),
+      query: z.string().trim().max(120).optional().default(""),
       diet: z.string().optional(),
       cuisine: z.string().optional(),
       maxReadyTime: z.number().int().positive().max(360).optional(),
