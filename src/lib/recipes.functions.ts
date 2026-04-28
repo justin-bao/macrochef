@@ -58,6 +58,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
       apiKey: key,
       number: String(fetchCount),
       addRecipeNutrition: "true",
+      fillIngredients: "true",
       instructionsRequired: "true",
       sort: "popularity",
     });
