@@ -46,8 +46,12 @@ function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasMacros =
+    search.kcal != null || search.p != null || search.c != null || search.f != null;
+  const hasCriteria = !!search.q || hasMacros;
+
   useEffect(() => {
-    if (!search.q) return;
+    if (!hasCriteria) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -72,7 +76,21 @@ function SearchPage() {
     return () => {
       cancelled = true;
     };
-  }, [search.q, search.kcal, search.p, search.c, search.f, search.subs]);
+  }, [search.q, search.kcal, search.p, search.c, search.f, search.subs, hasCriteria]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate({
+      search: {
+        q: q.trim(),
+        kcal: macros.kcal ?? undefined,
+        p: macros.protein_g ?? undefined,
+        c: macros.carbs_g ?? undefined,
+        f: macros.fat_g ?? undefined,
+        subs: allowSubs,
+      },
+    });
+  };
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
