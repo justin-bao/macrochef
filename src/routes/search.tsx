@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 
 const searchSchema = z.object({
   q: z.string().catch(""),
