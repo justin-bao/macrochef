@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { classifyFit, estimateSwapImpact } from "./swap-heuristics";
 
 const KEY = () => process.env.SPOONACULAR_API_KEY;
 const BASE = "https://api.spoonacular.com";
@@ -19,6 +20,13 @@ export type SearchResult = {
   protein_g?: number;
   carbs_g?: number;
   fat_g?: number;
+  // Search-time swap heuristic output (only set when allowSubs && targets given).
+  fitKind?: "fits" | "swaps" | "close";
+  swapCount?: number;
+  adjustedKcal?: number;
+  adjustedProtein_g?: number;
+  adjustedCarbs_g?: number;
+  adjustedFat_g?: number;
 };
 
 export const searchRecipes = createServerFn({ method: "POST" })
@@ -50,6 +58,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
       apiKey: key,
       number: String(fetchCount),
       addRecipeNutrition: "true",
+      fillIngredients: "true",
       instructionsRequired: "true",
       sort: "popularity",
     });
@@ -94,14 +103,18 @@ export const searchRecipes = createServerFn({ method: "POST" })
     }
     const json = (await res.json()) as { results: any[] };
     // Spoonacular's complexSearch with addRecipeNutrition returns per-serving
-    // nutrients. We capture servings and always rank using per-serving macros
-    // so recipes with different serving counts compare fairly.
-    let results: SearchResult[] = (json.results ?? []).map((r) => {
+    // nutrients. We capture servings + ingredient names so swap heuristics can
+    // estimate adjusted macros at search time without extra API calls.
+    type Candidate = SearchResult & { _ingredientNames: string[] };
+    let results: Candidate[] = (json.results ?? []).map((r) => {
       const nut = r.nutrition?.nutrients ?? [];
       const find = (n: string) => nut.find((x: any) => x.name === n)?.amount;
       const servings = Math.max(1, Number(r.servings) || 1);
       const round1 = (v: number | undefined) =>
         v == null ? undefined : Math.round(v * 10) / 10;
+      const ingredientNames: string[] = (r.extendedIngredients ?? r.nutrition?.ingredients ?? [])
+        .map((i: any) => String(i.nameClean || i.name || "").trim())
+        .filter(Boolean);
       return {
         id: r.id,
         title: r.title,
@@ -111,33 +124,79 @@ export const searchRecipes = createServerFn({ method: "POST" })
         protein_g: round1(find("Protein")),
         carbs_g: round1(find("Carbohydrates")),
         fat_g: round1(find("Fat")),
+        _ingredientNames: ingredientNames,
       };
     });
 
-    // Rank by total normalized absolute distance from the provided targets,
-    // using per-serving macros for fair comparison across recipes.
+    // Rank by per-serving distance to targets. When subs are allowed, also
+    // try heuristic swaps and rank by the BETTER of original vs swap-adjusted
+    // distance — interleaving fits-as-is and swap-adjusted recipes by score.
     if (anyTarget) {
-      const targets: { key: "kcal" | "protein_g" | "carbs_g" | "fat_g"; target: number }[] = [];
-      if (data.kcal != null) targets.push({ key: "kcal", target: data.kcal });
-      if (data.protein_g != null) targets.push({ key: "protein_g", target: data.protein_g });
-      if (data.carbs_g != null) targets.push({ key: "carbs_g", target: data.carbs_g });
-      if (data.fat_g != null) targets.push({ key: "fat_g", target: data.fat_g });
+      const targets = {
+        kcal: data.kcal ?? null,
+        protein_g: data.protein_g ?? null,
+        carbs_g: data.carbs_g ?? null,
+        fat_g: data.fat_g ?? null,
+      };
+      const targetCount = [data.kcal, data.protein_g, data.carbs_g, data.fat_g].filter(
+        (v) => v != null,
+      ).length;
 
-      const score = (r: SearchResult) =>
-        targets.reduce((sum, { key, target }) => {
-          const actual = r[key];
-          if (actual == null) return sum + 1;
-          return sum + Math.abs(actual - target) / Math.max(1, target);
-        }, 0);
+      const enriched = results.map((r) => {
+        const baseMacros = {
+          kcal: r.kcal,
+          protein_g: r.protein_g,
+          carbs_g: r.carbs_g,
+          fat_g: r.fat_g,
+        };
+        if (!data.allowSubs) {
+          const { baselineDistance } = estimateSwapImpact(
+            baseMacros,
+            [],
+            targets,
+            r.servings ?? 1,
+          );
+          return {
+            r,
+            score: baselineDistance,
+            fitKind: classifyFit(baselineDistance, baselineDistance, targetCount),
+            swaps: [] as ReturnType<typeof estimateSwapImpact>["swaps"],
+            adjusted: baseMacros,
+          };
+        }
+        const est = estimateSwapImpact(
+          baseMacros,
+          r._ingredientNames,
+          targets,
+          r.servings ?? 1,
+        );
+        const useAdjusted = est.adjustedDistance < est.baselineDistance;
+        return {
+          r,
+          score: Math.min(est.baselineDistance, est.adjustedDistance),
+          fitKind: classifyFit(est.baselineDistance, est.adjustedDistance, targetCount),
+          swaps: useAdjusted ? est.swaps : [],
+          adjusted: useAdjusted ? est.adjusted : baseMacros,
+        };
+      });
 
-      results = results
-        .map((r) => ({ r, s: score(r) }))
-        .sort((a, b) => a.s - b.s)
+      results = enriched
+        .sort((a, b) => a.score - b.score)
         .slice(0, data.number)
-        .map(({ r }) => r);
+        .map(({ r, fitKind, swaps, adjusted }) => ({
+          ...r,
+          fitKind,
+          swapCount: swaps.length,
+          adjustedKcal: swaps.length ? adjusted.kcal : undefined,
+          adjustedProtein_g: swaps.length ? adjusted.protein_g : undefined,
+          adjustedCarbs_g: swaps.length ? adjusted.carbs_g : undefined,
+          adjustedFat_g: swaps.length ? adjusted.fat_g : undefined,
+        }));
     }
 
-    return { results, error: null };
+    // Strip the internal field before returning to the client.
+    const cleanResults: SearchResult[] = results.map(({ _ingredientNames, ...rest }) => rest);
+    return { results: cleanResults, error: null };
   });
 
 export type RecipeDetail = {
