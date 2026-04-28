@@ -92,19 +92,7 @@ function SearchPage() {
     });
   };
 
-  const submit = (e: React.FormEvent) => {
-    e.preventDefault();
-    navigate({
-      search: {
-        q: q.trim(),
-        kcal: macros.kcal ?? undefined,
-        p: macros.protein_g ?? undefined,
-        c: macros.carbs_g ?? undefined,
-        f: macros.fat_g ?? undefined,
-        subs: allowSubs,
-      },
-    });
-  };
+
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
