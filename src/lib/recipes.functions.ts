@@ -14,6 +14,7 @@ export type SearchResult = {
   id: number;
   title: string;
   image: string;
+  servings?: number;
   kcal?: number;
   protein_g?: number;
   carbs_g?: number;
