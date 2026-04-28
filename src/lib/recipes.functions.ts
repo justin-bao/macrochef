@@ -48,12 +48,12 @@ export const searchRecipes = createServerFn({ method: "POST" })
     const fetchCount = anyTarget ? Math.min(100, Math.max(data.number * 4, 40)) : data.number;
     const params = new URLSearchParams({
       apiKey: key,
-      query: data.query,
       number: String(fetchCount),
       addRecipeNutrition: "true",
       instructionsRequired: "true",
       sort: "popularity",
     });
+    if (data.query) params.set("query", data.query);
     if (data.diet) params.set("diet", data.diet);
     if (data.cuisine) params.set("cuisine", data.cuisine);
     if (data.maxReadyTime) params.set("maxReadyTime", String(data.maxReadyTime));
