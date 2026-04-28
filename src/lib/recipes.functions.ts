@@ -11,6 +11,12 @@ function requireKey() {
   return k;
 }
 
+export type SearchSwap = {
+  from: string;
+  to: string;
+  delta: { kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+};
+
 export type SearchResult = {
   id: number;
   title: string;
@@ -23,6 +29,7 @@ export type SearchResult = {
   // Search-time swap heuristic output (only set when allowSubs && targets given).
   fitKind?: "fits" | "swaps" | "close";
   swapCount?: number;
+  swaps?: SearchSwap[];
   adjustedKcal?: number;
   adjustedProtein_g?: number;
   adjustedCarbs_g?: number;
