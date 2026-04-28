@@ -46,8 +46,12 @@ function SearchPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasMacros =
+    search.kcal != null || search.p != null || search.c != null || search.f != null;
+  const hasCriteria = !!search.q || hasMacros;
+
   useEffect(() => {
-    if (!search.q) return;
+    if (!hasCriteria) return;
     let cancelled = false;
     setLoading(true);
     setError(null);
@@ -72,7 +76,7 @@ function SearchPage() {
     return () => {
       cancelled = true;
     };
-  }, [search.q, search.kcal, search.p, search.c, search.f, search.subs]);
+  }, [search.q, search.kcal, search.p, search.c, search.f, search.subs, hasCriteria]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,6 +92,8 @@ function SearchPage() {
     });
   };
 
+
+
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
       <Card className="p-5">
@@ -95,9 +101,9 @@ function SearchPage() {
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search recipes…" className="pl-9 h-10" />
+              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Dish, cuisine, or leave blank…" className="pl-9 h-10" />
             </div>
-            <Button type="submit">Search</Button>
+            <Button type="submit" disabled={!q.trim() && !(macros.kcal != null || macros.protein_g != null || macros.carbs_g != null || macros.fat_g != null)}>Search</Button>
           </div>
           <div>
             <p className="mb-2 text-xs text-muted-foreground">Leave any macro blank to ignore it.</p>
@@ -130,15 +136,15 @@ function SearchPage() {
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>
         )}
 
-        {!loading && !error && results.length === 0 && search.q && (
+        {!loading && !error && results.length === 0 && hasCriteria && (
           <p className="text-center text-muted-foreground">
             No recipes found.{" "}
             {!allowSubs && "Try enabling substitutions or relaxing some macros."}
           </p>
         )}
 
-        {!loading && !error && !search.q && (
-          <p className="text-center text-muted-foreground">Enter a dish above to start.</p>
+        {!loading && !error && !hasCriteria && (
+          <p className="text-center text-muted-foreground">Enter a dish, cuisine, or set some macro targets to start.</p>
         )}
 
         {!loading && results.length > 0 && (
