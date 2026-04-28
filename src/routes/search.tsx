@@ -167,7 +167,10 @@ function SearchPage() {
                     {r.image && <img src={r.image} alt={r.title} className="h-full w-full object-cover" loading="lazy" />}
                   </div>
                   <div className="p-4 space-y-2">
-                    <h3 className="font-semibold line-clamp-2">{r.title}</h3>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="font-semibold line-clamp-2">{r.title}</h3>
+                      {r.fitKind && <FitBadge kind={r.fitKind} swapCount={r.swapCount ?? 0} />}
+                    </div>
                     {r.kcal != null && (
                       <div className="flex flex-wrap gap-2 text-xs">
                         <Badge label={`${Math.round(r.kcal)} kcal`} c="kcal" />
@@ -175,6 +178,14 @@ function SearchPage() {
                         <Badge label={`${Math.round(r.carbs_g ?? 0)}C`} c="carbs" />
                         <Badge label={`${Math.round(r.fat_g ?? 0)}F`} c="fat" />
                       </div>
+                    )}
+                    {r.fitKind === "swaps" && r.adjustedKcal != null && (
+                      <p className="text-[11px] text-muted-foreground">
+                        With swaps: ~{Math.round(r.adjustedKcal)} kcal ·{" "}
+                        {Math.round(r.adjustedProtein_g ?? 0)}P ·{" "}
+                        {Math.round(r.adjustedCarbs_g ?? 0)}C ·{" "}
+                        {Math.round(r.adjustedFat_g ?? 0)}F
+                      </p>
                     )}
                   </div>
                 </Card>
