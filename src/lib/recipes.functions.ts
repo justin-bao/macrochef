@@ -194,6 +194,9 @@ export const searchRecipes = createServerFn({ method: "POST" })
           ...r,
           fitKind,
           swapCount: swaps.length,
+          swaps: swaps.length
+            ? swaps.map((s) => ({ from: s.from, to: s.to, delta: s.delta }))
+            : undefined,
           adjustedKcal: swaps.length ? adjusted.kcal : undefined,
           adjustedProtein_g: swaps.length ? adjusted.protein_g : undefined,
           adjustedCarbs_g: swaps.length ? adjusted.carbs_g : undefined,
