@@ -31,9 +31,13 @@ function HomePage() {
   });
   const [allowSubs, setAllowSubs] = useState(true);
 
+  const anyMacro =
+    macros.kcal != null || macros.protein_g != null || macros.carbs_g != null || macros.fat_g != null;
+  const canSubmit = q.trim().length > 0 || anyMacro;
+
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!q.trim()) return;
+    if (!canSubmit) return;
     navigate({
       to: "/search",
       search: {
