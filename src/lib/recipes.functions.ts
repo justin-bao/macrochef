@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { classifyFit, estimateSwapImpact } from "./swap-heuristics";
 
 const KEY = () => process.env.SPOONACULAR_API_KEY;
 const BASE = "https://api.spoonacular.com";
@@ -19,6 +20,13 @@ export type SearchResult = {
   protein_g?: number;
   carbs_g?: number;
   fat_g?: number;
+  // Search-time swap heuristic output (only set when allowSubs && targets given).
+  fitKind?: "fits" | "swaps" | "close";
+  swapCount?: number;
+  adjustedKcal?: number;
+  adjustedProtein_g?: number;
+  adjustedCarbs_g?: number;
+  adjustedFat_g?: number;
 };
 
 export const searchRecipes = createServerFn({ method: "POST" })
