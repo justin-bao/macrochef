@@ -68,12 +68,21 @@ function RecipePage() {
         if (cancelled) return;
         setRecipe(r.recipe);
         setError(r.error);
+        // Auto-scale ingredients to the requested calorie target so the macros
+        // shown by default match what the user asked for on the search page.
+        if (r.recipe && target.kcal != null) {
+          const perServingKcal = r.recipe.macros.kcal / Math.max(1, r.recipe.servings);
+          if (perServingKcal > 0) {
+            setScaleFactor(target.kcal / perServingKcal);
+          }
+        }
       })
       .catch((e) => !cancelled && setError(e.message))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Working ingredient list = scaled + swapped

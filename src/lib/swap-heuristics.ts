@@ -100,29 +100,49 @@ function distance(macros: Macros, targets: Targets): number {
   return sum;
 }
 
+export type AppliedSwap = {
+  from: string; // actual ingredient name from the recipe that matched
+  to: string;
+  // Per-serving macro delta (negative = reduced).
+  delta: MacroDelta;
+};
+
 /**
  * Greedy estimator: try each swap whose ingredient appears in the recipe; keep
  * any swap that strictly improves the per-serving distance to target. Returns
- * the adjusted per-serving macros, the swaps used, and a fit classification.
+ * the adjusted per-serving macros, the swaps used (with the ingredient name
+ * actually matched), and the baseline/adjusted distance scores.
  */
 export function estimateSwapImpact(
   perServingMacros: Macros,
   ingredientNames: string[],
   targets: Targets,
   servings: number,
-): { adjusted: Macros; swaps: CommonSwap[]; baselineDistance: number; adjustedDistance: number } {
+): {
+  adjusted: Macros;
+  swaps: AppliedSwap[];
+  baselineDistance: number;
+  adjustedDistance: number;
+} {
   const lower = ingredientNames.map((n) => n.toLowerCase());
   const baselineDistance = distance(perServingMacros, targets);
   let current: Macros = { ...perServingMacros };
   let currentDistance = baselineDistance;
-  const used: CommonSwap[] = [];
+  const used: AppliedSwap[] = [];
   const usedKeys = new Set<string>();
 
   for (const swap of COMMON_SWAPS) {
     const key = swap.to;
     if (usedKeys.has(key)) continue;
-    const matched = swap.match.some((m) => lower.some((ing) => ing.includes(m)));
-    if (!matched) continue;
+    let matchedIdx = -1;
+    for (const m of swap.match) {
+      const idx = lower.findIndex((ing) => ing.includes(m));
+      if (idx >= 0) {
+        matchedIdx = idx;
+        break;
+      }
+    }
+    if (matchedIdx < 0) continue;
 
     // Per-serving delta — swap deltas above are stated per recipe.
     const perServDelta: MacroDelta = {
@@ -144,7 +164,16 @@ export function estimateSwapImpact(
     if (trialDistance + 1e-6 < currentDistance) {
       current = trial;
       currentDistance = trialDistance;
-      used.push(swap);
+      used.push({
+        from: ingredientNames[matchedIdx],
+        to: swap.to,
+        delta: {
+          kcal: Math.round(perServDelta.kcal),
+          protein_g: Math.round(perServDelta.protein_g * 10) / 10,
+          carbs_g: Math.round(perServDelta.carbs_g * 10) / 10,
+          fat_g: Math.round(perServDelta.fat_g * 10) / 10,
+        },
+      });
       usedKeys.add(key);
     }
   }

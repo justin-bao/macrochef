@@ -11,6 +11,12 @@ function requireKey() {
   return k;
 }
 
+export type SearchSwap = {
+  from: string;
+  to: string;
+  delta: { kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+};
+
 export type SearchResult = {
   id: number;
   title: string;
@@ -23,6 +29,7 @@ export type SearchResult = {
   // Search-time swap heuristic output (only set when allowSubs && targets given).
   fitKind?: "fits" | "swaps" | "close";
   swapCount?: number;
+  swaps?: SearchSwap[];
   adjustedKcal?: number;
   adjustedProtein_g?: number;
   adjustedCarbs_g?: number;
@@ -187,6 +194,9 @@ export const searchRecipes = createServerFn({ method: "POST" })
           ...r,
           fitKind,
           swapCount: swaps.length,
+          swaps: swaps.length
+            ? swaps.map((s) => ({ from: s.from, to: s.to, delta: s.delta }))
+            : undefined,
           adjustedKcal: swaps.length ? adjusted.kcal : undefined,
           adjustedProtein_g: swaps.length ? adjusted.protein_g : undefined,
           adjustedCarbs_g: swaps.length ? adjusted.carbs_g : undefined,

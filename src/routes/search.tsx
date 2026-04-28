@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 
 const searchSchema = z.object({
   q: z.string().catch(""),
@@ -150,51 +150,143 @@ function SearchPage() {
         {!loading && results.length > 0 && (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((r) => (
-              <Link
+              <ResultCard
                 key={r.id}
-                to="/recipe/$id"
-                params={{ id: String(r.id) }}
-                search={{
-                  kcal: macros.kcal ?? undefined,
-                  p: macros.protein_g ?? undefined,
-                  c: macros.carbs_g ?? undefined,
-                  f: macros.fat_g ?? undefined,
-                  subs: allowSubs,
-                }}
-              >
-                <Card className="overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md p-0 h-full">
-                  <div className="aspect-[4/3] bg-muted overflow-hidden">
-                    {r.image && <img src={r.image} alt={r.title} className="h-full w-full object-cover" loading="lazy" />}
-                  </div>
-                  <div className="p-4 space-y-2">
-                    <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-semibold line-clamp-2">{r.title}</h3>
-                      {r.fitKind && <FitBadge kind={r.fitKind} swapCount={r.swapCount ?? 0} />}
-                    </div>
-                    {r.kcal != null && (
-                      <div className="flex flex-wrap gap-2 text-xs">
-                        <Badge label={`${Math.round(r.kcal)} kcal`} c="kcal" />
-                        <Badge label={`${Math.round(r.protein_g ?? 0)}P`} c="protein" />
-                        <Badge label={`${Math.round(r.carbs_g ?? 0)}C`} c="carbs" />
-                        <Badge label={`${Math.round(r.fat_g ?? 0)}F`} c="fat" />
-                      </div>
-                    )}
-                    {r.fitKind === "swaps" && r.adjustedKcal != null && (
-                      <p className="text-[11px] text-muted-foreground">
-                        With swaps: ~{Math.round(r.adjustedKcal)} kcal ·{" "}
-                        {Math.round(r.adjustedProtein_g ?? 0)}P ·{" "}
-                        {Math.round(r.adjustedCarbs_g ?? 0)}C ·{" "}
-                        {Math.round(r.adjustedFat_g ?? 0)}F
-                      </p>
-                    )}
-                  </div>
-                </Card>
-              </Link>
+                result={r}
+                target={macros}
+                allowSubs={allowSubs}
+              />
             ))}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function ResultCard({
+  result: r,
+  target,
+  allowSubs,
+}: {
+  result: SearchResult;
+  target: MacrosOptional;
+  allowSubs: boolean;
+}) {
+  const [showSwaps, setShowSwaps] = useState(false);
+  // Normalize macros to the user's calorie target so values across recipes are
+  // comparable on the requested-portion scale. Falls back to per-serving.
+  const baseKcal = r.adjustedKcal ?? r.kcal;
+  const factor =
+    target.kcal != null && baseKcal != null && baseKcal > 0 ? target.kcal / baseKcal : 1;
+  const normalized = {
+    kcal: baseKcal != null ? baseKcal * factor : undefined,
+    protein_g: (r.adjustedProtein_g ?? r.protein_g) != null
+      ? (r.adjustedProtein_g ?? r.protein_g)! * factor
+      : undefined,
+    carbs_g: (r.adjustedCarbs_g ?? r.carbs_g) != null
+      ? (r.adjustedCarbs_g ?? r.carbs_g)! * factor
+      : undefined,
+    fat_g: (r.adjustedFat_g ?? r.fat_g) != null
+      ? (r.adjustedFat_g ?? r.fat_g)! * factor
+      : undefined,
+  };
+  const showingNormalized = factor !== 1;
+  const hasSwaps = (r.swaps?.length ?? 0) > 0;
+
+  return (
+    <Card className="overflow-hidden p-0 h-full transition hover:-translate-y-0.5 hover:shadow-md">
+      <Link
+        to="/recipe/$id"
+        params={{ id: String(r.id) }}
+        search={{
+          kcal: target.kcal ?? undefined,
+          p: target.protein_g ?? undefined,
+          c: target.carbs_g ?? undefined,
+          f: target.fat_g ?? undefined,
+          subs: allowSubs,
+        }}
+        className="block"
+      >
+        <div className="aspect-[4/3] bg-muted overflow-hidden">
+          {r.image && (
+            <img src={r.image} alt={r.title} className="h-full w-full object-cover" loading="lazy" />
+          )}
+        </div>
+        <div className="p-4 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold line-clamp-2">{r.title}</h3>
+            {r.fitKind && <FitBadge kind={r.fitKind} swapCount={r.swapCount ?? 0} />}
+          </div>
+          {normalized.kcal != null && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge label={`${Math.round(normalized.kcal)} kcal`} c="kcal" />
+              <Badge label={`${Math.round(normalized.protein_g ?? 0)}P`} c="protein" />
+              <Badge label={`${Math.round(normalized.carbs_g ?? 0)}C`} c="carbs" />
+              <Badge label={`${Math.round(normalized.fat_g ?? 0)}F`} c="fat" />
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            {showingNormalized
+              ? `Scaled to ${target.kcal} kcal${hasSwaps ? " · with estimated swaps" : ""}`
+              : hasSwaps
+                ? "Per serving · with estimated swaps"
+                : "Per serving"}
+          </p>
+        </div>
+      </Link>
+      {hasSwaps && (
+        <div className="border-t">
+          <button
+            type="button"
+            onClick={() => setShowSwaps((v) => !v)}
+            className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50"
+            aria-expanded={showSwaps}
+          >
+            <span>{showSwaps ? "Hide swaps" : `View ${r.swaps!.length} swap${r.swaps!.length > 1 ? "s" : ""}`}</span>
+            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSwaps ? "rotate-180" : ""}`} />
+          </button>
+          {showSwaps && (
+            <ul className="space-y-2 px-4 pb-3 pt-1 text-xs">
+              {r.swaps!.map((s, i) => (
+                <li key={i} className="rounded-md bg-muted/40 p-2">
+                  <div className="font-medium text-foreground">
+                    <span className="capitalize">{s.from}</span>{" "}
+                    <span className="text-muted-foreground">→</span> {s.to}
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    <DeltaPill v={s.delta.kcal} unit="kcal" />
+                    <DeltaPill v={s.delta.protein_g} unit="P" />
+                    <DeltaPill v={s.delta.carbs_g} unit="C" />
+                    <DeltaPill v={s.delta.fat_g} unit="F" />
+                  </div>
+                </li>
+              ))}
+              <li className="pt-1 text-[10px] italic text-muted-foreground">
+                Estimates per serving — verified on the recipe page.
+              </li>
+            </ul>
+          )}
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function DeltaPill({ v, unit }: { v?: number; unit: string }) {
+  if (v == null) return null;
+  if (v === 0) return null;
+  const positive = v > 0;
+  return (
+    <span
+      className={`rounded-full px-1.5 py-0.5 tabular-nums text-[10px] ${
+        positive ? "bg-[var(--carbs)]/15 text-[oklch(0.45_0.13_75)]" : "bg-primary/10 text-primary"
+      }`}
+    >
+      {positive ? "+" : ""}
+      {Math.round(v * 10) / 10}
+      {unit}
+    </span>
   );
 }
 
