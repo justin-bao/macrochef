@@ -14,6 +14,7 @@ export type SearchResult = {
   id: number;
   title: string;
   image: string;
+  servings?: number;
   kcal?: number;
   protein_g?: number;
   carbs_g?: number;
@@ -92,25 +93,31 @@ export const searchRecipes = createServerFn({ method: "POST" })
       return { results: [] as SearchResult[], error: `Search failed (${res.status})` };
     }
     const json = (await res.json()) as { results: any[] };
+    // Spoonacular's complexSearch with addRecipeNutrition returns per-serving
+    // nutrients. We capture servings and always rank using per-serving macros
+    // so recipes with different serving counts compare fairly.
     let results: SearchResult[] = (json.results ?? []).map((r) => {
       const nut = r.nutrition?.nutrients ?? [];
       const find = (n: string) => nut.find((x: any) => x.name === n)?.amount;
+      const servings = Math.max(1, Number(r.servings) || 1);
+      const round1 = (v: number | undefined) =>
+        v == null ? undefined : Math.round(v * 10) / 10;
       return {
         id: r.id,
         title: r.title,
         image: r.image,
-        kcal: find("Calories"),
-        protein_g: find("Protein"),
-        carbs_g: find("Carbohydrates"),
-        fat_g: find("Fat"),
+        servings,
+        kcal: round1(find("Calories")),
+        protein_g: round1(find("Protein")),
+        carbs_g: round1(find("Carbohydrates")),
+        fat_g: round1(find("Fat")),
       };
     });
 
-    // Rank by total normalized absolute distance from the provided targets.
-    // Each provided macro contributes |actual - target| / target. Missing
-    // targets are skipped. Recipes missing the macro value are penalized.
+    // Rank by total normalized absolute distance from the provided targets,
+    // using per-serving macros for fair comparison across recipes.
     if (anyTarget) {
-      const targets: { key: keyof SearchResult; target: number }[] = [];
+      const targets: { key: "kcal" | "protein_g" | "carbs_g" | "fat_g"; target: number }[] = [];
       if (data.kcal != null) targets.push({ key: "kcal", target: data.kcal });
       if (data.protein_g != null) targets.push({ key: "protein_g", target: data.protein_g });
       if (data.carbs_g != null) targets.push({ key: "carbs_g", target: data.carbs_g });
@@ -118,8 +125,8 @@ export const searchRecipes = createServerFn({ method: "POST" })
 
       const score = (r: SearchResult) =>
         targets.reduce((sum, { key, target }) => {
-          const actual = r[key] as number | undefined;
-          if (actual == null) return sum + 1; // penalty for missing
+          const actual = r[key];
+          if (actual == null) return sum + 1;
           return sum + Math.abs(actual - target) / Math.max(1, target);
         }, 0);
 
