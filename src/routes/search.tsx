@@ -207,3 +207,19 @@ function Badge({ label, c }: { label: string; c: "kcal" | "protein" | "carbs" | 
   }[c];
   return <span className={`rounded-full px-2 py-0.5 font-medium ${cls}`}>{label}</span>;
 }
+
+function FitBadge({ kind, swapCount }: { kind: "fits" | "swaps" | "close"; swapCount: number }) {
+  const map = {
+    fits: { label: "Fits", cls: "bg-[var(--protein)]/15 text-[var(--protein)]" },
+    swaps: {
+      label: swapCount > 0 ? `Fits w/ ${swapCount} swap${swapCount > 1 ? "s" : ""}` : "Fits w/ swaps",
+      cls: "bg-amber-500/15 text-amber-700",
+    },
+    close: { label: "Close", cls: "bg-muted text-muted-foreground" },
+  }[kind];
+  return (
+    <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${map.cls}`}>
+      {map.label}
+    </span>
+  );
+}
