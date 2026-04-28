@@ -136,15 +136,15 @@ function SearchPage() {
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>
         )}
 
-        {!loading && !error && results.length === 0 && search.q && (
+        {!loading && !error && results.length === 0 && hasCriteria && (
           <p className="text-center text-muted-foreground">
             No recipes found.{" "}
             {!allowSubs && "Try enabling substitutions or relaxing some macros."}
           </p>
         )}
 
-        {!loading && !error && !search.q && (
-          <p className="text-center text-muted-foreground">Enter a dish above to start.</p>
+        {!loading && !error && !hasCriteria && (
+          <p className="text-center text-muted-foreground">Enter a dish, cuisine, or set some macro targets to start.</p>
         )}
 
         {!loading && results.length > 0 && (
