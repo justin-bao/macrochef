@@ -26,7 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, ChevronDown, UtensilsCrossed, Store } from "lucide-react";
 
 const searchSchema = z.object({
-  mode: z.enum(["recipes", "restaurants"]).catch("recipes"),
+  mode: z.enum(["recipes", "restaurants"]).optional().catch(undefined).default("recipes"),
   q: z.string().catch(""),
   kcal: z.coerce.number().optional().catch(undefined),
   p: z.coerce.number().optional().catch(undefined),
