@@ -18,7 +18,7 @@ export function Header() {
           <span className="text-lg">MacroChef</span>
         </Link>
         <nav className="flex items-center gap-1">
-          <Link to="/search" search={{ q: "", subs: true }}>
+          <Link to="/search" search={{ mode: "recipes", q: "", subs: true }}>
             <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm">
               Search
             </Button>
