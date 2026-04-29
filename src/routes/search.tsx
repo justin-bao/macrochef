@@ -2,36 +2,87 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { searchRecipes, type SearchResult } from "@/lib/recipes.functions";
+import {
+  searchRestaurantCombos,
+  SUPPORTED_CHAINS,
+  type Combo,
+  type MenuItem,
+} from "@/lib/restaurants.functions";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, UtensilsCrossed, Store } from "lucide-react";
 
 const searchSchema = z.object({
+  mode: z.enum(["recipes", "restaurants"]).optional().catch(undefined).default("recipes"),
   q: z.string().catch(""),
   kcal: z.coerce.number().optional().catch(undefined),
   p: z.coerce.number().optional().catch(undefined),
   c: z.coerce.number().optional().catch(undefined),
   f: z.coerce.number().optional().catch(undefined),
   subs: z.coerce.boolean().catch(true),
+  chain: z.string().optional().catch(undefined),
+  maxItems: z.coerce.number().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/search")({
   validateSearch: searchSchema.parse,
   head: () => ({
     meta: [
-      { title: "Search recipes — MacroChef" },
-      { name: "description", content: "Search a recipe database and tune to your macro targets." },
+      { title: "Search recipes & restaurants — MacroChef" },
+      { name: "description", content: "Search recipes or fast food combos tuned to your macro targets." },
     ],
   }),
   component: SearchPage,
 });
 
 function SearchPage() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const mode = search.mode;
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 py-8">
+      <Tabs
+        value={mode}
+        onValueChange={(v) =>
+          navigate({ search: (prev) => ({ ...prev, mode: v as "recipes" | "restaurants" }) })
+        }
+      >
+        <TabsList className="mb-4 grid w-full grid-cols-2 sm:w-auto sm:inline-grid">
+          <TabsTrigger value="recipes" className="gap-2">
+            <UtensilsCrossed className="h-4 w-4" />
+            Recipes
+          </TabsTrigger>
+          <TabsTrigger value="restaurants" className="gap-2">
+            <Store className="h-4 w-4" />
+            Restaurants
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="recipes" className="mt-0">
+          <RecipesTab />
+        </TabsContent>
+        <TabsContent value="restaurants" className="mt-0">
+          <RestaurantsTab />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function RecipesTab() {
   const search = Route.useSearch();
   const navigate = Route.useNavigate();
   const [q, setQ] = useState(search.q);
@@ -51,6 +102,7 @@ function SearchPage() {
   const hasCriteria = !!search.q || hasMacros;
 
   useEffect(() => {
+    if (search.mode !== "recipes") return;
     if (!hasCriteria) return;
     let cancelled = false;
     setLoading(true);
@@ -76,26 +128,26 @@ function SearchPage() {
     return () => {
       cancelled = true;
     };
-  }, [search.q, search.kcal, search.p, search.c, search.f, search.subs, hasCriteria]);
+  }, [search.mode, search.q, search.kcal, search.p, search.c, search.f, search.subs, hasCriteria]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({
-      search: {
+      search: (prev) => ({
+        ...prev,
+        mode: "recipes",
         q: q.trim(),
         kcal: macros.kcal ?? undefined,
         p: macros.protein_g ?? undefined,
         c: macros.carbs_g ?? undefined,
         f: macros.fat_g ?? undefined,
         subs: allowSubs,
-      },
+      }),
     });
   };
 
-
-
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
+    <>
       <Card className="p-5">
         <form onSubmit={submit} className="space-y-4">
           <div className="flex gap-2">
@@ -160,8 +212,265 @@ function SearchPage() {
           </div>
         )}
       </div>
-    </div>
+    </>
   );
+}
+
+function RestaurantsTab() {
+  const search = Route.useSearch();
+  const navigate = Route.useNavigate();
+  const [chain, setChain] = useState<string>(search.chain ?? SUPPORTED_CHAINS[0]);
+  const [q, setQ] = useState(search.q);
+  const [macros, setMacros] = useState<MacrosOptional>({
+    kcal: search.kcal ?? null,
+    protein_g: search.p ?? null,
+    carbs_g: search.c ?? null,
+    fat_g: search.f ?? null,
+  });
+  const [maxItems, setMaxItems] = useState<number>(search.maxItems ?? 3);
+  const [combos, setCombos] = useState<Combo[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const activeChain = search.chain;
+  const hasMacros =
+    search.kcal != null || search.p != null || search.c != null || search.f != null;
+
+  useEffect(() => {
+    if (search.mode !== "restaurants") return;
+    if (!activeChain) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    searchRestaurantCombos({
+      data: {
+        chain: activeChain,
+        query: search.q,
+        kcal: search.kcal ?? null,
+        protein_g: search.p ?? null,
+        carbs_g: search.c ?? null,
+        fat_g: search.f ?? null,
+        maxItems: search.maxItems ?? 3,
+        number: 8,
+      },
+    })
+      .then((r) => {
+        if (cancelled) return;
+        setCombos(r.combos);
+        setError(r.error);
+      })
+      .catch((e) => !cancelled && setError(e.message))
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [search.mode, activeChain, search.q, search.kcal, search.p, search.c, search.f, search.maxItems]);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    navigate({
+      search: (prev) => ({
+        ...prev,
+        mode: "restaurants",
+        q: q.trim(),
+        chain,
+        maxItems,
+        kcal: macros.kcal ?? undefined,
+        p: macros.protein_g ?? undefined,
+        c: macros.carbs_g ?? undefined,
+        f: macros.fat_g ?? undefined,
+      }),
+    });
+  };
+
+  const target: MacrosOptional = macros;
+
+  return (
+    <>
+      <Card className="p-5">
+        <form onSubmit={submit} className="space-y-4">
+          <div className="grid gap-2 sm:grid-cols-[minmax(0,200px)_1fr_auto]">
+            <Select value={chain} onValueChange={setChain}>
+              <SelectTrigger className="h-10">
+                <SelectValue placeholder="Pick a restaurant" />
+              </SelectTrigger>
+              <SelectContent>
+                {SUPPORTED_CHAINS.map((c) => (
+                  <SelectItem key={c} value={c}>
+                    {c}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Optional: 'chicken', 'salad'…"
+                className="pl-9 h-10"
+              />
+            </div>
+            <Button type="submit">Build combos</Button>
+          </div>
+          <div>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Set the macros you want the combo to total. Leave blank to ignore.
+            </p>
+            <MacroInputs value={macros} onChange={setMacros} />
+          </div>
+          <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 p-3">
+            <div>
+              <Label className="text-sm font-medium">Max items per combo</Label>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Higher = more combinations, slower but more flexible.
+              </p>
+            </div>
+            <Select value={String(maxItems)} onValueChange={(v) => setMaxItems(Number(v))}>
+              <SelectTrigger className="h-9 w-24">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {[1, 2, 3, 4].map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </form>
+      </Card>
+
+      <div className="mt-8">
+        {loading && (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Skeleton key={i} className="h-48 w-full" />
+            ))}
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+            {error}
+          </div>
+        )}
+
+        {!loading && !error && !activeChain && (
+          <p className="text-center text-muted-foreground">
+            Pick a restaurant and hit “Build combos”.
+          </p>
+        )}
+
+        {!loading && !error && activeChain && combos.length === 0 && (
+          <p className="text-center text-muted-foreground">
+            No menu items found for {activeChain}. Try another chain or clearing the search term.
+          </p>
+        )}
+
+        {!loading && combos.length > 0 && (
+          <div className="grid gap-5 sm:grid-cols-2">
+            {combos.map((combo, i) => (
+              <ComboCard key={i} combo={combo} target={target} hasTarget={hasMacros} />
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ComboCard({
+  combo,
+  target,
+  hasTarget,
+}: {
+  combo: Combo;
+  target: MacrosOptional;
+  hasTarget: boolean;
+}) {
+  const fitLabel = hasTarget ? fitFromScore(combo.score) : null;
+  return (
+    <Card className="p-4 transition hover:-translate-y-0.5 hover:shadow-md">
+      <div className="flex items-start justify-between gap-2">
+        <div className="text-xs font-medium text-muted-foreground">
+          {combo.items[0]?.restaurantChain}
+        </div>
+        {fitLabel && (
+          <span
+            className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${fitLabel.cls}`}
+          >
+            {fitLabel.label}
+          </span>
+        )}
+      </div>
+      <ul className="mt-2 space-y-2">
+        {combo.items.map((it) => (
+          <ComboItem key={it.id} item={it} />
+        ))}
+      </ul>
+      <div className="mt-3 flex flex-wrap gap-2 border-t pt-3 text-xs">
+        <Badge label={`${combo.totals.kcal} kcal`} c="kcal" />
+        <Badge label={`${Math.round(combo.totals.protein_g)}P`} c="protein" />
+        <Badge label={`${Math.round(combo.totals.carbs_g)}C`} c="carbs" />
+        <Badge label={`${Math.round(combo.totals.fat_g)}F`} c="fat" />
+        {hasTarget && <DeltaSummary totals={combo.totals} target={target} />}
+      </div>
+    </Card>
+  );
+}
+
+function ComboItem({ item }: { item: MenuItem }) {
+  return (
+    <li className="flex items-center gap-2 rounded-md bg-muted/40 px-2 py-1.5 text-sm">
+      {item.image && (
+        <img
+          src={item.image}
+          alt={item.title}
+          className="h-8 w-8 shrink-0 rounded object-cover"
+          loading="lazy"
+        />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="truncate font-medium">{item.title}</div>
+        <div className="text-[11px] text-muted-foreground">
+          {item.kcal} kcal · {Math.round(item.protein_g)}P · {Math.round(item.carbs_g)}C · {Math.round(item.fat_g)}F
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function DeltaSummary({
+  totals,
+  target,
+}: {
+  totals: { kcal: number; protein_g: number; carbs_g: number; fat_g: number };
+  target: MacrosOptional;
+}) {
+  const parts: string[] = [];
+  if (target.kcal != null) parts.push(`${signed(totals.kcal - target.kcal)} kcal`);
+  if (target.protein_g != null) parts.push(`${signed(totals.protein_g - target.protein_g)}P`);
+  if (target.carbs_g != null) parts.push(`${signed(totals.carbs_g - target.carbs_g)}C`);
+  if (target.fat_g != null) parts.push(`${signed(totals.fat_g - target.fat_g)}F`);
+  if (parts.length === 0) return null;
+  return (
+    <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+      vs goal: {parts.join(", ")}
+    </span>
+  );
+}
+
+function signed(v: number): string {
+  const r = Math.round(v * 10) / 10;
+  return r > 0 ? `+${r}` : `${r}`;
+}
+
+function fitFromScore(score: number): { label: string; cls: string } {
+  if (score < 0.1) return { label: "Great fit", cls: "bg-[var(--protein)]/15 text-[var(--protein)]" };
+  if (score < 0.25) return { label: "Close fit", cls: "bg-amber-500/15 text-amber-700" };
+  return { label: "Off goal", cls: "bg-muted text-muted-foreground" };
 }
 
 function ResultCard({

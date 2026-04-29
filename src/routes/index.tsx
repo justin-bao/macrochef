@@ -41,6 +41,7 @@ function HomePage() {
     navigate({
       to: "/search",
       search: {
+        mode: "recipes",
         q: q.trim(),
         kcal: macros.kcal ?? undefined,
         p: macros.protein_g ?? undefined,
