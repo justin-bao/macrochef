@@ -58,7 +58,7 @@ function SearchPage() {
       <Tabs
         value={mode}
         onValueChange={(v) =>
-          navigate({ search: (prev) => ({ ...prev, mode: v as "recipes" | "restaurants" }) })
+          navigate({ search: (prev: any) => ({ ...prev, mode: v as "recipes" | "restaurants" }) })
         }
       >
         <TabsList className="mb-4 grid w-full grid-cols-2 sm:w-auto sm:inline-grid">
@@ -133,7 +133,7 @@ function RecipesTab() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({
-      search: (prev) => ({
+      search: (prev: any) => ({
         ...prev,
         mode: "recipes",
         q: q.trim(),
@@ -269,7 +269,7 @@ function RestaurantsTab() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({
-      search: (prev) => ({
+      search: (prev: any) => ({
         ...prev,
         mode: "restaurants",
         q: q.trim(),
