@@ -22,9 +22,9 @@ export type SearchResult = {
   title: string;
   image: string;
   servings?: number;
-  // Source provenance — Spoonacular results are tunable on the recipe detail
-  // page; Edamam results link out to the original publisher.
-  source?: "spoonacular" | "edamam";
+  // Source provenance — "spoonacular" is live API; "kaggle" is our imported
+  // dataset (Food.com); both render in the same in-app detail page.
+  source?: "spoonacular" | "kaggle";
   externalUrl?: string;
   kcal?: number;
   protein_g?: number;
