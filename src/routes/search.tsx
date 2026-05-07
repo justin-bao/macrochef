@@ -509,6 +509,7 @@ function ResultCard({
         to="/recipe/$id"
         params={{ id: String(r.id) }}
         search={{
+          src: r.source ?? "spoonacular",
           kcal: target.kcal ?? undefined,
           p: target.protein_g ?? undefined,
           c: target.carbs_g ?? undefined,
