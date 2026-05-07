@@ -296,8 +296,70 @@ export type RecipeDetail = {
 };
 
 export const getRecipe = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.number().int().positive() }).parse)
+  .inputValidator(
+    z.object({
+      id: z.number().int().positive(),
+      source: z.enum(["spoonacular", "kaggle"]).default("spoonacular"),
+    }).parse,
+  )
   .handler(async ({ data }): Promise<{ recipe: RecipeDetail | null; error: string | null }> => {
+    if (data.source === "kaggle") {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: row, error } = await supabaseAdmin
+        .from("recipes")
+        .select(
+          "id, title, description, image_url, servings, total_minutes, kcal, protein_g, carbs_g, fat_g, ingredients, instructions",
+        )
+        .eq("id", data.id)
+        .maybeSingle();
+      if (error || !row) {
+        return { recipe: null, error: error?.message ?? "Recipe not found" };
+      }
+      const ingArr: string[] = Array.isArray(row.ingredients)
+        ? (row.ingredients as unknown[]).map((x) => String(x)).filter(Boolean)
+        : [];
+      const stepArr: string[] = Array.isArray(row.instructions)
+        ? (row.instructions as unknown[]).map((x) => String(x)).filter(Boolean)
+        : [];
+      const servings = Math.max(1, Number(row.servings ?? 1));
+      // The dataset stores ingredients as plain strings ("2 cups flour");
+      // we have no parsed amounts/units, so we represent each as amount=1
+      // unit="" with a per-ingredient macro fraction = total / count. This
+      // lets the existing scaling/swap UI keep working — totals stay correct.
+      const count = Math.max(1, ingArr.length);
+      const ingredients = ingArr.map((s, i) => ({
+        id: i,
+        name: s,
+        original: s,
+        amount: 1,
+        unit: "",
+        kcal: row.kcal != null ? Number(row.kcal) * servings / count : undefined,
+        protein_g: row.protein_g != null ? Number(row.protein_g) * servings / count : undefined,
+        carbs_g: row.carbs_g != null ? Number(row.carbs_g) * servings / count : undefined,
+        fat_g: row.fat_g != null ? Number(row.fat_g) * servings / count : undefined,
+      }));
+      return {
+        recipe: {
+          id: Number(row.id),
+          source: "kaggle",
+          title: row.title,
+          image: row.image_url ?? "",
+          servings,
+          readyInMinutes: row.total_minutes ?? 0,
+          summary: row.description ?? undefined,
+          instructions: stepArr,
+          ingredients,
+          macros: {
+            kcal: Math.round(Number(row.kcal ?? 0) * servings),
+            protein_g: Math.round(Number(row.protein_g ?? 0) * servings * 10) / 10,
+            carbs_g: Math.round(Number(row.carbs_g ?? 0) * servings * 10) / 10,
+            fat_g: Math.round(Number(row.fat_g ?? 0) * servings * 10) / 10,
+          },
+        },
+        error: null,
+      };
+    }
+
     const key = requireKey();
     const url = `${BASE}/recipes/${data.id}/information?apiKey=${key}&includeNutrition=true`;
     const res = await fetch(url);
@@ -332,6 +394,7 @@ export const getRecipe = createServerFn({ method: "POST" })
     return {
       recipe: {
         id: r.id,
+        source: "spoonacular",
         title: r.title,
         image: r.image,
         servings: r.servings,
