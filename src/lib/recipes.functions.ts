@@ -249,11 +249,23 @@ export const searchRecipes = createServerFn({ method: "POST" })
           adjustedCarbs_g: swaps.length ? adjusted.carbs_g : undefined,
           adjustedFat_g: swaps.length ? adjusted.fat_g : undefined,
         }));
+    } else {
+      // No macro targets — just trim to requested count, interleaving sources.
+      const interleaved: Candidate[] = [];
+      const spoonOnly = results.filter((r) => r.source === "spoonacular");
+      const dbOnly = results.filter((r) => r.source === "kaggle");
+      const max = Math.max(spoonOnly.length, dbOnly.length);
+      for (let i = 0; i < max && interleaved.length < data.number; i++) {
+        if (spoonOnly[i]) interleaved.push(spoonOnly[i]);
+        if (dbOnly[i] && interleaved.length < data.number) interleaved.push(dbOnly[i]);
+      }
+      results = interleaved;
     }
 
     // Strip the internal field before returning to the client.
     const cleanResults: SearchResult[] = results.map(({ _ingredientNames, ...rest }) => rest);
-    return { results: cleanResults, error: null };
+    const error = cleanResults.length === 0 ? spoon.error : null;
+    return { results: cleanResults, error };
   });
 
 export type RecipeDetail = {
