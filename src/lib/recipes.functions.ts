@@ -106,33 +106,16 @@ export const searchRecipes = createServerFn({ method: "POST" })
     setRange("minCarbs", "maxCarbs", data.carbs_g, "cap");
     setRange("minFat", "maxFat", data.fat_g, "cap");
 
-    // Fan out: Spoonacular + Edamam in parallel. Edamam roughly doubles the
-    // candidate pool with recipes from publishers Spoonacular doesn't index.
-    const [spoonRes, edamamHits] = await Promise.all([
-      fetch(`${BASE}/recipes/complexSearch?${params}`),
-      searchEdamamRecipes({
-        query: data.query,
-        kcal: data.kcal,
-        protein_g: data.protein_g,
-        carbs_g: data.carbs_g,
-        fat_g: data.fat_g,
-        number: anyTarget ? 40 : Math.max(data.number, 12),
-        allowSubs: data.allowSubs,
-      }).catch((e) => {
-        console.error("Edamam fetch threw", e);
-        return [] as Awaited<ReturnType<typeof searchEdamamRecipes>>;
-      }),
-    ]);
-
-    let spoonError: string | null = null;
-    let spoonJson: { results: any[] } = { results: [] };
+    const spoonRes = await fetch(`${BASE}/recipes/complexSearch?${params}`);
     if (!spoonRes.ok) {
       const text = await spoonRes.text();
       console.error("Spoonacular search failed", spoonRes.status, text);
-      spoonError = `Spoonacular search failed (${spoonRes.status})`;
-    } else {
-      spoonJson = (await spoonRes.json()) as { results: any[] };
+      return {
+        results: [] as SearchResult[],
+        error: `Spoonacular search failed (${spoonRes.status})`,
+      };
     }
+    const spoonJson = (await spoonRes.json()) as { results: any[] };
 
     // Spoonacular's complexSearch with addRecipeNutrition returns per-serving
     // nutrients. We capture servings + ingredient names so swap heuristics can
@@ -141,7 +124,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
     const round1 = (v: number | undefined) =>
       v == null ? undefined : Math.round(v * 10) / 10;
 
-    const spoonCandidates: Candidate[] = (spoonJson.results ?? []).map((r) => {
+    let results: Candidate[] = (spoonJson.results ?? []).map((r) => {
       const nut = r.nutrition?.nutrients ?? [];
       const find = (n: string) => nut.find((x: any) => x.name === n)?.amount;
       const servings = Math.max(1, Number(r.servings) || 1);
@@ -161,35 +144,6 @@ export const searchRecipes = createServerFn({ method: "POST" })
         _ingredientNames: ingredientNames,
       };
     });
-
-    const edamamCandidates: Candidate[] = edamamHits.map((e) => ({
-      id: e.id,
-      source: "edamam",
-      externalUrl: e.externalUrl,
-      title: e.title,
-      image: e.image,
-      servings: e.servings,
-      kcal: e.kcal,
-      protein_g: e.protein_g,
-      carbs_g: e.carbs_g,
-      fat_g: e.fat_g,
-      _ingredientNames: e.ingredientNames,
-    }));
-
-    // Dedupe by lowercased title to avoid showing the same dish twice when
-    // both APIs return it. Spoonacular wins ties (it's tunable on detail page).
-    const seen = new Set<string>();
-    let results: Candidate[] = [];
-    for (const c of [...spoonCandidates, ...edamamCandidates]) {
-      const key = c.title.toLowerCase().replace(/\s+/g, " ").trim();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      results.push(c);
-    }
-
-    if (results.length === 0 && spoonError) {
-      return { results: [] as SearchResult[], error: spoonError };
-    }
 
     // Rank by per-serving distance to targets. When subs are allowed, also
     // try heuristic swaps and rank by the BETTER of original vs swap-adjusted
@@ -212,10 +166,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
           carbs_g: r.carbs_g,
           fat_g: r.fat_g,
         };
-        // Edamam recipes can't be tuned in our app (no detail page / nutrition
-        // re-pricing), so even when allowSubs is on, we don't fabricate swaps
-        // for them — only rank by their as-published macros.
-        if (!data.allowSubs || r.source === "edamam") {
+        if (!data.allowSubs) {
           const { baselineDistance } = estimateSwapImpact(
             baseMacros,
             [],
@@ -261,18 +212,6 @@ export const searchRecipes = createServerFn({ method: "POST" })
           adjustedCarbs_g: swaps.length ? adjusted.carbs_g : undefined,
           adjustedFat_g: swaps.length ? adjusted.fat_g : undefined,
         }));
-    } else {
-      // No targets — interleave sources so both are visible: take 1 from each
-      // alternately up to `data.number`.
-      const spoon = results.filter((r) => r.source === "spoonacular");
-      const edam = results.filter((r) => r.source === "edamam");
-      const merged: Candidate[] = [];
-      while (merged.length < data.number && (spoon.length || edam.length)) {
-        if (spoon.length) merged.push(spoon.shift()!);
-        if (merged.length >= data.number) break;
-        if (edam.length) merged.push(edam.shift()!);
-      }
-      results = merged;
     }
 
     // Strip the internal field before returning to the client.
