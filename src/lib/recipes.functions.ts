@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { classifyFit, estimateSwapImpact } from "./swap-heuristics";
+import { searchEdamamRecipes } from "./edamam.server";
 
 const KEY = () => process.env.SPOONACULAR_API_KEY;
 const BASE = "https://api.spoonacular.com";
