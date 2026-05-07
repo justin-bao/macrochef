@@ -64,7 +64,7 @@ function RecipePage() {
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    getRecipe({ data: { id: Number(id) } })
+    getRecipe({ data: { id: Number(id), source: search.src } })
       .then((r) => {
         if (cancelled) return;
         setRecipe(r.recipe);
