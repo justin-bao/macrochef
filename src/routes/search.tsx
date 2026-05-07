@@ -503,61 +503,48 @@ function ResultCard({
   const showingNormalized = factor !== 1;
   const hasSwaps = (r.swaps?.length ?? 0) > 0;
 
-  const isExternal = r.source === "edamam";
-  const cardInner = (
-    <>
-      <div className="aspect-[4/3] bg-muted overflow-hidden">
-        {r.image && (
-          <img src={r.image} alt={r.title} className="h-full w-full object-cover" loading="lazy" />
-        )}
-      </div>
-      <div className="p-4 space-y-2">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="font-semibold line-clamp-2">{r.title}</h3>
-          {r.fitKind && <FitBadge kind={r.fitKind} swapCount={r.swapCount ?? 0} />}
-        </div>
-        {normalized.kcal != null && (
-          <div className="flex flex-wrap gap-2 text-xs">
-            <Badge label={`${Math.round(normalized.kcal)} kcal`} c="kcal" />
-            <Badge label={`${Math.round(normalized.protein_g ?? 0)}P`} c="protein" />
-            <Badge label={`${Math.round(normalized.carbs_g ?? 0)}C`} c="carbs" />
-            <Badge label={`${Math.round(normalized.fat_g ?? 0)}F`} c="fat" />
-          </div>
-        )}
-        <p className="text-[11px] text-muted-foreground">
-          {showingNormalized
-            ? `Scaled to ${target.kcal} kcal${hasSwaps ? " · with estimated swaps" : ""}`
-            : hasSwaps
-              ? "Per serving · with estimated swaps"
-              : "Per serving"}
-          {isExternal && " · via Edamam"}
-        </p>
-      </div>
-    </>
-  );
-
   return (
     <Card className="overflow-hidden p-0 h-full transition hover:-translate-y-0.5 hover:shadow-md">
-      {isExternal ? (
-        <a href={r.externalUrl} target="_blank" rel="noopener noreferrer" className="block">
-          {cardInner}
-        </a>
-      ) : (
-        <Link
-          to="/recipe/$id"
-          params={{ id: String(r.id) }}
-          search={{
-            kcal: target.kcal ?? undefined,
-            p: target.protein_g ?? undefined,
-            c: target.carbs_g ?? undefined,
-            f: target.fat_g ?? undefined,
-            subs: allowSubs,
-          }}
-          className="block"
-        >
-          {cardInner}
-        </Link>
-      )}
+      <Link
+        to="/recipe/$id"
+        params={{ id: String(r.id) }}
+        search={{
+          kcal: target.kcal ?? undefined,
+          p: target.protein_g ?? undefined,
+          c: target.carbs_g ?? undefined,
+          f: target.fat_g ?? undefined,
+          subs: allowSubs,
+        }}
+        className="block"
+      >
+        <div className="aspect-[4/3] bg-muted overflow-hidden">
+          {r.image && (
+            <img src={r.image} alt={r.title} className="h-full w-full object-cover" loading="lazy" />
+          )}
+        </div>
+        <div className="p-4 space-y-2">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-semibold line-clamp-2">{r.title}</h3>
+            {r.fitKind && <FitBadge kind={r.fitKind} swapCount={r.swapCount ?? 0} />}
+          </div>
+          {normalized.kcal != null && (
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge label={`${Math.round(normalized.kcal)} kcal`} c="kcal" />
+              <Badge label={`${Math.round(normalized.protein_g ?? 0)}P`} c="protein" />
+              <Badge label={`${Math.round(normalized.carbs_g ?? 0)}C`} c="carbs" />
+              <Badge label={`${Math.round(normalized.fat_g ?? 0)}F`} c="fat" />
+            </div>
+          )}
+          <p className="text-[11px] text-muted-foreground">
+            {showingNormalized
+              ? `Scaled to ${target.kcal} kcal${hasSwaps ? " · with estimated swaps" : ""}`
+              : hasSwaps
+                ? "Per serving · with estimated swaps"
+                : "Per serving"}
+            {r.source === "kaggle" && " · from community archive"}
+          </p>
+        </div>
+      </Link>
       {hasSwaps && (
         <div className="border-t">
           <button
