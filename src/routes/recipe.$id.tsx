@@ -20,6 +20,7 @@ import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
 
 const searchSchema = z.object({
+  src: z.enum(["spoonacular", "kaggle"]).catch("spoonacular"),
   kcal: z.coerce.number().optional().catch(undefined),
   p: z.coerce.number().optional().catch(undefined),
   c: z.coerce.number().optional().catch(undefined),
