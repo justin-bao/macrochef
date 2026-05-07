@@ -23,6 +23,10 @@ export type SearchResult = {
   title: string;
   image: string;
   servings?: number;
+  // Source provenance — Spoonacular results are tunable on the recipe detail
+  // page; Edamam results link out to the original publisher.
+  source?: "spoonacular" | "edamam";
+  externalUrl?: string;
   kcal?: number;
   protein_g?: number;
   carbs_g?: number;
