@@ -270,6 +270,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
 
 export type RecipeDetail = {
   id: number;
+  source: "spoonacular" | "kaggle";
   title: string;
   image: string;
   servings: number;
@@ -277,6 +278,9 @@ export type RecipeDetail = {
   sourceUrl?: string;
   summary?: string;
   instructions: string[];
+  // For Spoonacular each ingredient is parsed (amount/unit/macros).
+  // For Kaggle each ingredient is just a string from the dataset; amount/unit
+  // may be embedded in `original` and per-ingredient macros are unavailable.
   ingredients: {
     id: number;
     name: string;
