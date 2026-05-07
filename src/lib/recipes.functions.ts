@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { classifyFit, estimateSwapImpact } from "./swap-heuristics";
+import { searchDbRecipes } from "./recipes-db.server";
 
 const KEY = () => process.env.SPOONACULAR_API_KEY;
 const BASE = "https://api.spoonacular.com";
@@ -59,91 +60,127 @@ export const searchRecipes = createServerFn({ method: "POST" })
     }).parse,
   )
   .handler(async ({ data }) => {
-    const key = requireKey();
-    // Fetch a wider candidate pool so we can rank by closeness rather than
-    // just filter. Spoonacular caps `number` at 100.
+    const key = KEY(); // Spoonacular is optional once DB has data
     const anyTarget =
       data.kcal != null || data.protein_g != null || data.carbs_g != null || data.fat_g != null;
     const fetchCount = anyTarget ? Math.min(100, Math.max(data.number * 4, 40)) : data.number;
-    const params = new URLSearchParams({
-      apiKey: key,
-      number: String(fetchCount),
-      addRecipeNutrition: "true",
-      fillIngredients: "true",
-      instructionsRequired: "true",
-      sort: "popularity",
-    });
-    if (data.query) params.set("query", data.query);
-    if (data.diet) params.set("diet", data.diet);
-    if (data.cuisine) params.set("cuisine", data.cuisine);
-    if (data.maxReadyTime) params.set("maxReadyTime", String(data.maxReadyTime));
-
-    // Loose pre-filter so we don't waste the candidate pool on wildly off recipes.
-    // Tight mode (no subs) uses ±25%; loose mode (subs allowed) uses ±60% one-sided
-    // depending on macro direction. Final ordering is by distance below.
     const tight = !data.allowSubs;
-    const setRange = (
-      minKey: string,
-      maxKey: string,
-      target: number | null | undefined,
-      mode: "two-sided" | "cap" | "floor",
-    ) => {
-      if (target == null) return;
-      if (tight) {
-        params.set(minKey, String(Math.max(0, Math.round(target * 0.75))));
-        params.set(maxKey, String(Math.round(target * 1.25)));
-      } else if (mode === "cap") {
-        params.set(maxKey, String(Math.round(target * 1.6)));
-      } else if (mode === "floor") {
-        params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
-      } else {
-        params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
-        params.set(maxKey, String(Math.round(target * 1.6)));
-      }
-    };
-    setRange("minCalories", "maxCalories", data.kcal, "cap");
-    setRange("minProtein", "maxProtein", data.protein_g, "floor");
-    setRange("minCarbs", "maxCarbs", data.carbs_g, "cap");
-    setRange("minFat", "maxFat", data.fat_g, "cap");
 
-    const spoonRes = await fetch(`${BASE}/recipes/complexSearch?${params}`);
-    if (!spoonRes.ok) {
-      const text = await spoonRes.text();
-      console.error("Spoonacular search failed", spoonRes.status, text);
-      return {
-        results: [] as SearchResult[],
-        error: `Spoonacular search failed (${spoonRes.status})`,
-      };
-    }
-    const spoonJson = (await spoonRes.json()) as { results: any[] };
-
-    // Spoonacular's complexSearch with addRecipeNutrition returns per-serving
-    // nutrients. We capture servings + ingredient names so swap heuristics can
-    // estimate adjusted macros at search time without extra API calls.
     type Candidate = SearchResult & { _ingredientNames: string[] };
     const round1 = (v: number | undefined) =>
       v == null ? undefined : Math.round(v * 10) / 10;
 
-    let results: Candidate[] = (spoonJson.results ?? []).map((r) => {
-      const nut = r.nutrition?.nutrients ?? [];
-      const find = (n: string) => nut.find((x: any) => x.name === n)?.amount;
-      const servings = Math.max(1, Number(r.servings) || 1);
-      const ingredientNames: string[] = (r.extendedIngredients ?? r.nutrition?.ingredients ?? [])
-        .map((i: any) => String(i.nameClean || i.name || "").trim())
-        .filter(Boolean);
-      return {
+    // ---- Spoonacular fetch (only if key present) -------------------------
+    const spoonPromise: Promise<{ candidates: Candidate[]; error: string | null }> =
+      key
+        ? (async () => {
+            const params = new URLSearchParams({
+              apiKey: key,
+              number: String(fetchCount),
+              addRecipeNutrition: "true",
+              fillIngredients: "true",
+              instructionsRequired: "true",
+              sort: "popularity",
+            });
+            if (data.query) params.set("query", data.query);
+            if (data.diet) params.set("diet", data.diet);
+            if (data.cuisine) params.set("cuisine", data.cuisine);
+            if (data.maxReadyTime) params.set("maxReadyTime", String(data.maxReadyTime));
+
+            const setRange = (
+              minKey: string,
+              maxKey: string,
+              target: number | null | undefined,
+              mode: "two-sided" | "cap" | "floor",
+            ) => {
+              if (target == null) return;
+              if (tight) {
+                params.set(minKey, String(Math.max(0, Math.round(target * 0.75))));
+                params.set(maxKey, String(Math.round(target * 1.25)));
+              } else if (mode === "cap") {
+                params.set(maxKey, String(Math.round(target * 1.6)));
+              } else if (mode === "floor") {
+                params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
+              } else {
+                params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
+                params.set(maxKey, String(Math.round(target * 1.6)));
+              }
+            };
+            setRange("minCalories", "maxCalories", data.kcal, "cap");
+            setRange("minProtein", "maxProtein", data.protein_g, "floor");
+            setRange("minCarbs", "maxCarbs", data.carbs_g, "cap");
+            setRange("minFat", "maxFat", data.fat_g, "cap");
+
+            const res = await fetch(`${BASE}/recipes/complexSearch?${params}`);
+            if (!res.ok) {
+              const text = await res.text();
+              console.error("Spoonacular search failed", res.status, text);
+              return {
+                candidates: [],
+                error: `Spoonacular search failed (${res.status})`,
+              };
+            }
+            const json = (await res.json()) as { results: any[] };
+            const candidates: Candidate[] = (json.results ?? []).map((r) => {
+              const nut = r.nutrition?.nutrients ?? [];
+              const find = (n: string) => nut.find((x: any) => x.name === n)?.amount;
+              const servings = Math.max(1, Number(r.servings) || 1);
+              const ingredientNames: string[] = (r.extendedIngredients ?? r.nutrition?.ingredients ?? [])
+                .map((i: any) => String(i.nameClean || i.name || "").trim())
+                .filter(Boolean);
+              return {
+                id: r.id,
+                source: "spoonacular",
+                title: r.title,
+                image: r.image,
+                servings,
+                kcal: round1(find("Calories")),
+                protein_g: round1(find("Protein")),
+                carbs_g: round1(find("Carbohydrates")),
+                fat_g: round1(find("Fat")),
+                _ingredientNames: ingredientNames,
+              };
+            });
+            return { candidates, error: null };
+          })()
+        : Promise.resolve({ candidates: [], error: null });
+
+    // ---- DB (Kaggle/Food.com) fetch -------------------------------------
+    const dbPromise: Promise<Candidate[]> = searchDbRecipes({
+      query: data.query,
+      kcal: data.kcal ?? null,
+      protein_g: data.protein_g ?? null,
+      carbs_g: data.carbs_g ?? null,
+      fat_g: data.fat_g ?? null,
+      maxReadyTime: data.maxReadyTime,
+      tight,
+      fetchCount,
+    }).then((rows) =>
+      rows.map((r) => ({
         id: r.id,
-        source: "spoonacular",
+        source: "kaggle" as const,
         title: r.title,
         image: r.image,
-        servings,
-        kcal: round1(find("Calories")),
-        protein_g: round1(find("Protein")),
-        carbs_g: round1(find("Carbohydrates")),
-        fat_g: round1(find("Fat")),
-        _ingredientNames: ingredientNames,
-      };
-    });
+        servings: r.servings,
+        kcal: round1(r.kcal),
+        protein_g: round1(r.protein_g),
+        carbs_g: round1(r.carbs_g),
+        fat_g: round1(r.fat_g),
+        _ingredientNames: r.ingredientNames,
+      })),
+    );
+
+    const [spoon, dbCands] = await Promise.all([spoonPromise, dbPromise]);
+
+    // Dedupe by lowercased title across sources (Spoonacular wins ties).
+    const seen = new Set<string>();
+    let results: Candidate[] = [];
+    for (const c of [...spoon.candidates, ...dbCands]) {
+      const k = c.title.toLowerCase().trim();
+      if (seen.has(k)) continue;
+      seen.add(k);
+      results.push(c);
+    }
 
     // Rank by per-serving distance to targets. When subs are allowed, also
     // try heuristic swaps and rank by the BETTER of original vs swap-adjusted
@@ -212,15 +249,28 @@ export const searchRecipes = createServerFn({ method: "POST" })
           adjustedCarbs_g: swaps.length ? adjusted.carbs_g : undefined,
           adjustedFat_g: swaps.length ? adjusted.fat_g : undefined,
         }));
+    } else {
+      // No macro targets — just trim to requested count, interleaving sources.
+      const interleaved: Candidate[] = [];
+      const spoonOnly = results.filter((r) => r.source === "spoonacular");
+      const dbOnly = results.filter((r) => r.source === "kaggle");
+      const max = Math.max(spoonOnly.length, dbOnly.length);
+      for (let i = 0; i < max && interleaved.length < data.number; i++) {
+        if (spoonOnly[i]) interleaved.push(spoonOnly[i]);
+        if (dbOnly[i] && interleaved.length < data.number) interleaved.push(dbOnly[i]);
+      }
+      results = interleaved;
     }
 
     // Strip the internal field before returning to the client.
     const cleanResults: SearchResult[] = results.map(({ _ingredientNames, ...rest }) => rest);
-    return { results: cleanResults, error: null };
+    const error = cleanResults.length === 0 ? spoon.error : null;
+    return { results: cleanResults, error };
   });
 
 export type RecipeDetail = {
   id: number;
+  source: "spoonacular" | "kaggle";
   title: string;
   image: string;
   servings: number;
@@ -228,6 +278,9 @@ export type RecipeDetail = {
   sourceUrl?: string;
   summary?: string;
   instructions: string[];
+  // For Spoonacular each ingredient is parsed (amount/unit/macros).
+  // For Kaggle each ingredient is just a string from the dataset; amount/unit
+  // may be embedded in `original` and per-ingredient macros are unavailable.
   ingredients: {
     id: number;
     name: string;
@@ -243,8 +296,70 @@ export type RecipeDetail = {
 };
 
 export const getRecipe = createServerFn({ method: "POST" })
-  .inputValidator(z.object({ id: z.number().int().positive() }).parse)
+  .inputValidator(
+    z.object({
+      id: z.number().int().positive(),
+      source: z.enum(["spoonacular", "kaggle"]).default("spoonacular"),
+    }).parse,
+  )
   .handler(async ({ data }): Promise<{ recipe: RecipeDetail | null; error: string | null }> => {
+    if (data.source === "kaggle") {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: row, error } = await supabaseAdmin
+        .from("recipes")
+        .select(
+          "id, title, description, image_url, servings, total_minutes, kcal, protein_g, carbs_g, fat_g, ingredients, instructions",
+        )
+        .eq("id", data.id)
+        .maybeSingle();
+      if (error || !row) {
+        return { recipe: null, error: error?.message ?? "Recipe not found" };
+      }
+      const ingArr: string[] = Array.isArray(row.ingredients)
+        ? (row.ingredients as unknown[]).map((x) => String(x)).filter(Boolean)
+        : [];
+      const stepArr: string[] = Array.isArray(row.instructions)
+        ? (row.instructions as unknown[]).map((x) => String(x)).filter(Boolean)
+        : [];
+      const servings = Math.max(1, Number(row.servings ?? 1));
+      // The dataset stores ingredients as plain strings ("2 cups flour");
+      // we have no parsed amounts/units, so we represent each as amount=1
+      // unit="" with a per-ingredient macro fraction = total / count. This
+      // lets the existing scaling/swap UI keep working — totals stay correct.
+      const count = Math.max(1, ingArr.length);
+      const ingredients = ingArr.map((s, i) => ({
+        id: i,
+        name: s,
+        original: s,
+        amount: 1,
+        unit: "",
+        kcal: row.kcal != null ? Number(row.kcal) * servings / count : undefined,
+        protein_g: row.protein_g != null ? Number(row.protein_g) * servings / count : undefined,
+        carbs_g: row.carbs_g != null ? Number(row.carbs_g) * servings / count : undefined,
+        fat_g: row.fat_g != null ? Number(row.fat_g) * servings / count : undefined,
+      }));
+      return {
+        recipe: {
+          id: Number(row.id),
+          source: "kaggle",
+          title: row.title,
+          image: row.image_url ?? "",
+          servings,
+          readyInMinutes: row.total_minutes ?? 0,
+          summary: row.description ?? undefined,
+          instructions: stepArr,
+          ingredients,
+          macros: {
+            kcal: Math.round(Number(row.kcal ?? 0) * servings),
+            protein_g: Math.round(Number(row.protein_g ?? 0) * servings * 10) / 10,
+            carbs_g: Math.round(Number(row.carbs_g ?? 0) * servings * 10) / 10,
+            fat_g: Math.round(Number(row.fat_g ?? 0) * servings * 10) / 10,
+          },
+        },
+        error: null,
+      };
+    }
+
     const key = requireKey();
     const url = `${BASE}/recipes/${data.id}/information?apiKey=${key}&includeNutrition=true`;
     const res = await fetch(url);
@@ -279,6 +394,7 @@ export const getRecipe = createServerFn({ method: "POST" })
     return {
       recipe: {
         id: r.id,
+        source: "spoonacular",
         title: r.title,
         image: r.image,
         servings: r.servings,
