@@ -41,6 +41,66 @@ export type Database = {
         }
         Relationships: []
       }
+      recipes: {
+        Row: {
+          carbs_g: number | null
+          created_at: string
+          description: string | null
+          fat_g: number | null
+          id: number
+          image_url: string | null
+          ingredients: Json
+          instructions: Json
+          kcal: number | null
+          protein_g: number | null
+          raw: Json | null
+          servings: number | null
+          source: string
+          source_id: string
+          tags: Json
+          title: string
+          total_minutes: number | null
+        }
+        Insert: {
+          carbs_g?: number | null
+          created_at?: string
+          description?: string | null
+          fat_g?: number | null
+          id?: number
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          kcal?: number | null
+          protein_g?: number | null
+          raw?: Json | null
+          servings?: number | null
+          source: string
+          source_id: string
+          tags?: Json
+          title: string
+          total_minutes?: number | null
+        }
+        Update: {
+          carbs_g?: number | null
+          created_at?: string
+          description?: string | null
+          fat_g?: number | null
+          id?: number
+          image_url?: string | null
+          ingredients?: Json
+          instructions?: Json
+          kcal?: number | null
+          protein_g?: number | null
+          raw?: Json | null
+          servings?: number | null
+          source?: string
+          source_id?: string
+          tags?: Json
+          title?: string
+          total_minutes?: number | null
+        }
+        Relationships: []
+      }
       saved_recipes: {
         Row: {
           applied_swaps: Json | null
@@ -88,7 +148,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
     }
     Enums: {
       [_ in never]: never
