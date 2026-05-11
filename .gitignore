@@ -45,3 +45,4 @@ kaggle/recipes.csv
 kaggle/recipes.parquet
 kaggle/reviews.csv
 kaggle/reviews.parquet
+.vercel
