@@ -25,6 +25,7 @@ function AuthPage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -33,6 +34,10 @@ function AuthPage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === "signup" && password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
     setLoading(true);
     const { error } =
       mode === "signin"
@@ -44,7 +49,8 @@ function AuthPage() {
           });
     setLoading(false);
     if (error) toast.error(error.message);
-    else if (mode === "signup") toast.success("Account created. You're signed in.");
+    else if (mode === "signup")
+      toast.success("Account created. Check your email to confirm your account.");
   };
 
   const google = async () => {
@@ -95,6 +101,19 @@ function AuthPage() {
               className="mt-1"
             />
           </div>
+          {mode === "signup" && (
+            <div>
+              <Label>Confirm Password</Label>
+              <Input
+                type="password"
+                required
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "…" : mode === "signin" ? "Sign in" : "Sign up"}
           </Button>
@@ -103,7 +122,10 @@ function AuthPage() {
         <p className="mt-5 text-center text-sm text-muted-foreground">
           {mode === "signin" ? "No account?" : "Already have one?"}{" "}
           <button
-            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            onClick={() => {
+              setMode(mode === "signin" ? "signup" : "signin");
+              setConfirmPassword("");
+            }}
             className="font-medium text-primary hover:underline"
           >
             {mode === "signin" ? "Sign up" : "Sign in"}

@@ -2,16 +2,24 @@ import { createClient } from "@supabase/supabase-js";
 import type { Database } from "./types";
 
 function createSupabaseClient() {
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+  const isBrowser = typeof window !== "undefined";
+  const serverEnv = !isBrowser ? process.env : {};
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || serverEnv.SUPABASE_URL;
   const SUPABASE_PUBLISHABLE_KEY =
     import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
     import.meta.env.VITE_SUPABASE_ANON_KEY ||
-    process.env.SUPABASE_PUBLISHABLE_KEY ||
-    process.env.SUPABASE_ANON_KEY;
+    serverEnv.SUPABASE_PUBLISHABLE_KEY ||
+    serverEnv.SUPABASE_ANON_KEY;
 
   if (!SUPABASE_URL || !SUPABASE_PUBLISHABLE_KEY) {
     throw new Error(
       "Missing Supabase environment variables. Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in .env.",
+    );
+  }
+
+  if (SUPABASE_PUBLISHABLE_KEY.startsWith("sb_secret_")) {
+    throw new Error(
+      "VITE_SUPABASE_PUBLISHABLE_KEY is set to a secret key. Use the Supabase publishable key in browser env vars and rotate the exposed secret.",
     );
   }
 

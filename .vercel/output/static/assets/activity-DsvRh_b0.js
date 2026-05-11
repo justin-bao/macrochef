@@ -1,0 +1,1 @@
+import{j as t}from"./index-SheptKki.js";import{U as o}from"./UnifiedDashboard-BQdqsxGa.js";import"./select-Kh3FosZJ.js";import"./label-dRIeenMu.js";import"./card-BiAcRAqk.js";import"./sparkles-Bu1Gpa6-.js";import"./useLocalTracking-BIwbtDBK.js";import"./MacroInputs-BWReU0E5.js";function c(){return t.jsx(o,{focus:"activity"})}export{c as component};
