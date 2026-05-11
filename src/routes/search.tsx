@@ -23,7 +23,9 @@ import {
 } from "@/components/ui/select";
 import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Search, ChevronDown, UtensilsCrossed, Store } from "lucide-react";
+import { CheckCircle2, Search, ChevronDown, UtensilsCrossed, Store } from "lucide-react";
+import { useLocalTracking } from "@/hooks/useLocalTracking";
+import { toast } from "sonner";
 
 const searchSchema = z.object({
   mode: z.enum(["recipes", "restaurants"]).optional().catch(undefined).default("recipes"),
@@ -37,12 +39,17 @@ const searchSchema = z.object({
   maxItems: z.coerce.number().optional().catch(undefined),
 });
 
+type SearchState = z.infer<typeof searchSchema>;
+
 export const Route = createFileRoute("/search")({
   validateSearch: searchSchema.parse,
   head: () => ({
     meta: [
       { title: "Search recipes & restaurants — MacroChef" },
-      { name: "description", content: "Search recipes or fast food combos tuned to your macro targets." },
+      {
+        name: "description",
+        content: "Search recipes or fast food combos tuned to your macro targets.",
+      },
     ],
   }),
   component: SearchPage,
@@ -58,7 +65,9 @@ function SearchPage() {
       <Tabs
         value={mode}
         onValueChange={(v) =>
-          navigate({ search: (prev: any) => ({ ...prev, mode: v as "recipes" | "restaurants" }) })
+          navigate({
+            search: (prev: SearchState) => ({ ...prev, mode: v as "recipes" | "restaurants" }),
+          })
         }
       >
         <TabsList className="mb-4 grid w-full grid-cols-2 sm:w-auto sm:inline-grid">
@@ -97,8 +106,7 @@ function RecipesTab() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hasMacros =
-    search.kcal != null || search.p != null || search.c != null || search.f != null;
+  const hasMacros = search.kcal != null || search.p != null || search.c != null || search.f != null;
   const hasCriteria = !!search.q || hasMacros;
 
   useEffect(() => {
@@ -133,7 +141,7 @@ function RecipesTab() {
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({
-      search: (prev: any) => ({
+      search: (prev: SearchState) => ({
         ...prev,
         mode: "recipes",
         q: q.trim(),
@@ -153,17 +161,39 @@ function RecipesTab() {
           <div className="flex gap-2">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Dish, cuisine, or leave blank…" className="pl-9 h-10" />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Dish, cuisine, or leave blank…"
+                className="pl-9 h-10"
+              />
             </div>
-            <Button type="submit" disabled={!q.trim() && !(macros.kcal != null || macros.protein_g != null || macros.carbs_g != null || macros.fat_g != null)}>Search</Button>
+            <Button
+              type="submit"
+              disabled={
+                !q.trim() &&
+                !(
+                  macros.kcal != null ||
+                  macros.protein_g != null ||
+                  macros.carbs_g != null ||
+                  macros.fat_g != null
+                )
+              }
+            >
+              Search
+            </Button>
           </div>
           <div>
-            <p className="mb-2 text-xs text-muted-foreground">Leave any macro blank to ignore it.</p>
+            <p className="mb-2 text-xs text-muted-foreground">
+              Leave any macro blank to ignore it.
+            </p>
             <MacroInputs value={macros} onChange={setMacros} />
           </div>
           <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 p-3">
             <div>
-              <Label htmlFor="allow-subs" className="text-sm font-medium">Allow substitutions</Label>
+              <Label htmlFor="allow-subs" className="text-sm font-medium">
+                Allow substitutions
+              </Label>
               <p className="mt-0.5 text-xs text-muted-foreground">
                 {allowSubs
                   ? "Show recipes that can be tuned with swaps to fit your macros."
@@ -185,29 +215,27 @@ function RecipesTab() {
         )}
 
         {!loading && error && (
-          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">{error}</div>
+          <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4 text-sm text-destructive">
+            {error}
+          </div>
         )}
 
         {!loading && !error && results.length === 0 && hasCriteria && (
           <p className="text-center text-muted-foreground">
-            No recipes found.{" "}
-            {!allowSubs && "Try enabling substitutions or relaxing some macros."}
+            No recipes found. {!allowSubs && "Try enabling substitutions or relaxing some macros."}
           </p>
         )}
 
         {!loading && !error && !hasCriteria && (
-          <p className="text-center text-muted-foreground">Enter a dish, cuisine, or set some macro targets to start.</p>
+          <p className="text-center text-muted-foreground">
+            Enter a dish, cuisine, or set some macro targets to start.
+          </p>
         )}
 
         {!loading && results.length > 0 && (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((r) => (
-              <ResultCard
-                key={r.id}
-                result={r}
-                target={macros}
-                allowSubs={allowSubs}
-              />
+              <ResultCard key={r.id} result={r} target={macros} allowSubs={allowSubs} />
             ))}
           </div>
         )}
@@ -233,8 +261,7 @@ function RestaurantsTab() {
   const [error, setError] = useState<string | null>(null);
 
   const activeChain = search.chain;
-  const hasMacros =
-    search.kcal != null || search.p != null || search.c != null || search.f != null;
+  const hasMacros = search.kcal != null || search.p != null || search.c != null || search.f != null;
 
   useEffect(() => {
     if (search.mode !== "restaurants") return;
@@ -264,12 +291,21 @@ function RestaurantsTab() {
     return () => {
       cancelled = true;
     };
-  }, [search.mode, activeChain, search.q, search.kcal, search.p, search.c, search.f, search.maxItems]);
+  }, [
+    search.mode,
+    activeChain,
+    search.q,
+    search.kcal,
+    search.p,
+    search.c,
+    search.f,
+    search.maxItems,
+  ]);
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
     navigate({
-      search: (prev: any) => ({
+      search: (prev: SearchState) => ({
         ...prev,
         mode: "restaurants",
         q: q.trim(),
@@ -390,7 +426,28 @@ function ComboCard({
   target: MacrosOptional;
   hasTarget: boolean;
 }) {
+  const { addFoodItems } = useLocalTracking();
   const fitLabel = hasTarget ? fitFromScore(combo.score) : null;
+  const logCombo = () => {
+    addFoodItems(new Date(), "lunch", [
+      {
+        id: crypto.randomUUID(),
+        name: combo.items.map((item) => item.title).join(" + "),
+        quantity: 1,
+        unit: combo.items[0]?.restaurantChain ? `${combo.items[0].restaurantChain} combo` : "combo",
+        kcal: Math.round(combo.totals.kcal),
+        protein_g: Math.round(combo.totals.protein_g * 10) / 10,
+        carbs_g: Math.round(combo.totals.carbs_g * 10) / 10,
+        fat_g: Math.round(combo.totals.fat_g * 10) / 10,
+        source: "restaurant",
+        confidence: "high",
+        note: "Logged from MacroChef restaurant combo.",
+        loggedAt: new Date().toISOString(),
+      },
+    ]);
+    toast.success("Logged combo to lunch.");
+  };
+
   return (
     <Card className="p-4 transition hover:-translate-y-0.5 hover:shadow-md">
       <div className="flex items-start justify-between gap-2">
@@ -417,6 +474,10 @@ function ComboCard({
         <Badge label={`${Math.round(combo.totals.fat_g)}F`} c="fat" />
         {hasTarget && <DeltaSummary totals={combo.totals} target={target} />}
       </div>
+      <Button size="sm" variant="secondary" className="mt-3 w-full gap-2" onClick={logCombo}>
+        <CheckCircle2 className="h-4 w-4" />
+        Log combo to today
+      </Button>
     </Card>
   );
 }
@@ -435,7 +496,8 @@ function ComboItem({ item }: { item: MenuItem }) {
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{item.title}</div>
         <div className="text-[11px] text-muted-foreground">
-          {item.kcal} kcal · {Math.round(item.protein_g)}P · {Math.round(item.carbs_g)}C · {Math.round(item.fat_g)}F
+          {item.kcal} kcal · {Math.round(item.protein_g)}P · {Math.round(item.carbs_g)}C ·{" "}
+          {Math.round(item.fat_g)}F
         </div>
       </div>
     </li>
@@ -468,7 +530,8 @@ function signed(v: number): string {
 }
 
 function fitFromScore(score: number): { label: string; cls: string } {
-  if (score < 0.1) return { label: "Great fit", cls: "bg-[var(--protein)]/15 text-[var(--protein)]" };
+  if (score < 0.1)
+    return { label: "Great fit", cls: "bg-[var(--protein)]/15 text-[var(--protein)]" };
   if (score < 0.25) return { label: "Close fit", cls: "bg-amber-500/15 text-amber-700" };
   return { label: "Off goal", cls: "bg-muted text-muted-foreground" };
 }
@@ -490,15 +553,16 @@ function ResultCard({
     target.kcal != null && baseKcal != null && baseKcal > 0 ? target.kcal / baseKcal : 1;
   const normalized = {
     kcal: baseKcal != null ? baseKcal * factor : undefined,
-    protein_g: (r.adjustedProtein_g ?? r.protein_g) != null
-      ? (r.adjustedProtein_g ?? r.protein_g)! * factor
-      : undefined,
-    carbs_g: (r.adjustedCarbs_g ?? r.carbs_g) != null
-      ? (r.adjustedCarbs_g ?? r.carbs_g)! * factor
-      : undefined,
-    fat_g: (r.adjustedFat_g ?? r.fat_g) != null
-      ? (r.adjustedFat_g ?? r.fat_g)! * factor
-      : undefined,
+    protein_g:
+      (r.adjustedProtein_g ?? r.protein_g) != null
+        ? (r.adjustedProtein_g ?? r.protein_g)! * factor
+        : undefined,
+    carbs_g:
+      (r.adjustedCarbs_g ?? r.carbs_g) != null
+        ? (r.adjustedCarbs_g ?? r.carbs_g)! * factor
+        : undefined,
+    fat_g:
+      (r.adjustedFat_g ?? r.fat_g) != null ? (r.adjustedFat_g ?? r.fat_g)! * factor : undefined,
   };
   const showingNormalized = factor !== 1;
   const hasSwaps = (r.swaps?.length ?? 0) > 0;
@@ -520,7 +584,12 @@ function ResultCard({
       >
         <div className="aspect-[4/3] bg-muted overflow-hidden">
           {r.image && (
-            <img src={r.image} alt={r.title} className="h-full w-full object-cover" loading="lazy" />
+            <img
+              src={r.image}
+              alt={r.title}
+              className="h-full w-full object-cover"
+              loading="lazy"
+            />
           )}
         </div>
         <div className="p-4 space-y-2">
@@ -554,8 +623,14 @@ function ResultCard({
             className="flex w-full items-center justify-between px-4 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50"
             aria-expanded={showSwaps}
           >
-            <span>{showSwaps ? "Hide swaps" : `View ${r.swaps!.length} swap${r.swaps!.length > 1 ? "s" : ""}`}</span>
-            <ChevronDown className={`h-3.5 w-3.5 transition-transform ${showSwaps ? "rotate-180" : ""}`} />
+            <span>
+              {showSwaps
+                ? "Hide swaps"
+                : `View ${r.swaps!.length} swap${r.swaps!.length > 1 ? "s" : ""}`}
+            </span>
+            <ChevronDown
+              className={`h-3.5 w-3.5 transition-transform ${showSwaps ? "rotate-180" : ""}`}
+            />
           </button>
           {showSwaps && (
             <ul className="space-y-2 px-4 pb-3 pt-1 text-xs">
@@ -615,13 +690,16 @@ function FitBadge({ kind, swapCount }: { kind: "fits" | "swaps" | "close"; swapC
   const map = {
     fits: { label: "Fits", cls: "bg-[var(--protein)]/15 text-[var(--protein)]" },
     swaps: {
-      label: swapCount > 0 ? `Fits w/ ${swapCount} swap${swapCount > 1 ? "s" : ""}` : "Fits w/ swaps",
+      label:
+        swapCount > 0 ? `Fits w/ ${swapCount} swap${swapCount > 1 ? "s" : ""}` : "Fits w/ swaps",
       cls: "bg-amber-500/15 text-amber-700",
     },
     close: { label: "Close", cls: "bg-muted text-muted-foreground" },
   }[kind];
   return (
-    <span className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${map.cls}`}>
+    <span
+      className={`shrink-0 whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-semibold ${map.cls}`}
+    >
       {map.label}
     </span>
   );

@@ -1,6 +1,6 @@
 # MacroChef
 
-MacroChef is a TanStack Start app for finding recipes and restaurant meals that match calorie and macronutrient targets. It uses Spoonacular for recipe, ingredient, and menu nutrition data, Supabase for auth and saved user data, and Lovable's AI gateway to suggest recipe substitutions.
+MacroChef is a TanStack Start app for finding recipes and restaurant meals that match calorie and macronutrient targets. It uses Spoonacular for recipe, ingredient, and menu nutrition data, Supabase for auth and saved user data, and an optional OpenAI-compatible backend for recipe substitution suggestions.
 
 ## Features
 
@@ -23,7 +23,7 @@ MacroChef is a TanStack Start app for finding recipes and restaurant meals that 
 - shadcn/ui and Radix UI primitives
 - Supabase Auth and Postgres
 - Spoonacular API
-- Lovable Cloud Auth and AI Gateway
+- Optional OpenAI-compatible AI provider
 - Cloudflare Workers deployment config via Wrangler
 
 ## Getting Started
@@ -47,8 +47,11 @@ VITE_SUPABASE_URL=...
 VITE_SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_URL=...
 SUPABASE_PUBLISHABLE_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
 SPOONACULAR_API_KEY=...
-LOVABLE_API_KEY=...
+AI_API_KEY=...
+AI_BASE_URL=https://api.openai.com/v1
+AI_MODEL=gpt-4.1-mini
 ```
 
 The `VITE_` Supabase values are used in the browser. The unprefixed Supabase values are used during SSR/server execution. In many local setups they can point to the same Supabase project.
@@ -100,9 +103,9 @@ For Google sign-in, configure Google OAuth in Supabase and make sure the redirec
 - Ingredient nutrition lookup for swap verification
 - Restaurant/menu item search
 
-### Lovable AI Gateway
+### Optional AI Provider
 
-`LOVABLE_API_KEY` is required for AI substitution suggestions on recipe detail pages. Search-time substitutions can still use local heuristics, but the "Suggest substitutions" action calls the AI gateway.
+`AI_API_KEY` is required for AI substitution suggestions on recipe detail pages. Search-time substitutions can still use local heuristics, but the "Suggest substitutions" action calls an OpenAI-compatible chat completions endpoint. Set `AI_BASE_URL` and `AI_MODEL` to use a different provider or your own backend.
 
 ### Supabase
 

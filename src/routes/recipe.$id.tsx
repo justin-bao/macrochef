@@ -7,17 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MacroBar } from "@/components/MacroBar";
 import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
-import { Sparkles, Calculator, BookmarkPlus, Clock, ExternalLink, RotateCcw, CheckCircle2 } from "lucide-react";
 import {
-  applySwaps,
-  scaleIngredients,
-  sumMacros,
-  type Ingredient,
-  type Swap,
-} from "@/lib/macros";
+  Sparkles,
+  Calculator,
+  BookmarkPlus,
+  Clock,
+  ExternalLink,
+  RotateCcw,
+  CheckCircle2,
+} from "lucide-react";
+import { applySwaps, scaleIngredients, sumMacros, type Ingredient, type Swap } from "@/lib/macros";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
 import { toast } from "sonner";
+import { useLocalTracking } from "@/hooks/useLocalTracking";
 
 const searchSchema = z.object({
   src: z.enum(["spoonacular", "kaggle"]).catch("spoonacular"),
@@ -27,6 +30,8 @@ const searchSchema = z.object({
   f: z.coerce.number().optional().catch(undefined),
   subs: z.coerce.boolean().catch(true),
 });
+
+type RecipeSwap = Swap & { verified?: boolean };
 
 export const Route = createFileRoute("/recipe/$id")({
   validateSearch: searchSchema.parse,
@@ -43,6 +48,7 @@ function RecipePage() {
   const { id } = Route.useParams();
   const search = Route.useSearch();
   const { user } = useAuth();
+  const { addFoodItems } = useLocalTracking();
 
   const target: MacrosOptional = {
     kcal: search.kcal ?? null,
@@ -56,7 +62,7 @@ function RecipePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [swaps, setSwaps] = useState<Swap[]>([]);
+  const [swaps, setSwaps] = useState<RecipeSwap[]>([]);
   const [loadingSwaps, setLoadingSwaps] = useState(false);
   const [scaleFactor, setScaleFactor] = useState(1);
   const [scaleMode, setScaleMode] = useState<"perServing" | "total">("perServing");
@@ -109,7 +115,11 @@ function RecipePage() {
     const res = await suggestSwaps({
       data: {
         title: recipe.title,
-        ingredients: recipe.ingredients.map((i) => ({ name: i.name, amount: i.amount, unit: i.unit })),
+        ingredients: recipe.ingredients.map((i) => ({
+          name: i.name,
+          amount: i.amount,
+          unit: i.unit,
+        })),
         current: totalMacros,
         target: editingTarget,
         servings: recipe.servings,
@@ -120,7 +130,7 @@ function RecipePage() {
       toast.error(res.error);
       return;
     }
-    setSwaps(res.swaps.map((s: any) => ({ ...s, applied: false })));
+    setSwaps((res.swaps as RecipeSwap[]).map((s) => ({ ...s, applied: false })));
     if (res.swaps.length === 0) toast.info("No useful swaps found.");
   };
 
@@ -157,8 +167,41 @@ function RecipePage() {
     else toast.success("Recipe saved.");
   };
 
-  if (loading) return <div className="mx-auto max-w-5xl p-6 space-y-4"><Skeleton className="h-64 w-full" /><Skeleton className="h-32 w-full" /></div>;
-  if (error || !recipe) return <div className="mx-auto max-w-5xl p-6 text-destructive">{error || "Recipe not found"}</div>;
+  const logServing = () => {
+    if (!recipe) return;
+    addFoodItems(new Date(), "dinner", [
+      {
+        id: crypto.randomUUID(),
+        name: recipe.title,
+        quantity: 1,
+        unit: "serving",
+        kcal: Math.round(perServing.kcal),
+        protein_g: Math.round(perServing.protein_g * 10) / 10,
+        carbs_g: Math.round(perServing.carbs_g * 10) / 10,
+        fat_g: Math.round(perServing.fat_g * 10) / 10,
+        source: "recipe",
+        confidence: "high",
+        note:
+          scaleFactor !== 1 || swaps.some((s) => s.applied)
+            ? "Logged from tuned MacroChef recipe."
+            : "Logged from MacroChef recipe.",
+        loggedAt: new Date().toISOString(),
+      },
+    ]);
+    toast.success("Logged 1 serving to dinner.");
+  };
+
+  if (loading)
+    return (
+      <div className="mx-auto max-w-5xl p-6 space-y-4">
+        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-32 w-full" />
+      </div>
+    );
+  if (error || !recipe)
+    return (
+      <div className="mx-auto max-w-5xl p-6 text-destructive">{error || "Recipe not found"}</div>
+    );
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -166,18 +209,29 @@ function RecipePage() {
         {/* Left: recipe */}
         <div className="space-y-6">
           <div className="overflow-hidden rounded-2xl">
-            <img src={recipe.image} alt={recipe.title} className="aspect-[16/9] w-full object-cover" />
+            <img
+              src={recipe.image}
+              alt={recipe.title}
+              className="aspect-[16/9] w-full object-cover"
+            />
           </div>
           <div>
             <h1 className="text-3xl font-bold tracking-tight">{recipe.title}</h1>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-              <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {recipe.readyInMinutes} min</span>
+              <span className="flex items-center gap-1">
+                <Clock className="h-4 w-4" /> {recipe.readyInMinutes} min
+              </span>
               <span>·</span>
               <span>{recipe.servings} servings</span>
               {recipe.sourceUrl && (
                 <>
                   <span>·</span>
-                  <a href={recipe.sourceUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-foreground">
+                  <a
+                    href={recipe.sourceUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 hover:text-foreground"
+                  >
                     Source <ExternalLink className="h-3 w-3" />
                   </a>
                 </>
@@ -217,7 +271,9 @@ function RecipePage() {
                       </span>{" "}
                       <span className={changed ? "text-primary font-medium" : ""}>{i.name}</span>
                       {changed && i.name !== orig.name && (
-                        <span className="ml-1 text-xs text-muted-foreground line-through">{orig.name}</span>
+                        <span className="ml-1 text-xs text-muted-foreground line-through">
+                          {orig.name}
+                        </span>
                       )}
                     </div>
                     {i.kcal != null && (
@@ -237,7 +293,9 @@ function RecipePage() {
               <ol className="space-y-3 text-sm">
                 {recipe.instructions.map((s, i) => (
                   <li key={i} className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">{i + 1}</span>
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
+                      {i + 1}
+                    </span>
                     <span>{s}</span>
                   </li>
                 ))}
@@ -265,10 +323,31 @@ function RecipePage() {
               )}
             </div>
             <div className="space-y-3">
-              <MacroBar label="Calories" value={perServing.kcal} target={editingTarget.kcal ?? undefined} unit="kcal" color="kcal" />
-              <MacroBar label="Protein" value={perServing.protein_g} target={editingTarget.protein_g ?? undefined} color="protein" />
-              <MacroBar label="Carbs" value={perServing.carbs_g} target={editingTarget.carbs_g ?? undefined} color="carbs" />
-              <MacroBar label="Fat" value={perServing.fat_g} target={editingTarget.fat_g ?? undefined} color="fat" />
+              <MacroBar
+                label="Calories"
+                value={perServing.kcal}
+                target={editingTarget.kcal ?? undefined}
+                unit="kcal"
+                color="kcal"
+              />
+              <MacroBar
+                label="Protein"
+                value={perServing.protein_g}
+                target={editingTarget.protein_g ?? undefined}
+                color="protein"
+              />
+              <MacroBar
+                label="Carbs"
+                value={perServing.carbs_g}
+                target={editingTarget.carbs_g ?? undefined}
+                color="carbs"
+              />
+              <MacroBar
+                label="Fat"
+                value={perServing.fat_g}
+                target={editingTarget.fat_g ?? undefined}
+                color="fat"
+              />
             </div>
           </Card>
 
@@ -276,14 +355,23 @@ function RecipePage() {
             <h3 className="font-semibold">Tune to target</h3>
             <p className="mt-1 text-sm text-muted-foreground">Two ways to hit your numbers.</p>
             <div className="mt-3 space-y-2">
-              <Button onClick={scaleToTarget} variant="secondary" className="w-full justify-start" disabled={editingTarget.kcal == null}>
+              <Button
+                onClick={scaleToTarget}
+                variant="secondary"
+                className="w-full justify-start"
+                disabled={editingTarget.kcal == null}
+              >
                 <Calculator className="mr-2 h-4 w-4" />
                 {editingTarget.kcal != null
                   ? `Scale ingredients to ${editingTarget.kcal} kcal`
                   : "Set a calorie target to scale"}
               </Button>
               {allowSubs && (
-                <Button onClick={generateSwaps} disabled={loadingSwaps} className="w-full justify-start">
+                <Button
+                  onClick={generateSwaps}
+                  disabled={loadingSwaps}
+                  className="w-full justify-start"
+                >
                   <Sparkles className="mr-2 h-4 w-4" />
                   {loadingSwaps ? "Finding swaps…" : "Suggest substitutions"}
                 </Button>
@@ -295,7 +383,11 @@ function RecipePage() {
                 {swaps.map((s, i) => (
                   <button
                     key={i}
-                    onClick={() => setSwaps((prev) => prev.map((x, j) => (j === i ? { ...x, applied: !x.applied } : x)))}
+                    onClick={() =>
+                      setSwaps((prev) =>
+                        prev.map((x, j) => (j === i ? { ...x, applied: !x.applied } : x)),
+                      )
+                    }
                     className={`w-full rounded-lg border p-3 text-left text-sm transition ${
                       s.applied ? "border-primary bg-primary/5" : "hover:bg-muted"
                     }`}
@@ -314,7 +406,7 @@ function RecipePage() {
                       <DeltaPill v={s.delta.protein_g} unit="P" />
                       <DeltaPill v={s.delta.carbs_g} unit="C" />
                       <DeltaPill v={s.delta.fat_g} unit="F" />
-                      {(s as any).verified && (
+                      {s.verified && (
                         <span className="ml-auto rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-medium text-accent">
                           DB-verified
                         </span>
@@ -327,11 +419,25 @@ function RecipePage() {
           </Card>
 
           {user ? (
-            <Button onClick={save} variant="outline" className="w-full">
-              <BookmarkPlus className="mr-2 h-4 w-4" /> Save tuned recipe
-            </Button>
+            <div className="grid gap-2">
+              <Button onClick={logServing} className="w-full">
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Log 1 serving to today
+              </Button>
+              <Button onClick={save} variant="outline" className="w-full">
+                <BookmarkPlus className="mr-2 h-4 w-4" /> Save tuned recipe
+              </Button>
+            </div>
           ) : (
-            <Link to="/auth"><Button variant="outline" className="w-full"><BookmarkPlus className="mr-2 h-4 w-4" /> Sign in to save</Button></Link>
+            <div className="grid gap-2">
+              <Button onClick={logServing} className="w-full">
+                <CheckCircle2 className="mr-2 h-4 w-4" /> Log 1 serving to today
+              </Button>
+              <Link to="/auth">
+                <Button variant="outline" className="w-full">
+                  <BookmarkPlus className="mr-2 h-4 w-4" /> Sign in to save
+                </Button>
+              </Link>
+            </div>
           )}
         </div>
       </div>

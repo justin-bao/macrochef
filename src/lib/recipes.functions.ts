@@ -41,6 +41,117 @@ export type SearchResult = {
   adjustedFat_g?: number;
 };
 
+type SpoonacularNutrient = {
+  name?: string;
+  amount?: number;
+};
+
+type SpoonacularIngredient = {
+  id?: number;
+  name?: string;
+  nameClean?: string;
+  original?: string;
+  amount?: number;
+  unit?: string;
+  measures?: {
+    metric?: {
+      amount?: number;
+      unitShort?: string;
+    };
+  };
+  nutrients?: SpoonacularNutrient[];
+};
+
+type SpoonacularSearchRecipe = {
+  id: number;
+  title: string;
+  image?: string;
+  servings?: number;
+  extendedIngredients?: SpoonacularIngredient[];
+  nutrition?: {
+    nutrients?: SpoonacularNutrient[];
+    ingredients?: SpoonacularIngredient[];
+  };
+};
+
+type SpoonacularRecipeDetail = SpoonacularSearchRecipe & {
+  sourceUrl?: string;
+  readyInMinutes?: number;
+  summary?: string;
+  analyzedInstructions?: Array<{ steps?: Array<{ step?: string }> }>;
+};
+
+type AiSwap = {
+  from: string;
+  to: string;
+  reason: string;
+  delta_kcal: number;
+  delta_protein_g: number;
+  delta_carbs_g: number;
+  delta_fat_g: number;
+};
+
+type RepricedSwap = AiSwap & {
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  verified: boolean;
+};
+
+type ChatCompletionsResponse = {
+  choices?: Array<{
+    message?: {
+      tool_calls?: Array<{
+        function?: {
+          arguments?: string;
+        };
+      }>;
+    };
+  }>;
+};
+
+type KaggleDetailPayload = {
+  title?: string;
+  description?: string | null;
+  image_url?: string | null;
+  total_minutes?: number | null;
+  servings?: number | null;
+  ingredients?: unknown;
+  instructions?: unknown;
+  macros?: {
+    kcal?: number | null;
+    protein_g?: number | null;
+    carbs_g?: number | null;
+    fat_g?: number | null;
+  };
+};
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((x) => String(x)).filter(Boolean) : [];
+}
+
+function toOptionalNumber(value: unknown): number | undefined {
+  if (value == null) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
+async function decodeRecipeDetailBlob(blob: Blob, encoding?: string | null): Promise<string> {
+  const bytes = new Uint8Array(await blob.arrayBuffer());
+  const isGzip = encoding === "gzip" || (bytes[0] === 0x1f && bytes[1] === 0x8b);
+
+  if (!isGzip) return new TextDecoder().decode(bytes);
+
+  if (typeof DecompressionStream !== "undefined") {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream("gzip"));
+    return new Response(stream).text();
+  }
+
+  const { gunzipSync } = await import("node:zlib");
+  return gunzipSync(bytes).toString("utf-8");
+}
+
 export const searchRecipes = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
@@ -67,83 +178,85 @@ export const searchRecipes = createServerFn({ method: "POST" })
     const tight = !data.allowSubs;
 
     type Candidate = SearchResult & { _ingredientNames: string[] };
-    const round1 = (v: number | undefined) =>
-      v == null ? undefined : Math.round(v * 10) / 10;
+    const round1 = (v: number | undefined) => (v == null ? undefined : Math.round(v * 10) / 10);
 
     // ---- Spoonacular fetch (only if key present) -------------------------
-    const spoonPromise: Promise<{ candidates: Candidate[]; error: string | null }> =
-      key
-        ? (async () => {
-            const params = new URLSearchParams({
-              apiKey: key,
-              number: String(fetchCount),
-              addRecipeNutrition: "true",
-              fillIngredients: "true",
-              instructionsRequired: "true",
-              sort: "popularity",
-            });
-            if (data.query) params.set("query", data.query);
-            if (data.diet) params.set("diet", data.diet);
-            if (data.cuisine) params.set("cuisine", data.cuisine);
-            if (data.maxReadyTime) params.set("maxReadyTime", String(data.maxReadyTime));
+    const spoonPromise: Promise<{ candidates: Candidate[]; error: string | null }> = key
+      ? (async () => {
+          const params = new URLSearchParams({
+            apiKey: key,
+            number: String(fetchCount),
+            addRecipeNutrition: "true",
+            fillIngredients: "true",
+            instructionsRequired: "true",
+            sort: "popularity",
+          });
+          if (data.query) params.set("query", data.query);
+          if (data.diet) params.set("diet", data.diet);
+          if (data.cuisine) params.set("cuisine", data.cuisine);
+          if (data.maxReadyTime) params.set("maxReadyTime", String(data.maxReadyTime));
 
-            const setRange = (
-              minKey: string,
-              maxKey: string,
-              target: number | null | undefined,
-              mode: "two-sided" | "cap" | "floor",
-            ) => {
-              if (target == null) return;
-              if (tight) {
-                params.set(minKey, String(Math.max(0, Math.round(target * 0.75))));
-                params.set(maxKey, String(Math.round(target * 1.25)));
-              } else if (mode === "cap") {
-                params.set(maxKey, String(Math.round(target * 1.6)));
-              } else if (mode === "floor") {
-                params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
-              } else {
-                params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
-                params.set(maxKey, String(Math.round(target * 1.6)));
-              }
-            };
-            setRange("minCalories", "maxCalories", data.kcal, "cap");
-            setRange("minProtein", "maxProtein", data.protein_g, "floor");
-            setRange("minCarbs", "maxCarbs", data.carbs_g, "cap");
-            setRange("minFat", "maxFat", data.fat_g, "cap");
-
-            const res = await fetch(`${BASE}/recipes/complexSearch?${params}`);
-            if (!res.ok) {
-              const text = await res.text();
-              console.error("Spoonacular search failed", res.status, text);
-              return {
-                candidates: [],
-                error: `Spoonacular search failed (${res.status})`,
-              };
+          const setRange = (
+            minKey: string,
+            maxKey: string,
+            target: number | null | undefined,
+            mode: "two-sided" | "cap" | "floor",
+          ) => {
+            if (target == null) return;
+            if (tight) {
+              params.set(minKey, String(Math.max(0, Math.round(target * 0.75))));
+              params.set(maxKey, String(Math.round(target * 1.25)));
+            } else if (mode === "cap") {
+              params.set(maxKey, String(Math.round(target * 1.6)));
+            } else if (mode === "floor") {
+              params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
+            } else {
+              params.set(minKey, String(Math.max(0, Math.round(target * 0.4))));
+              params.set(maxKey, String(Math.round(target * 1.6)));
             }
-            const json = (await res.json()) as { results: any[] };
-            const candidates: Candidate[] = (json.results ?? []).map((r) => {
-              const nut = r.nutrition?.nutrients ?? [];
-              const find = (n: string) => nut.find((x: any) => x.name === n)?.amount;
-              const servings = Math.max(1, Number(r.servings) || 1);
-              const ingredientNames: string[] = (r.extendedIngredients ?? r.nutrition?.ingredients ?? [])
-                .map((i: any) => String(i.nameClean || i.name || "").trim())
-                .filter(Boolean);
-              return {
-                id: r.id,
-                source: "spoonacular",
-                title: r.title,
-                image: r.image,
-                servings,
-                kcal: round1(find("Calories")),
-                protein_g: round1(find("Protein")),
-                carbs_g: round1(find("Carbohydrates")),
-                fat_g: round1(find("Fat")),
-                _ingredientNames: ingredientNames,
-              };
-            });
-            return { candidates, error: null };
-          })()
-        : Promise.resolve({ candidates: [], error: null });
+          };
+          setRange("minCalories", "maxCalories", data.kcal, "cap");
+          setRange("minProtein", "maxProtein", data.protein_g, "floor");
+          setRange("minCarbs", "maxCarbs", data.carbs_g, "cap");
+          setRange("minFat", "maxFat", data.fat_g, "cap");
+
+          const res = await fetch(`${BASE}/recipes/complexSearch?${params}`);
+          if (!res.ok) {
+            const text = await res.text();
+            console.error("Spoonacular search failed", res.status, text);
+            return {
+              candidates: [],
+              error: `Spoonacular search failed (${res.status})`,
+            };
+          }
+          const json = (await res.json()) as { results?: SpoonacularSearchRecipe[] };
+          const candidates: Candidate[] = (json.results ?? []).map((r) => {
+            const nut = r.nutrition?.nutrients ?? [];
+            const find = (n: string) => nut.find((x) => x.name === n)?.amount;
+            const servings = Math.max(1, Number(r.servings) || 1);
+            const ingredientNames: string[] = (
+              r.extendedIngredients ??
+              r.nutrition?.ingredients ??
+              []
+            )
+              .map((i) => String(i.nameClean || i.name || "").trim())
+              .filter(Boolean);
+            return {
+              id: r.id,
+              source: "spoonacular",
+              title: r.title,
+              image: r.image,
+              servings,
+              kcal: round1(find("Calories")),
+              protein_g: round1(find("Protein")),
+              carbs_g: round1(find("Carbohydrates")),
+              fat_g: round1(find("Fat")),
+              _ingredientNames: ingredientNames,
+            };
+          });
+          return { candidates, error: null };
+        })()
+      : Promise.resolve({ candidates: [], error: null });
 
     // ---- DB (Kaggle/Food.com) fetch -------------------------------------
     const dbPromise: Promise<Candidate[]> = searchDbRecipes({
@@ -204,12 +317,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
           fat_g: r.fat_g,
         };
         if (!data.allowSubs) {
-          const { baselineDistance } = estimateSwapImpact(
-            baseMacros,
-            [],
-            targets,
-            r.servings ?? 1,
-          );
+          const { baselineDistance } = estimateSwapImpact(baseMacros, [], targets, r.servings ?? 1);
           return {
             r,
             score: baselineDistance,
@@ -218,12 +326,7 @@ export const searchRecipes = createServerFn({ method: "POST" })
             adjusted: baseMacros,
           };
         }
-        const est = estimateSwapImpact(
-          baseMacros,
-          r._ingredientNames,
-          targets,
-          r.servings ?? 1,
-        );
+        const est = estimateSwapImpact(baseMacros, r._ingredientNames, targets, r.servings ?? 1);
         const useAdjusted = est.adjustedDistance < est.baselineDistance;
         return {
           r,
@@ -308,20 +411,59 @@ export const getRecipe = createServerFn({ method: "POST" })
       const { data: row, error } = await supabaseAdmin
         .from("recipes")
         .select(
-          "id, title, description, image_url, servings, total_minutes, kcal, protein_g, carbs_g, fat_g, ingredients, instructions",
+          "id, source_id, title, description, image_url, servings, total_minutes, kcal, protein_g, carbs_g, fat_g, ingredients, instructions, detail_bucket_id, detail_object_path",
         )
         .eq("id", data.id)
         .maybeSingle();
       if (error || !row) {
         return { recipe: null, error: error?.message ?? "Recipe not found" };
       }
-      const ingArr: string[] = Array.isArray(row.ingredients)
-        ? (row.ingredients as unknown[]).map((x) => String(x)).filter(Boolean)
-        : [];
-      const stepArr: string[] = Array.isArray(row.instructions)
-        ? (row.instructions as unknown[]).map((x) => String(x)).filter(Boolean)
-        : [];
-      const servings = Math.max(1, Number(row.servings ?? 1));
+
+      let detail: KaggleDetailPayload | null = null;
+      const { data: detailObject, error: detailObjectError } = await supabaseAdmin
+        .from("recipe_detail_objects")
+        .select("bucket_id, object_path, content_encoding")
+        .eq("recipe_id", data.id)
+        .maybeSingle();
+
+      if (detailObjectError) {
+        console.error("Kaggle recipe detail metadata lookup failed", detailObjectError);
+      }
+
+      const detailBucket = detailObject?.bucket_id ?? row.detail_bucket_id;
+      const detailPath = detailObject?.object_path ?? row.detail_object_path;
+      const detailEncoding = detailObject?.content_encoding ?? "gzip";
+
+      if (detailBucket && detailPath) {
+        const { data: blob, error: downloadError } = await supabaseAdmin.storage
+          .from(detailBucket)
+          .download(detailPath);
+        if (downloadError) {
+          console.error("Kaggle recipe detail download failed", downloadError);
+        } else if (blob) {
+          try {
+            detail = JSON.parse(
+              await decodeRecipeDetailBlob(blob, detailEncoding),
+            ) as KaggleDetailPayload;
+          } catch (e) {
+            console.error("Kaggle recipe detail parse failed", e);
+          }
+        }
+      }
+
+      const detailMacros = detail?.macros ?? {};
+      const ingArr = asStringArray(detail?.ingredients).length
+        ? asStringArray(detail?.ingredients)
+        : asStringArray(row.ingredients);
+      const stepArr = asStringArray(detail?.instructions).length
+        ? asStringArray(detail?.instructions)
+        : asStringArray(row.instructions);
+      const servings = Math.max(1, Number(detail?.servings ?? row.servings ?? 1));
+      const kcal = toOptionalNumber(detailMacros.kcal) ?? Number(row.kcal ?? 0);
+      const proteinG = toOptionalNumber(detailMacros.protein_g) ?? Number(row.protein_g ?? 0);
+      const carbsG = toOptionalNumber(detailMacros.carbs_g) ?? Number(row.carbs_g ?? 0);
+      const fatG = toOptionalNumber(detailMacros.fat_g) ?? Number(row.fat_g ?? 0);
+
       // The dataset stores ingredients as plain strings ("2 cups flour");
       // we have no parsed amounts/units, so we represent each as amount=1
       // unit="" with a per-ingredient macro fraction = total / count. This
@@ -333,27 +475,27 @@ export const getRecipe = createServerFn({ method: "POST" })
         original: s,
         amount: 1,
         unit: "",
-        kcal: row.kcal != null ? Number(row.kcal) * servings / count : undefined,
-        protein_g: row.protein_g != null ? Number(row.protein_g) * servings / count : undefined,
-        carbs_g: row.carbs_g != null ? Number(row.carbs_g) * servings / count : undefined,
-        fat_g: row.fat_g != null ? Number(row.fat_g) * servings / count : undefined,
+        kcal: kcal ? (kcal * servings) / count : undefined,
+        protein_g: proteinG ? (proteinG * servings) / count : undefined,
+        carbs_g: carbsG ? (carbsG * servings) / count : undefined,
+        fat_g: fatG ? (fatG * servings) / count : undefined,
       }));
       return {
         recipe: {
           id: Number(row.id),
           source: "kaggle",
-          title: row.title,
-          image: row.image_url ?? "",
+          title: detail?.title ?? row.title,
+          image: detail?.image_url ?? row.image_url ?? "",
           servings,
-          readyInMinutes: row.total_minutes ?? 0,
-          summary: row.description ?? undefined,
+          readyInMinutes: detail?.total_minutes ?? row.total_minutes ?? 0,
+          summary: detail?.description ?? row.description ?? undefined,
           instructions: stepArr,
           ingredients,
           macros: {
-            kcal: Math.round(Number(row.kcal ?? 0) * servings),
-            protein_g: Math.round(Number(row.protein_g ?? 0) * servings * 10) / 10,
-            carbs_g: Math.round(Number(row.carbs_g ?? 0) * servings * 10) / 10,
-            fat_g: Math.round(Number(row.fat_g ?? 0) * servings * 10) / 10,
+            kcal: Math.round(kcal * servings),
+            protein_g: Math.round(proteinG * servings * 10) / 10,
+            carbs_g: Math.round(carbsG * servings * 10) / 10,
+            fat_g: Math.round(fatG * servings * 10) / 10,
           },
         },
         error: null,
@@ -368,13 +510,13 @@ export const getRecipe = createServerFn({ method: "POST" })
       console.error("Spoonacular getRecipe failed", res.status, text);
       return { recipe: null, error: `Recipe load failed (${res.status})` };
     }
-    const r: any = await res.json();
+    const r = (await res.json()) as SpoonacularRecipeDetail;
     const nut = r.nutrition?.nutrients ?? [];
-    const find = (n: string) => nut.find((x: any) => x.name === n)?.amount ?? 0;
+    const find = (n: string) => nut.find((x) => x.name === n)?.amount ?? 0;
 
-    const ingredients = (r.extendedIngredients ?? []).map((ing: any) => {
-      const ingNut = r.nutrition?.ingredients?.find((x: any) => x.id === ing.id)?.nutrients ?? [];
-      const inFind = (n: string) => ingNut.find((x: any) => x.name === n)?.amount;
+    const ingredients = (r.extendedIngredients ?? []).map((ing) => {
+      const ingNut = r.nutrition?.ingredients?.find((x) => x.id === ing.id)?.nutrients ?? [];
+      const inFind = (n: string) => ingNut.find((x) => x.name === n)?.amount;
       return {
         id: ing.id,
         name: ing.nameClean || ing.name,
@@ -389,7 +531,7 @@ export const getRecipe = createServerFn({ method: "POST" })
     });
 
     const instructions: string[] =
-      r.analyzedInstructions?.[0]?.steps?.map((s: any) => s.step) ?? [];
+      r.analyzedInstructions?.[0]?.steps?.map((s) => s.step ?? "") ?? [];
 
     return {
       recipe: {
@@ -439,8 +581,10 @@ export const suggestSwaps = createServerFn({ method: "POST" })
     }).parse,
   )
   .handler(async ({ data }) => {
-    const lovableKey = process.env.LOVABLE_API_KEY;
-    if (!lovableKey) throw new Error("LOVABLE_API_KEY is not configured");
+    const aiKey = process.env.AI_API_KEY;
+    const aiBaseUrl = process.env.AI_BASE_URL ?? "https://api.openai.com/v1";
+    const aiModel = process.env.AI_MODEL ?? "gpt-4.1-mini";
+    if (!aiKey) throw new Error("AI_API_KEY is not configured");
     const spoonKey = requireKey();
 
     const perServing = (m: typeof data.current) => ({
@@ -451,12 +595,15 @@ export const suggestSwaps = createServerFn({ method: "POST" })
     });
     const cur = perServing(data.current);
     const tgt = data.target;
-    const tgtLine = [
-      tgt.kcal != null ? `${tgt.kcal} kcal` : null,
-      tgt.protein_g != null ? `${tgt.protein_g}g protein` : null,
-      tgt.carbs_g != null ? `${tgt.carbs_g}g carbs` : null,
-      tgt.fat_g != null ? `${tgt.fat_g}g fat` : null,
-    ].filter(Boolean).join(", ") || "no specific targets — just generally healthier";
+    const tgtLine =
+      [
+        tgt.kcal != null ? `${tgt.kcal} kcal` : null,
+        tgt.protein_g != null ? `${tgt.protein_g}g protein` : null,
+        tgt.carbs_g != null ? `${tgt.carbs_g}g carbs` : null,
+        tgt.fat_g != null ? `${tgt.fat_g}g fat` : null,
+      ]
+        .filter(Boolean)
+        .join(", ") || "no specific targets — just generally healthier";
 
     const prompt = `Recipe: ${data.title}
 Ingredients (per recipe):
@@ -467,16 +614,19 @@ Target macros per serving: ${tgtLine}.
 
 Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be specific (e.g. "sour cream" -> "non-fat Greek yogurt"). For each: estimate per-recipe macro delta (negative = reduces).`;
 
-    const aiRes = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    const aiRes = await fetch(`${aiBaseUrl.replace(/\/$/, "")}/chat/completions`, {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${lovableKey}`,
+        Authorization: `Bearer ${aiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: aiModel,
         messages: [
-          { role: "system", content: "You are a nutrition-aware recipe coach. Always call the provided tool." },
+          {
+            role: "system",
+            content: "You are a nutrition-aware recipe coach. Always call the provided tool.",
+          },
           { role: "user", content: prompt },
         ],
         tools: [
@@ -484,7 +634,8 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
             type: "function",
             function: {
               name: "suggest_swaps",
-              description: "Suggest ingredient substitutions to move the recipe toward target macros.",
+              description:
+                "Suggest ingredient substitutions to move the recipe toward target macros.",
               parameters: {
                 type: "object",
                 properties: {
@@ -493,7 +644,10 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
                     items: {
                       type: "object",
                       properties: {
-                        from: { type: "string", description: "Original ingredient name (must match one above)." },
+                        from: {
+                          type: "string",
+                          description: "Original ingredient name (must match one above).",
+                        },
                         to: { type: "string", description: "Substitute ingredient name." },
                         reason: { type: "string" },
                         delta_kcal: { type: "number" },
@@ -501,7 +655,15 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
                         delta_carbs_g: { type: "number" },
                         delta_fat_g: { type: "number" },
                       },
-                      required: ["from", "to", "reason", "delta_kcal", "delta_protein_g", "delta_carbs_g", "delta_fat_g"],
+                      required: [
+                        "from",
+                        "to",
+                        "reason",
+                        "delta_kcal",
+                        "delta_protein_g",
+                        "delta_carbs_g",
+                        "delta_fat_g",
+                      ],
                       additionalProperties: false,
                     },
                   },
@@ -517,24 +679,26 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
     });
 
     if (!aiRes.ok) {
-      if (aiRes.status === 429) return { swaps: [], error: "AI is rate-limited. Please wait a moment." };
-      if (aiRes.status === 402) return { swaps: [], error: "AI credits exhausted. Please add credits in workspace settings." };
+      if (aiRes.status === 429)
+        return { swaps: [], error: "AI is rate-limited. Please wait a moment." };
+      if (aiRes.status === 402) return { swaps: [], error: "AI credits exhausted." };
       const text = await aiRes.text();
-      console.error("AI gateway error", aiRes.status, text);
+      console.error("AI provider error", aiRes.status, text);
       return { swaps: [], error: "AI suggestion failed." };
     }
 
-    const aiJson: any = await aiRes.json();
+    const aiJson = (await aiRes.json()) as ChatCompletionsResponse;
     const toolCall = aiJson.choices?.[0]?.message?.tool_calls?.[0];
-    let aiSwaps: any[] = [];
+    let aiSwaps: AiSwap[] = [];
     try {
-      aiSwaps = JSON.parse(toolCall?.function?.arguments ?? "{}").swaps ?? [];
+      aiSwaps = ((JSON.parse(toolCall?.function?.arguments ?? "{}") as { swaps?: AiSwap[] })
+        .swaps ?? []) as AiSwap[];
     } catch {
       aiSwaps = [];
     }
 
     const repriced = await Promise.all(
-      aiSwaps.slice(0, 5).map(async (s) => {
+      aiSwaps.slice(0, 5).map(async (s): Promise<RepricedSwap> => {
         const aiDelta = {
           kcal: Math.round(s.delta_kcal),
           protein_g: Math.round(s.delta_protein_g * 10) / 10,
@@ -542,9 +706,10 @@ Suggest 3-5 ingredient substitutions that move this recipe toward the target. Be
           fat_g: Math.round(s.delta_fat_g * 10) / 10,
         };
         try {
-          const orig = data.ingredients.find((i) =>
-            i.name.toLowerCase().includes(String(s.from).toLowerCase()) ||
-            String(s.from).toLowerCase().includes(i.name.toLowerCase()),
+          const orig = data.ingredients.find(
+            (i) =>
+              i.name.toLowerCase().includes(String(s.from).toLowerCase()) ||
+              String(s.from).toLowerCase().includes(i.name.toLowerCase()),
           );
           if (!orig) return { ...s, ...aiDelta, verified: false };
 
@@ -590,16 +755,16 @@ async function fetchIngredientPer100g(
     `${BASE}/food/ingredients/search?apiKey=${apiKey}&query=${encodeURIComponent(name)}&number=1`,
   );
   if (!search.ok) return null;
-  const sJson: any = await search.json();
+  const sJson = (await search.json()) as { results?: Array<{ id?: number }> };
   const id = sJson.results?.[0]?.id;
   if (!id) return null;
   const info = await fetch(
     `${BASE}/food/ingredients/${id}/information?apiKey=${apiKey}&amount=100&unit=grams`,
   );
   if (!info.ok) return null;
-  const iJson: any = await info.json();
+  const iJson = (await info.json()) as { nutrition?: { nutrients?: SpoonacularNutrient[] } };
   const nut = iJson.nutrition?.nutrients ?? [];
-  const find = (n: string) => nut.find((x: any) => x.name === n)?.amount ?? 0;
+  const find = (n: string) => nut.find((x) => x.name === n)?.amount ?? 0;
   return {
     kcal: find("Calories"),
     protein_g: find("Protein"),

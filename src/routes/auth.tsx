@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,21 +37,32 @@ function AuthPage() {
     const { error } =
       mode === "signin"
         ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin } });
+        : await supabase.auth.signUp({
+            email,
+            password,
+            options: { emailRedirectTo: window.location.origin },
+          });
     setLoading(false);
     if (error) toast.error(error.message);
     else if (mode === "signup") toast.success("Account created. You're signed in.");
   };
 
   const google = async () => {
-    const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (result.error) toast.error(String((result.error as any)?.message ?? result.error));
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
+    });
+    if (error) toast.error(error.message);
   };
 
   return (
     <div className="mx-auto max-w-md px-4 py-16">
       <Card className="p-7">
-        <h1 className="text-2xl font-bold tracking-tight">{mode === "signin" ? "Welcome back" : "Create your account"}</h1>
+        <h1 className="text-2xl font-bold tracking-tight">
+          {mode === "signin" ? "Welcome back" : "Create your account"}
+        </h1>
         <p className="mt-1 text-sm text-muted-foreground">Save recipes tuned to your macros.</p>
 
         <Button variant="outline" className="mt-6 w-full" onClick={google}>
@@ -66,11 +76,24 @@ function AuthPage() {
         <form onSubmit={submit} className="space-y-3">
           <div>
             <Label>Email</Label>
-            <Input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="mt-1" />
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1"
+            />
           </div>
           <div>
             <Label>Password</Label>
-            <Input type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="mt-1" />
+            <Input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="mt-1"
+            />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "…" : mode === "signin" ? "Sign in" : "Sign up"}
@@ -79,13 +102,18 @@ function AuthPage() {
 
         <p className="mt-5 text-center text-sm text-muted-foreground">
           {mode === "signin" ? "No account?" : "Already have one?"}{" "}
-          <button onClick={() => setMode(mode === "signin" ? "signup" : "signin")} className="font-medium text-primary hover:underline">
+          <button
+            onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
+            className="font-medium text-primary hover:underline"
+          >
             {mode === "signin" ? "Sign up" : "Sign in"}
           </button>
         </p>
 
         <p className="mt-6 text-center text-xs">
-          <Link to="/" className="text-muted-foreground hover:text-foreground">← back to home</Link>
+          <Link to="/" className="text-muted-foreground hover:text-foreground">
+            ← back to home
+          </Link>
         </p>
       </Card>
     </div>

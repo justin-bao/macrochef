@@ -12,8 +12,8 @@ mkdir -p ~/.kaggle
 # Drop your kaggle.json from https://www.kaggle.com/settings into ~/.kaggle/
 chmod 600 ~/.kaggle/kaggle.json
 
-# 2. Set Supabase env vars (find these in Lovable Cloud settings)
-export SUPABASE_URL="https://prrtdloebffmnxudgkwq.supabase.co"
+# 2. Set Supabase env vars from your own Supabase project settings
+export SUPABASE_URL="https://your-project-ref.supabase.co"
 export SUPABASE_SERVICE_ROLE_KEY="<service role key>"
 
 # 3. Run

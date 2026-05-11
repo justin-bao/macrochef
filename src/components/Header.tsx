@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Salad, BookmarkCheck, Target, LogOut, LogIn } from "lucide-react";
+import { Activity, BookmarkCheck, LogIn, LogOut, Salad, Search, Target } from "lucide-react";
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -18,9 +18,19 @@ export function Header() {
           <span className="text-lg">MacroChef</span>
         </Link>
         <nav className="flex items-center gap-1">
+          <Link to="/">
+            <Button variant={isActive("/") ? "secondary" : "ghost"} size="sm">
+              Dashboard
+            </Button>
+          </Link>
           <Link to="/search" search={{ mode: "recipes", q: "", subs: true }}>
             <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm">
-              Search
+              <Search className="mr-1.5 h-4 w-4" /> Food
+            </Button>
+          </Link>
+          <Link to="/activity">
+            <Button variant={isActive("/activity") ? "secondary" : "ghost"} size="sm">
+              <Activity className="mr-1.5 h-4 w-4" /> Activity
             </Button>
           </Link>
           {user ? (
