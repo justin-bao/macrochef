@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import type { ActivityLogItem } from "@/lib/tracking";
-import { Dumbbell, Flame, Plus, Route, X } from "lucide-react";
+import { Dumbbell, Flame, Plus, RotateCcw, Route, X } from "lucide-react";
 
 const LABELS: Record<string, string> = {
   run: "Run",
@@ -13,14 +14,22 @@ const LABELS: Record<string, string> = {
   other: "Activity",
 };
 
+const SOURCE_LABELS: Record<string, string> = {
+  manual: "Manual",
+  apple_health: "Apple Watch",
+  strava: "Strava",
+};
+
 export function ActivityPanel({
   activities,
   onAdd,
   onRemove,
+  onUpdate,
 }: {
   activities: ActivityLogItem[];
   onAdd: () => void;
   onRemove: (id: string) => void;
+  onUpdate: (activity: ActivityLogItem) => void;
 }) {
   const burned = activities.reduce((sum, activity) => sum + activity.caloriesBurned, 0);
   const liftingCount = activities.filter(
@@ -86,13 +95,59 @@ export function ActivityPanel({
                         {activity.load ? ` @ ${activity.load}${activity.loadUnit}` : ""}
                       </span>
                     )}
-                    <span>{activity.intensity}</span>
+                    {activity.source && <span>{SOURCE_LABELS[activity.source]}</span>}
+                    {activity.manualCaloriesBurned != null && (
+                      <span>
+                        estimate {activity.estimatedCaloriesBurned ?? activity.caloriesBurned} kcal
+                      </span>
+                    )}
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-sm font-semibold text-destructive">
-                    -{activity.caloriesBurned}
-                  </span>
+                <div className="flex shrink-0 items-center gap-1">
+                  <div className="relative w-20">
+                    <Input
+                      type="number"
+                      min="0"
+                      className="h-8 pr-8 text-right text-sm font-semibold text-destructive"
+                      value={activity.caloriesBurned}
+                      onChange={(event) => {
+                        const caloriesBurned = Math.max(0, Number(event.target.value) || 0);
+                        onUpdate({
+                          ...activity,
+                          caloriesBurned,
+                          estimatedCaloriesBurned:
+                            activity.estimatedCaloriesBurned ?? activity.caloriesBurned,
+                          manualCaloriesBurned: caloriesBurned,
+                          estimateMethod:
+                            activity.estimateMethod === "provider_reported"
+                              ? "provider_reported_adjusted"
+                              : "manual_adjusted",
+                        });
+                      }}
+                    />
+                    <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
+                      kcal
+                    </span>
+                  </div>
+                  {activity.manualCaloriesBurned != null && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => {
+                        const estimatedCaloriesBurned =
+                          activity.estimatedCaloriesBurned ?? activity.caloriesBurned;
+                        onUpdate({
+                          ...activity,
+                          caloriesBurned: estimatedCaloriesBurned,
+                          estimatedCaloriesBurned,
+                          manualCaloriesBurned: undefined,
+                        });
+                      }}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"

@@ -8,8 +8,10 @@ import { FuelSummary } from "@/components/tracking/FuelSummary";
 import { MealLogSection } from "@/components/tracking/MealLogSection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useLocalTracking } from "@/hooks/useLocalTracking";
 import { getBurnedCalories, getDayTotals, type MealType } from "@/lib/tracking";
 import {
@@ -27,10 +29,18 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
   const [date, setDate] = useState(new Date());
   const [foodOpen, setFoodOpen] = useState(false);
   const [activityOpen, setActivityOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState<MealType>("breakfast");
   const [query, setQuery] = useState("");
-  const { settings, getDay, addFoodItems, removeFoodItem, addActivity, removeActivity } =
-    useLocalTracking();
+  const {
+    settings,
+    getDay,
+    addFoodItems,
+    removeFoodItem,
+    addActivity,
+    removeActivity,
+    updateActivity,
+  } = useLocalTracking();
 
   const day = getDay(date);
   const totals = getDayTotals(day);
@@ -92,10 +102,30 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
           <Button variant="ghost" size="icon" onClick={() => setDate((d) => subDays(d, 1))}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" className="gap-2 px-3" onClick={() => setDate(new Date())}>
-            <CalendarDays className="h-4 w-4" />
-            {isToday ? "Today" : format(date, "EEE, MMM d")}
-          </Button>
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="ghost" className="gap-2 px-3">
+                <CalendarDays className="h-4 w-4" />
+                {isToday ? "Today" : format(date, "EEE, MMM d")}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="end">
+              <Calendar
+                mode="single"
+                selected={date}
+                onSelect={(selectedDate) => {
+                  if (!selectedDate) return;
+                  setDate(selectedDate);
+                  setCalendarOpen(false);
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          {!isToday && (
+            <Button variant="ghost" size="sm" onClick={() => setDate(new Date())}>
+              Today
+            </Button>
+          )}
           <Button variant="ghost" size="icon" onClick={() => setDate((d) => addDays(d, 1))}>
             <ChevronRight className="h-4 w-4" />
           </Button>
@@ -172,6 +202,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
               activities={day.activities}
               onAdd={() => setActivityOpen(true)}
               onRemove={(activityId) => removeActivity(date, activityId)}
+              onUpdate={(activity) => updateActivity(date, activity)}
             />
             {focus !== "activity" && (
               <div className="mt-3 rounded-lg border bg-muted/25 p-4 text-sm text-muted-foreground">
@@ -199,8 +230,13 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
         open={activityOpen}
         onOpenChange={setActivityOpen}
         onAdd={(activity) => addActivity(date, activity)}
-        weight={settings.weight}
-        unitSystem={settings.unitSystem}
+        profile={{
+          weight: settings.weight,
+          height: settings.height,
+          age: settings.age,
+          sex: settings.sex,
+          unitSystem: settings.unitSystem,
+        }}
       />
     </div>
   );

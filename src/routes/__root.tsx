@@ -66,7 +66,7 @@ function RootComponent() {
           <Outlet />
         </main>
         <footer className="border-t py-6 text-center text-xs text-muted-foreground">
-          Recipe data via Spoonacular · Substitutions powered by AI
+          Recipe data from Spoonacular and MacroChef's recipe catalog · Substitutions powered by AI
         </footer>
       </div>
       <Toaster />

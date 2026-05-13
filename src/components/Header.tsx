@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Activity, BookmarkCheck, LogIn, LogOut, Salad, Search, Target } from "lucide-react";
+import { Activity, BookmarkCheck, LogIn, LogOut, Salad, Search, UserRound } from "lucide-react";
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -40,9 +40,9 @@ export function Header() {
                   <BookmarkCheck className="mr-1.5 h-4 w-4" /> Saved
                 </Button>
               </Link>
-              <Link to="/goals">
-                <Button variant={isActive("/goals") ? "secondary" : "ghost"} size="sm">
-                  <Target className="mr-1.5 h-4 w-4" /> Goals
+              <Link to="/profile">
+                <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm">
+                  <UserRound className="mr-1.5 h-4 w-4" /> Profile
                 </Button>
               </Link>
               <Button variant="ghost" size="sm" onClick={() => signOut()}>

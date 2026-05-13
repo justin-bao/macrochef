@@ -4,7 +4,26 @@ export type ActivityKind = "run" | "walk" | "bike" | "stairmaster" | "strength" 
 
 export type ActivityIntensity = "low" | "moderate" | "high" | "vigorous";
 
-export type FoodSource = "manual" | "recipe" | "restaurant" | "ai";
+export type ActivitySource = "manual" | "apple_health" | "strava";
+
+export type FoodSource = "manual" | "recipe" | "restaurant" | "ai" | "usda";
+
+export type Sex = "female" | "male" | "unspecified";
+
+export type ProfileGoal =
+  | "lose_body_fat"
+  | "build_muscle"
+  | "maintain_weight"
+  | "fuel_runs"
+  | "general_nutrition";
+
+export interface UserActivityProfile {
+  weight: number;
+  height: number;
+  age: number;
+  sex: Sex;
+  unitSystem: "imperial" | "metric";
+}
 
 export interface FoodLogItem {
   id: string;
@@ -32,8 +51,12 @@ export interface ActivityLogItem {
   name: string;
   durationMin: number;
   caloriesBurned: number;
-  intensity: ActivityIntensity;
+  estimatedCaloriesBurned?: number;
+  manualCaloriesBurned?: number;
+  intensity?: ActivityIntensity;
   loggedAt: string;
+  source?: ActivitySource;
+  estimateMethod?: string;
   distance?: number;
   distanceUnit?: "mi" | "km";
   sets?: number;
@@ -52,6 +75,10 @@ export type TrackingData = Record<string, TrackingDay>;
 
 export interface TrackingSettings {
   weight: number;
+  height: number;
+  age: number;
+  sex: Sex;
+  goal: ProfileGoal;
   unitSystem: "imperial" | "metric";
   dailyCalorieTarget: number;
   dailyProteinTarget: number;
@@ -61,6 +88,10 @@ export interface TrackingSettings {
 
 export const DEFAULT_TRACKING_SETTINGS: TrackingSettings = {
   weight: 180,
+  height: 70,
+  age: 35,
+  sex: "unspecified",
+  goal: "maintain_weight",
   unitSystem: "imperial",
   dailyCalorieTarget: 2500,
   dailyProteinTarget: 180,

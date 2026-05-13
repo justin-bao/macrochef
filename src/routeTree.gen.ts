@@ -11,11 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SearchRouteImport } from './routes/search'
 import { Route as SavedRouteImport } from './routes/saved'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as GoalsRouteImport } from './routes/goals'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecipeIdRouteImport } from './routes/recipe.$id'
+import { Route as IntegrationsStravaCallbackRouteImport } from './routes/integrations.strava.callback'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -25,6 +27,11 @@ const SearchRoute = SearchRouteImport.update({
 const SavedRoute = SavedRouteImport.update({
   id: '/saved',
   path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GoalsRoute = GoalsRouteImport.update({
@@ -52,24 +59,34 @@ const RecipeIdRoute = RecipeIdRouteImport.update({
   path: '/recipe/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const IntegrationsStravaCallbackRoute =
+  IntegrationsStravaCallbackRouteImport.update({
+    id: '/integrations/strava/callback',
+    path: '/integrations/strava/callback',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/auth': typeof AuthRoute
   '/goals': typeof GoalsRoute
+  '/profile': typeof ProfileRoute
   '/saved': typeof SavedRoute
   '/search': typeof SearchRoute
   '/recipe/$id': typeof RecipeIdRoute
+  '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/activity': typeof ActivityRoute
   '/auth': typeof AuthRoute
   '/goals': typeof GoalsRoute
+  '/profile': typeof ProfileRoute
   '/saved': typeof SavedRoute
   '/search': typeof SearchRoute
   '/recipe/$id': typeof RecipeIdRoute
+  '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,9 +94,11 @@ export interface FileRoutesById {
   '/activity': typeof ActivityRoute
   '/auth': typeof AuthRoute
   '/goals': typeof GoalsRoute
+  '/profile': typeof ProfileRoute
   '/saved': typeof SavedRoute
   '/search': typeof SearchRoute
   '/recipe/$id': typeof RecipeIdRoute
+  '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,27 +107,33 @@ export interface FileRouteTypes {
     | '/activity'
     | '/auth'
     | '/goals'
+    | '/profile'
     | '/saved'
     | '/search'
     | '/recipe/$id'
+    | '/integrations/strava/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/activity'
     | '/auth'
     | '/goals'
+    | '/profile'
     | '/saved'
     | '/search'
     | '/recipe/$id'
+    | '/integrations/strava/callback'
   id:
     | '__root__'
     | '/'
     | '/activity'
     | '/auth'
     | '/goals'
+    | '/profile'
     | '/saved'
     | '/search'
     | '/recipe/$id'
+    | '/integrations/strava/callback'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -116,9 +141,11 @@ export interface RootRouteChildren {
   ActivityRoute: typeof ActivityRoute
   AuthRoute: typeof AuthRoute
   GoalsRoute: typeof GoalsRoute
+  ProfileRoute: typeof ProfileRoute
   SavedRoute: typeof SavedRoute
   SearchRoute: typeof SearchRoute
   RecipeIdRoute: typeof RecipeIdRoute
+  IntegrationsStravaCallbackRoute: typeof IntegrationsStravaCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -135,6 +162,13 @@ declare module '@tanstack/react-router' {
       path: '/saved'
       fullPath: '/saved'
       preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/goals': {
@@ -172,6 +206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecipeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/integrations/strava/callback': {
+      id: '/integrations/strava/callback'
+      path: '/integrations/strava/callback'
+      fullPath: '/integrations/strava/callback'
+      preLoaderRoute: typeof IntegrationsStravaCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -180,9 +221,11 @@ const rootRouteChildren: RootRouteChildren = {
   ActivityRoute: ActivityRoute,
   AuthRoute: AuthRoute,
   GoalsRoute: GoalsRoute,
+  ProfileRoute: ProfileRoute,
   SavedRoute: SavedRoute,
   SearchRoute: SearchRoute,
   RecipeIdRoute: RecipeIdRoute,
+  IntegrationsStravaCallbackRoute: IntegrationsStravaCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -6,36 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FoodLogItem } from "@/lib/tracking";
-import { PenLine, Plus, Sparkles } from "lucide-react";
-
-const ESTIMATES: Array<{
-  keys: string[];
-  kcal: number;
-  protein_g: number;
-  carbs_g: number;
-  fat_g: number;
-}> = [
-  { keys: ["chicken", "turkey", "tuna"], kcal: 180, protein_g: 32, carbs_g: 0, fat_g: 4 },
-  { keys: ["beef", "steak"], kcal: 250, protein_g: 28, carbs_g: 0, fat_g: 15 },
-  { keys: ["salmon"], kcal: 230, protein_g: 25, carbs_g: 0, fat_g: 14 },
-  { keys: ["egg"], kcal: 70, protein_g: 6, carbs_g: 0, fat_g: 5 },
-  { keys: ["rice"], kcal: 205, protein_g: 4, carbs_g: 45, fat_g: 0 },
-  { keys: ["oat", "oatmeal"], kcal: 150, protein_g: 5, carbs_g: 27, fat_g: 3 },
-  { keys: ["potato"], kcal: 160, protein_g: 4, carbs_g: 37, fat_g: 0 },
-  { keys: ["pasta"], kcal: 220, protein_g: 8, carbs_g: 43, fat_g: 1 },
-  { keys: ["banana"], kcal: 105, protein_g: 1, carbs_g: 27, fat_g: 0 },
-  { keys: ["avocado"], kcal: 240, protein_g: 3, carbs_g: 13, fat_g: 22 },
-  { keys: ["olive oil", "oil"], kcal: 120, protein_g: 0, carbs_g: 0, fat_g: 14 },
-  {
-    keys: ["broccoli", "vegetable", "greens", "salad"],
-    kcal: 55,
-    protein_g: 4,
-    carbs_g: 10,
-    fat_g: 1,
-  },
-  { keys: ["yogurt", "skyr"], kcal: 130, protein_g: 20, carbs_g: 8, fat_g: 0 },
-  { keys: ["protein shake", "whey"], kcal: 130, protein_g: 25, carbs_g: 3, fat_g: 2 },
-];
+import { estimateFoodFromImage, estimateFoodNutrition } from "@/lib/food-nutrition.functions";
+import { Camera, FileScan, PenLine, Plus, Sparkles } from "lucide-react";
 
 function emptyItem(): FoodLogItem {
   return {
@@ -63,29 +35,30 @@ function parseFoodDescription(description: string): FoodLogItem[] {
       const quantity = quantityMatch ? Number(quantityMatch[1]) : 1;
       const unit = quantityMatch?.[2] ?? "serving";
       const name = quantityMatch?.[3] ?? raw;
-      const normalized = name.toLowerCase();
-      const match = ESTIMATES.find((estimate) =>
-        estimate.keys.some((key) => normalized.includes(key)),
-      );
-      const multiplier = unit.toLowerCase().startsWith("oz") ? quantity / 4 : quantity;
-      const estimate = match ?? { kcal: 180, protein_g: 10, carbs_g: 18, fat_g: 6 };
       return {
         id: crypto.randomUUID(),
         name,
         quantity,
         unit,
-        kcal: Math.round(estimate.kcal * multiplier),
-        protein_g: Math.round(estimate.protein_g * multiplier * 10) / 10,
-        carbs_g: Math.round(estimate.carbs_g * multiplier * 10) / 10,
-        fat_g: Math.round(estimate.fat_g * multiplier * 10) / 10,
-        source: "ai" as const,
-        confidence: match ? ("medium" as const) : ("low" as const),
-        note: match
-          ? "MacroChef quick estimate. Review before saving."
-          : "Fallback estimate. Edit macros before saving.",
+        kcal: 0,
+        protein_g: 0,
+        carbs_g: 0,
+        fat_g: 0,
+        source: "usda" as const,
+        confidence: "medium" as const,
+        note: "Looking up USDA nutrition...",
         loggedAt: new Date().toISOString(),
       };
     });
+}
+
+function readImageDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read image."));
+    reader.readAsDataURL(file);
+  });
 }
 
 export function FoodLogModal({
@@ -100,9 +73,118 @@ export function FoodLogModal({
   const [manual, setManual] = useState<FoodLogItem>(emptyItem);
   const [description, setDescription] = useState("");
   const [parsed, setParsed] = useState<FoodLogItem[]>([]);
+  const [estimatingQuick, setEstimatingQuick] = useState(false);
+  const [estimatingManual, setEstimatingManual] = useState(false);
+  const [estimatingImage, setEstimatingImage] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
 
   const canAddManual = manual.name.trim().length > 0 && manual.kcal > 0;
   const totalParsed = useMemo(() => parsed.reduce((sum, item) => sum + item.kcal, 0), [parsed]);
+
+  const applyUsdaEstimate = async (item: FoodLogItem): Promise<FoodLogItem> => {
+    try {
+      const result = await estimateFoodNutrition({
+        data: { name: item.name, quantity: item.quantity, unit: item.unit },
+      });
+      if (!result.estimate) {
+        return {
+          ...item,
+          source: "manual",
+          confidence: "low",
+          note: result.error ?? "No USDA match found. Enter macros manually.",
+        };
+      }
+      const estimate = result.estimate;
+      return {
+        ...item,
+        name: item.name || estimate.name,
+        kcal: estimate.kcal,
+        protein_g: estimate.protein_g,
+        carbs_g: estimate.carbs_g,
+        fat_g: estimate.fat_g,
+        source: "usda",
+        confidence: estimate.confidence,
+        note: `${estimate.sourceLabel} matched "${estimate.matchedName}". ${estimate.servingBasis}. These macros are ready to use, and you can adjust them if needed.`,
+      };
+    } catch (error) {
+      return {
+        ...item,
+        source: "manual",
+        confidence: "low",
+        note: error instanceof Error ? error.message : "USDA lookup failed. Enter macros manually.",
+      };
+    }
+  };
+
+  const estimateQuickItems = async () => {
+    const items = parseFoodDescription(description);
+    if (!items.length) return;
+    setEstimateError(null);
+    setParsed(items);
+    setEstimatingQuick(true);
+    const nextItems = await Promise.all(items.map(applyUsdaEstimate));
+    setParsed(nextItems);
+    setEstimatingQuick(false);
+    if (nextItems.some((item) => item.kcal <= 0)) {
+      setEstimateError("Some items need manual macros because USDA did not return a close match.");
+    }
+  };
+
+  const estimateManualItem = async () => {
+    if (!manual.name.trim()) return;
+    setEstimateError(null);
+    setEstimatingManual(true);
+    const estimated = await applyUsdaEstimate(manual);
+    setManual(estimated);
+    setEstimatingManual(false);
+    if (estimated.kcal <= 0) {
+      setEstimateError("USDA did not return a close match. Enter the macros manually.");
+    }
+  };
+
+  const estimateImageItems = async (
+    file: File | undefined,
+    mode: "meal_photo" | "nutrition_label",
+  ) => {
+    if (!file) return;
+    setEstimateError(null);
+    setEstimatingImage(true);
+    setParsed([]);
+
+    try {
+      const imageDataUrl = await readImageDataUrl(file);
+      const result = await estimateFoodFromImage({ data: { imageDataUrl, mode } });
+      if (!result.items.length) {
+        setEstimateError(result.error ?? "No food estimate found.");
+        return;
+      }
+
+      setParsed(
+        result.items.map((item) => ({
+          id: crypto.randomUUID(),
+          name: item.name,
+          quantity: item.quantity,
+          unit: item.unit,
+          kcal: item.kcal,
+          protein_g: item.protein_g,
+          carbs_g: item.carbs_g,
+          fat_g: item.fat_g,
+          source: "ai",
+          confidence: item.confidence,
+          note:
+            item.note ??
+            (mode === "nutrition_label"
+              ? "Read from nutrition facts label. Review serving size before logging."
+              : "Estimated from photo. Review portions before logging."),
+          loggedAt: new Date().toISOString(),
+        })),
+      );
+    } catch (error) {
+      setEstimateError(error instanceof Error ? error.message : "Image estimate failed.");
+    } finally {
+      setEstimatingImage(false);
+    }
+  };
 
   const updateParsed = (id: string, field: keyof FoodLogItem, value: string) => {
     setParsed((items) =>
@@ -125,6 +207,7 @@ export function FoodLogModal({
       setManual(emptyItem());
       setDescription("");
       setParsed([]);
+      setEstimateError(null);
     }
     onOpenChange(nextOpen);
   };
@@ -137,10 +220,18 @@ export function FoodLogModal({
         </DialogHeader>
 
         <Tabs defaultValue="quick" className="mt-2">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="quick" className="gap-2">
               <Sparkles className="h-4 w-4" />
-              Quick parse
+              Text
+            </TabsTrigger>
+            <TabsTrigger value="photo" className="gap-2">
+              <Camera className="h-4 w-4" />
+              Photo
+            </TabsTrigger>
+            <TabsTrigger value="label" className="gap-2">
+              <FileScan className="h-4 w-4" />
+              Label
             </TabsTrigger>
             <TabsTrigger value="manual" className="gap-2">
               <PenLine className="h-4 w-4" />
@@ -159,15 +250,20 @@ export function FoodLogModal({
                 />
                 <Button
                   className="w-full"
-                  disabled={!description.trim()}
-                  onClick={() => setParsed(parseFoodDescription(description))}
+                  disabled={!description.trim() || estimatingQuick}
+                  onClick={estimateQuickItems}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  Estimate items
+                  {estimatingQuick ? "Looking up USDA matches..." : "Estimate with USDA"}
                 </Button>
               </>
             ) : (
               <>
+                <p className="text-sm text-muted-foreground">
+                  USDA filled in the closest match it found. The macros are ready to use as-is, and
+                  you can adjust any field before adding.
+                </p>
+                {estimateError && <p className="text-sm text-destructive">{estimateError}</p>}
                 <div className="space-y-3">
                   {parsed.map((item) => (
                     <div key={item.id} className="rounded-lg border p-3">
@@ -222,6 +318,7 @@ export function FoodLogModal({
                   </Button>
                   <Button
                     className="flex-1"
+                    disabled={estimatingQuick}
                     onClick={() => {
                       onAdd(parsed);
                       closeAndReset(false);
@@ -231,6 +328,82 @@ export function FoodLogModal({
                   </Button>
                 </div>
               </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="photo" className="mt-4 space-y-4">
+            {parsed.length === 0 ? (
+              <>
+                <div className="rounded-lg border border-dashed p-4">
+                  <Label>Meal photo</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="mt-2"
+                    disabled={estimatingImage}
+                    onChange={(event) => estimateImageItems(event.target.files?.[0], "meal_photo")}
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Upload a meal photo and MacroChef will draft editable macro estimates.
+                  </p>
+                </div>
+                {estimatingImage && (
+                  <p className="text-sm text-muted-foreground">Estimating macros from photo...</p>
+                )}
+                {estimateError && <p className="text-sm text-destructive">{estimateError}</p>}
+              </>
+            ) : (
+              <ParsedReview
+                items={parsed}
+                total={totalParsed}
+                estimateError={estimateError}
+                updateParsed={updateParsed}
+                onBack={() => setParsed([])}
+                onAdd={() => {
+                  onAdd(parsed);
+                  closeAndReset(false);
+                }}
+                disabled={estimatingImage}
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="label" className="mt-4 space-y-4">
+            {parsed.length === 0 ? (
+              <>
+                <div className="rounded-lg border border-dashed p-4">
+                  <Label>Nutrition facts label</Label>
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    className="mt-2"
+                    disabled={estimatingImage}
+                    onChange={(event) =>
+                      estimateImageItems(event.target.files?.[0], "nutrition_label")
+                    }
+                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Upload a label photo to extract serving size and per-serving macros.
+                  </p>
+                </div>
+                {estimatingImage && (
+                  <p className="text-sm text-muted-foreground">Reading nutrition label...</p>
+                )}
+                {estimateError && <p className="text-sm text-destructive">{estimateError}</p>}
+              </>
+            ) : (
+              <ParsedReview
+                items={parsed}
+                total={totalParsed}
+                estimateError={estimateError}
+                updateParsed={updateParsed}
+                onBack={() => setParsed([])}
+                onAdd={() => {
+                  onAdd(parsed);
+                  closeAndReset(false);
+                }}
+                disabled={estimatingImage}
+              />
             )}
           </TabsContent>
 
@@ -266,6 +439,29 @@ export function FoodLogModal({
                   />
                 </div>
               </div>
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={!manual.name.trim() || estimatingManual}
+                onClick={estimateManualItem}
+              >
+                <Sparkles className="mr-2 h-4 w-4" />
+                {estimatingManual ? "Looking up USDA match..." : "Fill macros from USDA"}
+              </Button>
+              {(manual.note || estimateError) && (
+                <p
+                  className={
+                    estimateError ? "text-sm text-destructive" : "text-sm text-muted-foreground"
+                  }
+                >
+                  {estimateError ?? manual.note}
+                </p>
+              )}
+              {manual.kcal > 0 && (
+                <p className="text-sm text-muted-foreground">
+                  These macros are ready to use as-is, and you can adjust any field before adding.
+                </p>
+              )}
               <div className="grid grid-cols-4 gap-2">
                 <ManualMacro
                   label="Calories"
@@ -298,7 +494,6 @@ export function FoodLogModal({
                     ...manual,
                     id: crypto.randomUUID(),
                     loggedAt: new Date().toISOString(),
-                    source: "manual",
                   },
                 ]);
                 closeAndReset(false);
@@ -333,6 +528,85 @@ function MacroInput({
         onChange={(event) => onChange(event.target.value)}
       />
     </div>
+  );
+}
+
+function ParsedReview({
+  items,
+  total,
+  estimateError,
+  updateParsed,
+  onBack,
+  onAdd,
+  disabled,
+}: {
+  items: FoodLogItem[];
+  total: number;
+  estimateError: string | null;
+  updateParsed: (id: string, field: keyof FoodLogItem, value: string) => void;
+  onBack: () => void;
+  onAdd: () => void;
+  disabled: boolean;
+}) {
+  return (
+    <>
+      <p className="text-sm text-muted-foreground">
+        Review the drafted macros before adding them to your diary.
+      </p>
+      {estimateError && <p className="text-sm text-destructive">{estimateError}</p>}
+      <div className="space-y-3">
+        {items.map((item) => (
+          <div key={item.id} className="rounded-lg border p-3">
+            <div className="grid gap-2 sm:grid-cols-[1fr_88px_100px]">
+              <Input
+                value={item.name}
+                onChange={(event) => updateParsed(item.id, "name", event.target.value)}
+              />
+              <Input
+                type="number"
+                value={item.quantity}
+                onChange={(event) => updateParsed(item.id, "quantity", event.target.value)}
+              />
+              <Input
+                value={item.unit}
+                onChange={(event) => updateParsed(item.id, "unit", event.target.value)}
+              />
+            </div>
+            <div className="mt-2 grid grid-cols-4 gap-2">
+              <MacroInput
+                label="Cal"
+                value={item.kcal}
+                onChange={(value) => updateParsed(item.id, "kcal", value)}
+              />
+              <MacroInput
+                label="Protein"
+                value={item.protein_g}
+                onChange={(value) => updateParsed(item.id, "protein_g", value)}
+              />
+              <MacroInput
+                label="Carbs"
+                value={item.carbs_g}
+                onChange={(value) => updateParsed(item.id, "carbs_g", value)}
+              />
+              <MacroInput
+                label="Fat"
+                value={item.fat_g}
+                onChange={(value) => updateParsed(item.id, "fat_g", value)}
+              />
+            </div>
+            {item.note && <p className="mt-2 text-xs text-muted-foreground">{item.note}</p>}
+          </div>
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <Button variant="outline" className="flex-1" onClick={onBack}>
+          Back
+        </Button>
+        <Button className="flex-1" disabled={disabled} onClick={onAdd}>
+          Add {items.length} item{items.length === 1 ? "" : "s"} · {total} kcal
+        </Button>
+      </div>
+    </>
   );
 }
 

@@ -8,6 +8,48 @@ export type Database = {
   };
   public: {
     Tables: {
+      activity_connections: {
+        Row: {
+          access_token: string | null;
+          connected_at: string;
+          expires_at: string | null;
+          id: string;
+          provider: "strava";
+          provider_user_id: string | null;
+          provider_username: string | null;
+          refresh_token: string | null;
+          scopes: string[];
+          updated_at: string;
+          user_id: string;
+        };
+        Insert: {
+          access_token?: string | null;
+          connected_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          provider: "strava";
+          provider_user_id?: string | null;
+          provider_username?: string | null;
+          refresh_token?: string | null;
+          scopes?: string[];
+          updated_at?: string;
+          user_id: string;
+        };
+        Update: {
+          access_token?: string | null;
+          connected_at?: string;
+          expires_at?: string | null;
+          id?: string;
+          provider?: "strava";
+          provider_user_id?: string | null;
+          provider_username?: string | null;
+          refresh_token?: string | null;
+          scopes?: string[];
+          updated_at?: string;
+          user_id?: string;
+        };
+        Relationships: [];
+      };
       macro_goals: {
         Row: {
           carbs_g: number;
@@ -32,6 +74,54 @@ export type Database = {
           protein_g?: number;
           updated_at?: string;
           user_id?: string;
+        };
+        Relationships: [];
+      };
+      user_profiles: {
+        Row: {
+          age: number;
+          goal:
+            | "lose_body_fat"
+            | "build_muscle"
+            | "maintain_weight"
+            | "fuel_runs"
+            | "general_nutrition";
+          height: number;
+          sex: "female" | "male" | "unspecified";
+          unit_system: "imperial" | "metric";
+          updated_at: string;
+          user_id: string;
+          weight: number;
+        };
+        Insert: {
+          age?: number;
+          goal?:
+            | "lose_body_fat"
+            | "build_muscle"
+            | "maintain_weight"
+            | "fuel_runs"
+            | "general_nutrition";
+          height?: number;
+          sex?: "female" | "male" | "unspecified";
+          unit_system?: "imperial" | "metric";
+          updated_at?: string;
+          user_id: string;
+          weight?: number;
+        };
+        Update: {
+          age?: number;
+          goal?:
+            | "lose_body_fat"
+            | "build_muscle"
+            | "maintain_weight"
+            | "fuel_runs"
+            | "general_nutrition";
+          height?: number;
+          sex?: "female" | "male" | "unspecified";
+          unit_system?: "imperial" | "metric";
+          updated_at?: string;
+          user_id?: string;
+          weight?: number;
         };
         Relationships: [];
       };
@@ -198,7 +288,8 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
-      [_ in never]: never;
+      activity_connection_provider: "strava";
+      profile_sex: "female" | "male" | "unspecified";
     };
     CompositeTypes: {
       [_ in never]: never;

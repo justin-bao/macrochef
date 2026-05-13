@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { calculateCaloriesBurned, calculateDistanceCalories } from "@/lib/activity-calculator";
+import { estimateActivityCalories } from "@/lib/activity-calculator";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ActivityIntensity, ActivityKind, ActivityLogItem } from "@/lib/tracking";
+import type { ActivityKind, ActivityLogItem, UserActivityProfile } from "@/lib/tracking";
 
 const ACTIVITY_LABELS: Record<ActivityKind, string> = {
   run: "Run",
@@ -27,34 +27,30 @@ export function ActivityLogger({
   open,
   onOpenChange,
   onAdd,
-  weight,
-  unitSystem,
+  profile,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onAdd: (activity: ActivityLogItem) => void;
-  weight: number;
-  unitSystem: "imperial" | "metric";
+  profile: UserActivityProfile;
 }) {
   const [kind, setKind] = useState<ActivityKind>("run");
   const [name, setName] = useState("");
   const [duration, setDuration] = useState("");
   const [distance, setDistance] = useState("");
-  const [intensity, setIntensity] = useState<ActivityIntensity>("moderate");
   const [sets, setSets] = useState("");
   const [reps, setReps] = useState("");
   const [load, setLoad] = useState("");
 
   const isDistanceActivity = kind === "run" || kind === "walk" || kind === "bike";
   const isLiftingActivity = kind === "strength" || kind === "gym";
-  const distanceUnit = unitSystem === "imperial" ? "mi" : "km";
-  const loadUnit = unitSystem === "imperial" ? "lb" : "kg";
+  const distanceUnit = profile.unitSystem === "imperial" ? "mi" : "km";
+  const loadUnit = profile.unitSystem === "imperial" ? "lb" : "kg";
 
   const reset = () => {
     setName("");
     setDuration("");
     setDistance("");
-    setIntensity("moderate");
     setSets("");
     setReps("");
     setLoad("");
@@ -65,10 +61,15 @@ export function ActivityLogger({
     if (!durationMin) return;
 
     const distanceValue = Number(distance);
-    const burned =
-      isDistanceActivity && distanceValue > 0
-        ? calculateDistanceCalories(kind, distanceValue, durationMin, weight, unitSystem)
-        : calculateCaloriesBurned(kind, intensity, durationMin, weight, unitSystem);
+    const estimate = estimateActivityCalories({
+      activityKind: kind,
+      durationMinutes: durationMin,
+      profile,
+      distance: isDistanceActivity ? distanceValue || undefined : undefined,
+      sets: Number(sets) || undefined,
+      reps: Number(reps) || undefined,
+      load: Number(load) || undefined,
+    });
 
     onAdd({
       id: crypto.randomUUID(),
@@ -77,8 +78,10 @@ export function ActivityLogger({
       durationMin,
       distance: distanceValue || undefined,
       distanceUnit: isDistanceActivity ? distanceUnit : undefined,
-      intensity,
-      caloriesBurned: burned,
+      source: "manual",
+      estimateMethod: estimate.method,
+      caloriesBurned: estimate.calories,
+      estimatedCaloriesBurned: estimate.calories,
       sets: Number(sets) || undefined,
       reps: Number(reps) || undefined,
       load: Number(load) || undefined,
@@ -151,45 +154,11 @@ export function ActivityLogger({
                 />
               </div>
             ) : (
-              <div className="space-y-2">
-                <Label>Intensity</Label>
-                <Select
-                  value={intensity}
-                  onValueChange={(value) => setIntensity(value as ActivityIntensity)}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="moderate">Moderate</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="vigorous">Vigorous</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="rounded-md bg-muted/35 px-3 py-2 text-xs text-muted-foreground">
+                Estimate uses your body profile and workout duration.
               </div>
             )}
           </div>
-
-          {isDistanceActivity && (
-            <div className="space-y-2">
-              <Label>Intensity</Label>
-              <Select
-                value={intensity}
-                onValueChange={(value) => setIntensity(value as ActivityIntensity)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="low">Low</SelectItem>
-                  <SelectItem value="moderate">Moderate</SelectItem>
-                  <SelectItem value="high">High</SelectItem>
-                  <SelectItem value="vigorous">Vigorous</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
 
           {isLiftingActivity && (
             <div className="grid grid-cols-3 gap-3">
