@@ -219,6 +219,62 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
     },
   );
 
+// Returns top Open Food Facts matches for a query in compact per-100g format.
+// No API key or rate limit — preferred over FatSecret for branded/packaged products.
+async function searchOpenFoodFactsForTool(query: string) {
+  try {
+    const url = new URL("https://world.openfoodfacts.org/cgi/search.pl");
+    url.searchParams.set("search_terms", query);
+    url.searchParams.set("search_simple", "1");
+    url.searchParams.set("action", "process");
+    url.searchParams.set("json", "1");
+    url.searchParams.set("fields", "product_name,brands,nutriments,serving_size");
+    url.searchParams.set("page_size", "5");
+
+    const res = await fetch(url.toString(), {
+      headers: { "User-Agent": "MacroChef/1.0" },
+    });
+    if (!res.ok) return { matches: [] };
+
+    const json = (await res.json()) as {
+      products?: Array<{
+        product_name?: string;
+        brands?: string;
+        nutriments?: {
+          "energy-kcal_100g"?: number;
+          proteins_100g?: number;
+          carbohydrates_100g?: number;
+          fat_100g?: number;
+        };
+        serving_size?: string;
+      }>;
+    };
+
+    const matches = (json.products ?? [])
+      .map((p) => {
+        const kcal = p.nutriments?.["energy-kcal_100g"];
+        const protein = p.nutriments?.proteins_100g;
+        const carbs = p.nutriments?.carbohydrates_100g;
+        const fat = p.nutriments?.fat_100g;
+        if (kcal == null || protein == null || carbs == null || fat == null) return null;
+        const name = [p.product_name, p.brands].filter(Boolean).join(" — ");
+        return {
+          name: name || query,
+          kcal_per_100g: Math.round(kcal),
+          protein_g_per_100g: Math.round(protein * 10) / 10,
+          carbs_g_per_100g: Math.round(carbs * 10) / 10,
+          fat_g_per_100g: Math.round(fat * 10) / 10,
+          serving: p.serving_size,
+        };
+      })
+      .filter(Boolean);
+
+    return { matches };
+  } catch {
+    return { matches: [] };
+  }
+}
+
 // Returns the top USDA matches for a query in a compact per-100g format for AI tool use.
 async function searchUsdaForTool(query: string) {
   const params = new URLSearchParams({ api_key: fdcApiKey() });
@@ -300,7 +356,7 @@ const SEARCH_USDA_TOOL = {
   function: {
     name: "search_usda",
     description:
-      "Search USDA FoodData Central for a food item. Returns the top 5 matches with per-100g macros. Call this for each constituent ingredient.",
+      "Search USDA FoodData Central for whole or unprocessed foods (meats, grains, vegetables, dairy). Returns the top 5 matches with per-100g macros. Prefer this over search_open_food_facts for unbranded ingredients.",
     parameters: {
       type: "object",
       properties: {
@@ -308,6 +364,26 @@ const SEARCH_USDA_TOOL = {
           type: "string",
           description:
             "Food name to search, e.g. 'wheat noodles cooked' or 'ground pork 80 lean'.",
+        },
+      },
+      required: ["query"],
+    },
+  },
+};
+
+const SEARCH_OFF_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "search_open_food_facts",
+    description:
+      "Search Open Food Facts for packaged or branded food products. Prefer this over search_usda for anything with a brand name (e.g. 'Cheerios', 'Chobani Greek yogurt', 'Trader Joe's hummus'). Returns the top 5 matches with per-100g macros.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Brand or product name to search, e.g. 'Chobani plain greek yogurt' or 'General Mills Cheerios'.",
         },
       },
       required: ["query"],
@@ -334,6 +410,7 @@ export const estimateFoodWithTools = createServerFn({ method: "POST" })
           notes: z.string().trim().max(200).optional(),
         })
         .optional(),
+      useToolCalling: z.boolean().optional(),
     }).parse,
   )
   .handler(async ({ data }): Promise<{ items: ImageFoodEstimate[]; error: string | null }> => {
@@ -354,17 +431,26 @@ export const estimateFoodWithTools = createServerFn({ method: "POST" })
     const contextStr = contextParts.length ? `\n\n${contextParts.join(" ")}` : "";
 
     const isLabel = data.mode === "nutrition_label";
+    const withTools = data.useToolCalling !== false && !isLabel;
+
     const systemMessage = isLabel
       ? `You are a nutrition expert for a macro tracking app.${contextStr}\n\nRead the nutrition facts label carefully. Return one food item using the label's per-serving macros. Use the label's serving size as quantity and unit. Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high), note (optional).`
-      : `You are a nutrition expert for a macro tracking app.${contextStr}
+      : withTools
+        ? `You are a nutrition expert for a macro tracking app.${contextStr}
 
 When given a food description or image:
 1. Identify the dish and estimate the overall portion size.
 2. Break it into its likely constituent ingredients with realistic portion sizes.
-3. Call search_usda for each ingredient (max 10 calls).
-4. After reviewing USDA results, decide:
-   - If the USDA matches are clearly correct for the ingredients, return each ingredient as a separate item, scaling the USDA per-100g data to the portion size. In each note, cite the matched USDA food name.
-   - If USDA results are poor or absent for most ingredients, return a single item for the whole dish with your overall macro estimate and confidence "low".
+3. For each ingredient, call the appropriate tool (max 10 calls total):
+   - search_usda for whole/unprocessed foods (meats, grains, vegetables, dairy).
+   - search_open_food_facts for branded or packaged products.
+4. After reviewing results, decide:
+   - If matches are clearly correct, return each ingredient as a separate item scaled to its portion. Cite the matched food name in note.
+   - If results are poor or absent for most ingredients, return a single item for the whole dish with your overall estimate and confidence "low".
+Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high/medium/low), note (optional).`
+        : `You are a nutrition expert for a macro tracking app.${contextStr}
+
+Identify the dish and estimate macros from your own knowledge. Break into constituent ingredients with realistic portions and estimate each. If you are uncertain about specific ingredients, return a single item for the whole dish with confidence "low".
 Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high/medium/low), note (optional).`;
 
     const userMessage: ChatMessage = data.imageDataUrl
@@ -387,7 +473,7 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
       userMessage,
     ];
 
-    const callAI = async (msgs: ChatMessage[], withTools: boolean) => {
+    const callAI = async (msgs: ChatMessage[], enableTools: boolean) => {
       const res = await fetch(`${aiBaseUrl}/chat/completions`, {
         method: "POST",
         headers: {
@@ -398,14 +484,16 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
           model: aiModel,
           temperature: 0.1,
           messages: msgs,
-          ...(withTools ? { tools: [SEARCH_USDA_TOOL], tool_choice: "auto" } : {}),
+          ...(enableTools
+            ? { tools: [SEARCH_USDA_TOOL, SEARCH_OFF_TOOL], tool_choice: "auto" }
+            : {}),
         }),
       });
       return res;
     };
 
-    // Round 0: let the AI make tool calls.
-    const res0 = await callAI(messages, !isLabel);
+    // Round 0: let the AI make tool calls (or go direct if tools are disabled).
+    const res0 = await callAI(messages, withTools);
     if (!res0.ok) {
       const text = await res0.text();
       console.error("AI estimation failed (round 0)", res0.status, text);
@@ -420,7 +508,7 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
     const msg0 = json0.choices?.[0]?.message;
     if (!msg0) return { items: [], error: "Empty AI response." };
 
-    // No tool calls (or label mode): parse the JSON directly.
+    // No tool calls (label mode, tools disabled, or AI skipped tools): parse directly.
     if (!msg0.tool_calls?.length) {
       return parseItemsFromContent(msg0.content ?? "");
     }
@@ -436,7 +524,11 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
       msg0.tool_calls.slice(0, 10).map(async (tc) => {
         try {
           const args = JSON.parse(tc.function.arguments) as { query?: string };
-          const result = await searchUsdaForTool(args.query ?? "");
+          const query = args.query ?? "";
+          const result =
+            tc.function.name === "search_open_food_facts"
+              ? await searchOpenFoodFactsForTool(query)
+              : await searchUsdaForTool(query);
           return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result) };
         } catch {
           return {

@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocalTracking } from "@/hooks/useLocalTracking";
 import type { FoodLogItem } from "@/lib/tracking";
 import {
   estimateFoodNutrition,
@@ -73,6 +74,7 @@ export function FoodLogModal({
   onOpenChange: (open: boolean) => void;
   onAdd: (items: FoodLogItem[]) => void;
 }) {
+  const { settings } = useLocalTracking();
   const [manual, setManual] = useState<FoodLogItem>(emptyItem);
   const [description, setDescription] = useState("");
   const [parsed, setParsed] = useState<FoodLogItem[]>([]);
@@ -152,7 +154,11 @@ export function FoodLogModal({
 
     try {
       const result = await estimateFoodWithTools({
-        data: { description, context: buildContext() },
+        data: {
+          description,
+          context: buildContext(),
+          useToolCalling: settings.useToolCalling,
+        },
       });
 
       if (result.error === "AI_API_KEY is not configured.") {
@@ -208,7 +214,12 @@ export function FoodLogModal({
     try {
       const imageDataUrl = await readImageDataUrl(file);
       const result = await estimateFoodWithTools({
-        data: { imageDataUrl, mode, context: buildContext() },
+        data: {
+          imageDataUrl,
+          mode,
+          context: buildContext(),
+          useToolCalling: settings.useToolCalling,
+        },
       });
       if (!result.items.length) {
         setEstimateError(result.error ?? "No food estimate found.");

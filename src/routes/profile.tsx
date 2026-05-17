@@ -6,6 +6,7 @@ import {
   RefreshCw,
   Ruler,
   Save,
+  Settings2,
   Target,
   Unlink,
   UserRound,
@@ -35,6 +36,7 @@ import { normalizeImportedActivity } from "@/lib/activity-imports";
 import { useAuth } from "@/lib/auth";
 import type { Macros } from "@/lib/macros";
 import type { ProfileGoal, Sex } from "@/lib/tracking";
+import { Switch } from "@/components/ui/switch";
 import { useLocalTracking } from "@/hooks/useLocalTracking";
 
 type ActivityConnection = {
@@ -71,7 +73,7 @@ export const Route = createFileRoute("/profile")({
 
 function ProfilePage() {
   const { user, loading } = useAuth();
-  const { addActivities } = useLocalTracking();
+  const { addActivities, settings, updateSettings } = useLocalTracking();
   const navigate = useNavigate();
   const [macros, setMacros] = useState<Macros>({
     kcal: 2000,
@@ -453,6 +455,28 @@ function ProfilePage() {
                   onChange={(event) =>
                     setProfile((prev) => ({ ...prev, age: Number(event.target.value) }))
                   }
+                />
+              </div>
+            </div>
+          </Card>
+
+          <Card className="p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-primary" />
+              <h2 className="font-semibold">Nutrition Lookup</h2>
+            </div>
+            <div className="space-y-3">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-sm font-medium">Use USDA &amp; Open Food Facts tools</div>
+                  <div className="mt-0.5 text-xs text-muted-foreground">
+                    When on, AI calls USDA and Open Food Facts per ingredient for more accurate
+                    macros. Turn off for a faster single-step AI estimate.
+                  </div>
+                </div>
+                <Switch
+                  checked={settings.useToolCalling}
+                  onCheckedChange={(checked) => updateSettings({ useToolCalling: checked })}
                 />
               </div>
             </div>

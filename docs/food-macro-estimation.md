@@ -82,19 +82,26 @@ unit. Return only JSON: items array with name, quantity, unit, kcal,
 protein_g, carbs_g, fat_g, confidence (high), note (optional).
 ```
 
-### `search_usda` tool
+### Tools
 
-```json
-{
-  "name": "search_usda",
-  "description": "Search USDA FoodData Central for a food item. Returns the top 5 matches with per-100g macros.",
-  "parameters": {
-    "query": "string — food name, e.g. 'wheat noodles cooked' or 'ground pork 80 lean'"
-  }
-}
-```
+Two tools are available when `useToolCalling` is on. The AI chooses which to call per ingredient.
 
-`searchUsdaForTool` (internal helper) queries `POST /fdc/v1/foods/search` with `pageSize: 8`, ranks results with `rankFood`, and returns the top 5 that have complete macros in a compact per-100g format the AI can evaluate and scale.
+| Tool | Best for | Data source |
+|------|----------|------------|
+| `search_usda` | Whole/unprocessed foods (meats, grains, vegetables, dairy) | USDA FoodData Central — peer-reviewed, no rate limit |
+| `search_open_food_facts` | Branded or packaged products (Cheerios, Chobani, Trader Joe's) | Open Food Facts — community-sourced, no auth, no rate limit, global coverage |
+
+Both return the top 5 matches with per-100g macros that the AI evaluates and scales to the estimated portion size.
+
+**Why Open Food Facts over FatSecret for this role:** FatSecret's free tier is rate-limited (~5k/day), which becomes a constraint when one user action fires multiple parallel tool calls. OFF has no rate limits and requires no authentication. FatSecret stays in the codebase for the restaurant combos search feature, which has a different query pattern.
+
+### `useToolCalling` setting
+
+Stored in `TrackingSettings.useToolCalling` (localStorage, default `true`). Toggled from the **Nutrition Lookup** card on the profile page. When off:
+
+- A single AI call with no tools is made.
+- The system prompt asks the AI to estimate from its own knowledge.
+- Faster, uses fewer API calls, but macros are less grounded in measured data.
 
 ### Fallback (no AI key)
 
