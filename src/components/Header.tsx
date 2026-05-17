@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Activity, BookmarkCheck, LogIn, LogOut, Salad, Search, UserRound } from "lucide-react";
+import { Activity, BarChart2, BookmarkCheck, LogIn, LogOut, Salad, Search, UserRound } from "lucide-react";
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -31,6 +31,11 @@ export function Header() {
           <Link to="/activity">
             <Button variant={isActive("/activity") ? "secondary" : "ghost"} size="sm">
               <Activity className="mr-1.5 h-4 w-4" /> Activity
+            </Button>
+          </Link>
+          <Link to="/analytics">
+            <Button variant={isActive("/analytics") ? "secondary" : "ghost"} size="sm">
+              <BarChart2 className="mr-1.5 h-4 w-4" /> Analytics
             </Button>
           </Link>
           {user ? (
