@@ -28,6 +28,26 @@ type FdcSearchResponse = {
   foods?: FdcFood[];
 };
 
+type ToolCall = {
+  id: string;
+  type: "function";
+  function: { name: string; arguments: string };
+};
+
+type ChatMessage =
+  | { role: "system"; content: string }
+  | {
+      role: "user";
+      content:
+        | string
+        | Array<
+            | { type: "text"; text: string }
+            | { type: "image_url"; image_url: { url: string } }
+          >;
+    }
+  | { role: "assistant"; content: string | null; tool_calls?: ToolCall[] }
+  | { role: "tool"; tool_call_id: string; content: string };
+
 export type FoodNutritionEstimate = {
   name: string;
   quantity: number;
@@ -67,8 +87,8 @@ function nutrientAmount(food: FdcFood, kind: "kcal" | "protein" | "carbs" | "fat
 
   if (kind === "kcal") {
     return (
-      nutrients.find((n) => n.nutrientId != null && ENERGY_NUTRIENT_IDS.has(n.nutrientId))?.value ??
-      byName([/energy/i])
+      nutrients.find((n) => n.nutrientId != null && ENERGY_NUTRIENT_IDS.has(n.nutrientId))
+        ?.value ?? byName([/energy/i])
     );
   }
   if (kind === "protein") return byId([1003]) ?? byName([/protein/i]);
@@ -153,6 +173,7 @@ function buildEstimate(food: FdcFood, name: string, quantity: number, unit: stri
   };
 }
 
+// Used by the manual tab's "Fill macros from USDA" button.
 export const estimateFoodNutrition = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
@@ -183,7 +204,9 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
       const json = (await res.json()) as FdcSearchResponse;
       const food = [...(json.foods ?? [])]
         .sort((a, b) => rankFood(b, data.name) - rankFood(a, data.name))
-        .find((candidate) => buildEstimate(candidate, data.name, data.quantity, data.unit) != null);
+        .find(
+          (candidate) => buildEstimate(candidate, data.name, data.quantity, data.unit) != null,
+        );
 
       if (!food) {
         return {
@@ -196,6 +219,99 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
     },
   );
 
+// Returns top Open Food Facts matches for a query in compact per-100g format.
+// No API key or rate limit — preferred over FatSecret for branded/packaged products.
+async function searchOpenFoodFactsForTool(query: string) {
+  try {
+    const url = new URL("https://world.openfoodfacts.org/cgi/search.pl");
+    url.searchParams.set("search_terms", query);
+    url.searchParams.set("search_simple", "1");
+    url.searchParams.set("action", "process");
+    url.searchParams.set("json", "1");
+    url.searchParams.set("fields", "product_name,brands,nutriments,serving_size");
+    url.searchParams.set("page_size", "5");
+
+    const res = await fetch(url.toString(), {
+      headers: { "User-Agent": "MacroChef/1.0" },
+    });
+    if (!res.ok) return { matches: [] };
+
+    const json = (await res.json()) as {
+      products?: Array<{
+        product_name?: string;
+        brands?: string;
+        nutriments?: {
+          "energy-kcal_100g"?: number;
+          proteins_100g?: number;
+          carbohydrates_100g?: number;
+          fat_100g?: number;
+        };
+        serving_size?: string;
+      }>;
+    };
+
+    const matches = (json.products ?? [])
+      .map((p) => {
+        const kcal = p.nutriments?.["energy-kcal_100g"];
+        const protein = p.nutriments?.proteins_100g;
+        const carbs = p.nutriments?.carbohydrates_100g;
+        const fat = p.nutriments?.fat_100g;
+        if (kcal == null || protein == null || carbs == null || fat == null) return null;
+        const name = [p.product_name, p.brands].filter(Boolean).join(" — ");
+        return {
+          name: name || query,
+          kcal_per_100g: Math.round(kcal),
+          protein_g_per_100g: Math.round(protein * 10) / 10,
+          carbs_g_per_100g: Math.round(carbs * 10) / 10,
+          fat_g_per_100g: Math.round(fat * 10) / 10,
+          serving: p.serving_size,
+        };
+      })
+      .filter(Boolean);
+
+    return { matches };
+  } catch {
+    return { matches: [] };
+  }
+}
+
+// Returns the top USDA matches for a query in a compact per-100g format for AI tool use.
+async function searchUsdaForTool(query: string) {
+  const params = new URLSearchParams({ api_key: fdcApiKey() });
+  try {
+    const res = await fetch(`${FDC_BASE}/foods/search?${params}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, pageSize: 8, requireAllWords: false }),
+    });
+    if (!res.ok) return { matches: [] };
+    const json = (await res.json()) as FdcSearchResponse;
+    const ranked = [...(json.foods ?? [])].sort((a, b) => rankFood(b, query) - rankFood(a, query));
+    const matches = ranked
+      .slice(0, 5)
+      .map((food) => {
+        const kcal = nutrientAmount(food, "kcal");
+        const protein = nutrientAmount(food, "protein");
+        const carbs = nutrientAmount(food, "carbs");
+        const fat = nutrientAmount(food, "fat");
+        if (kcal == null || protein == null || carbs == null || fat == null) return null;
+        return {
+          name: food.description ?? query,
+          dataType: food.dataType,
+          kcal_per_100g: Math.round(kcal),
+          protein_g_per_100g: Math.round(protein * 10) / 10,
+          carbs_g_per_100g: Math.round(carbs * 10) / 10,
+          fat_g_per_100g: Math.round(fat * 10) / 10,
+          serving: food.householdServingFullText,
+        };
+      })
+      .filter(Boolean);
+    return { matches };
+  } catch {
+    return { matches: [] };
+  }
+}
+
 function extractJsonObject(text: string) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
   const raw = fenced ?? text;
@@ -205,82 +321,236 @@ function extractJsonObject(text: string) {
   return JSON.parse(raw.slice(start, end + 1)) as { items?: ImageFoodEstimate[] };
 }
 
-export const estimateFoodFromImage = createServerFn({ method: "POST" })
+function parseItemsFromContent(
+  content: string,
+): { items: ImageFoodEstimate[]; error: string | null } {
+  try {
+    const parsed = extractJsonObject(content);
+    const items = (parsed.items ?? [])
+      .map((item) => ({
+        name: String(item.name ?? "Food"),
+        quantity: Number(item.quantity) || 1,
+        unit: String(item.unit ?? "serving"),
+        kcal: Math.max(0, Math.round(Number(item.kcal) || 0)),
+        protein_g: Math.max(0, Math.round((Number(item.protein_g) || 0) * 10) / 10),
+        carbs_g: Math.max(0, Math.round((Number(item.carbs_g) || 0) * 10) / 10),
+        fat_g: Math.max(0, Math.round((Number(item.fat_g) || 0) * 10) / 10),
+        confidence:
+          item.confidence === "high" || item.confidence === "medium"
+            ? item.confidence
+            : ("low" as const),
+        note: item.note ? String(item.note) : undefined,
+      }))
+      .filter((item) => item.name.trim() && item.kcal > 0);
+    return { items, error: items.length ? null : "No usable nutrition estimate found." };
+  } catch (err) {
+    return {
+      items: [],
+      error: err instanceof Error ? err.message : "Could not parse AI nutrition estimate.",
+    };
+  }
+}
+
+const SEARCH_USDA_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "search_usda",
+    description:
+      "Search USDA FoodData Central for whole or unprocessed foods (meats, grains, vegetables, dairy). Returns the top 5 matches with per-100g macros. Prefer this over search_open_food_facts for unbranded ingredients.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Food name to search, e.g. 'wheat noodles cooked' or 'ground pork 80 lean'.",
+        },
+      },
+      required: ["query"],
+    },
+  },
+};
+
+const SEARCH_OFF_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "search_open_food_facts",
+    description:
+      "Search Open Food Facts for packaged or branded food products. Prefer this over search_usda for anything with a brand name (e.g. 'Cheerios', 'Chobani Greek yogurt', 'Trader Joe's hummus'). Returns the top 5 matches with per-100g macros.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Brand or product name to search, e.g. 'Chobani plain greek yogurt' or 'General Mills Cheerios'.",
+        },
+      },
+      required: ["query"],
+    },
+  },
+};
+
+// Unified AI estimation used by both the text tab and the image tabs.
+// Sends the description or image to the AI along with a search_usda tool.
+// The AI identifies the dish, breaks it into ingredients, calls search_usda
+// for each, then returns either per-ingredient items (when USDA matches are
+// clear) or a single overall estimate (when they are not).
+// Falls back to an error when AI_API_KEY is not configured so the caller
+// can fall back to the regex + USDA path.
+export const estimateFoodWithTools = createServerFn({ method: "POST" })
   .inputValidator(
     z.object({
-      imageDataUrl: z.string().startsWith("data:image/").max(8_000_000),
-      mode: z.enum(["meal_photo", "nutrition_label"]),
+      description: z.string().trim().max(500).optional(),
+      imageDataUrl: z.string().startsWith("data:image/").max(8_000_000).optional(),
+      mode: z.enum(["meal_photo", "nutrition_label"]).optional(),
+      context: z
+        .object({
+          setting: z.enum(["homemade", "restaurant", "packaged"]).optional(),
+          notes: z.string().trim().max(200).optional(),
+        })
+        .optional(),
+      useToolCalling: z.boolean().optional(),
     }).parse,
   )
   .handler(async ({ data }): Promise<{ items: ImageFoodEstimate[]; error: string | null }> => {
     const aiKey = process.env.AI_API_KEY;
-    const aiBaseUrl = process.env.AI_BASE_URL ?? "https://api.openai.com/v1";
+    const aiBaseUrl = (process.env.AI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
     const aiModel = process.env.AI_MODEL ?? "gpt-4.1-mini";
 
     if (!aiKey) return { items: [], error: "AI_API_KEY is not configured." };
 
-    const instruction =
-      data.mode === "nutrition_label"
-        ? "Read the nutrition facts label. Return one food item using the label's per-serving macros. Include serving size as quantity and unit when visible."
-        : "Estimate the visible meal's food items and portions. Return reasonable macro estimates with confidence.";
+    const contextParts: string[] = [];
+    if (data.context?.setting === "homemade")
+      contextParts.push("This is a homemade meal — use typical home-cooking portion sizes.");
+    else if (data.context?.setting === "restaurant")
+      contextParts.push("This is a restaurant meal — use typical restaurant portion sizes.");
+    else if (data.context?.setting === "packaged")
+      contextParts.push("This is a packaged or branded food product.");
+    if (data.context?.notes) contextParts.push(data.context.notes);
+    const contextStr = contextParts.length ? `\n\n${contextParts.join(" ")}` : "";
 
-    const res = await fetch(`${aiBaseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${aiKey}`,
-      },
-      body: JSON.stringify({
-        model: aiModel,
-        temperature: 0.1,
-        messages: [
-          {
-            role: "system",
-            content:
-              "You estimate food nutrition for a macro tracking app. Return only JSON with an items array. Each item must include name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence, and optional note. Confidence is high, medium, or low.",
-          },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: instruction },
-              { type: "image_url", image_url: { url: data.imageDataUrl } },
-            ],
-          },
-        ],
-      }),
+    const isLabel = data.mode === "nutrition_label";
+    const withTools = data.useToolCalling !== false && !isLabel;
+
+    const systemMessage = isLabel
+      ? `You are a nutrition expert for a macro tracking app.${contextStr}\n\nRead the nutrition facts label carefully. Return one food item using the label's per-serving macros. Use the label's serving size as quantity and unit. Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high), note (optional).`
+      : withTools
+        ? `You are a nutrition expert for a macro tracking app.${contextStr}
+
+When given a food description or image:
+1. Identify the dish and estimate the overall portion size.
+2. Break it into its likely constituent ingredients with realistic portion sizes.
+3. For each ingredient, call the appropriate tool (max 10 calls total):
+   - search_usda for whole/unprocessed foods (meats, grains, vegetables, dairy).
+   - search_open_food_facts for branded or packaged products.
+4. After reviewing results, decide:
+   - If matches are clearly correct, return each ingredient as a separate item scaled to its portion. Cite the matched food name in note.
+   - If results are poor or absent for most ingredients, return a single item for the whole dish with your overall estimate and confidence "low".
+Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high/medium/low), note (optional).`
+        : `You are a nutrition expert for a macro tracking app.${contextStr}
+
+Identify the dish and estimate macros from your own knowledge. Break into constituent ingredients with realistic portions and estimate each. If you are uncertain about specific ingredients, return a single item for the whole dish with confidence "low".
+Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high/medium/low), note (optional).`;
+
+    const userMessage: ChatMessage = data.imageDataUrl
+      ? {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: isLabel
+                ? "Read this nutrition facts label and return the food item."
+                : "Identify this meal, break it into ingredients, and call search_usda for each.",
+            },
+            { type: "image_url", image_url: { url: data.imageDataUrl } },
+          ],
+        }
+      : { role: "user", content: data.description ?? "" };
+
+    const messages: ChatMessage[] = [
+      { role: "system", content: systemMessage },
+      userMessage,
+    ];
+
+    const callAI = async (msgs: ChatMessage[], enableTools: boolean) => {
+      const res = await fetch(`${aiBaseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${aiKey}`,
+        },
+        body: JSON.stringify({
+          model: aiModel,
+          temperature: 0.1,
+          messages: msgs,
+          ...(enableTools
+            ? { tools: [SEARCH_USDA_TOOL, SEARCH_OFF_TOOL], tool_choice: "auto" }
+            : {}),
+        }),
+      });
+      return res;
+    };
+
+    // Round 0: let the AI make tool calls (or go direct if tools are disabled).
+    const res0 = await callAI(messages, withTools);
+    if (!res0.ok) {
+      const text = await res0.text();
+      console.error("AI estimation failed (round 0)", res0.status, text);
+      return { items: [], error: `AI estimation failed (${res0.status})` };
+    }
+
+    const json0 = (await res0.json()) as {
+      choices?: Array<{
+        message?: { role?: string; content?: string | null; tool_calls?: ToolCall[] };
+      }>;
+    };
+    const msg0 = json0.choices?.[0]?.message;
+    if (!msg0) return { items: [], error: "Empty AI response." };
+
+    // No tool calls (label mode, tools disabled, or AI skipped tools): parse directly.
+    if (!msg0.tool_calls?.length) {
+      return parseItemsFromContent(msg0.content ?? "");
+    }
+
+    // Execute all tool calls in parallel (cap at 10).
+    messages.push({
+      role: "assistant",
+      content: msg0.content ?? null,
+      tool_calls: msg0.tool_calls,
     });
 
-    if (!res.ok) {
-      const text = await res.text();
-      console.error("AI image nutrition failed", res.status, text);
-      return { items: [], error: `Image nutrition estimate failed (${res.status})` };
+    const toolResults = await Promise.all(
+      msg0.tool_calls.slice(0, 10).map(async (tc) => {
+        try {
+          const args = JSON.parse(tc.function.arguments) as { query?: string };
+          const query = args.query ?? "";
+          const result =
+            tc.function.name === "search_open_food_facts"
+              ? await searchOpenFoodFactsForTool(query)
+              : await searchUsdaForTool(query);
+          return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result) };
+        } catch {
+          return {
+            role: "tool" as const,
+            tool_call_id: tc.id,
+            content: JSON.stringify({ matches: [] }),
+          };
+        }
+      }),
+    );
+    messages.push(...toolResults);
+
+    // Round 1: get the final JSON answer with no further tool calls.
+    const res1 = await callAI(messages, false);
+    if (!res1.ok) {
+      const text = await res1.text();
+      console.error("AI estimation failed (round 1)", res1.status, text);
+      return { items: [], error: `AI estimation failed (${res1.status})` };
     }
 
-    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const content = json.choices?.[0]?.message?.content ?? "";
-
-    try {
-      const parsed = extractJsonObject(content);
-      const items = (parsed.items ?? [])
-        .map((item) => ({
-          name: String(item.name ?? "Food"),
-          quantity: Number(item.quantity) || 1,
-          unit: String(item.unit ?? "serving"),
-          kcal: Math.max(0, Math.round(Number(item.kcal) || 0)),
-          protein_g: Math.max(0, Math.round((Number(item.protein_g) || 0) * 10) / 10),
-          carbs_g: Math.max(0, Math.round((Number(item.carbs_g) || 0) * 10) / 10),
-          fat_g: Math.max(0, Math.round((Number(item.fat_g) || 0) * 10) / 10),
-          confidence:
-            item.confidence === "high" || item.confidence === "medium" ? item.confidence : "low",
-          note: item.note ? String(item.note) : undefined,
-        }))
-        .filter((item) => item.name.trim() && item.kcal > 0);
-
-      return { items, error: items.length ? null : "No usable nutrition estimate found." };
-    } catch (error) {
-      return {
-        items: [],
-        error: error instanceof Error ? error.message : "Could not parse AI nutrition estimate.",
-      };
-    }
+    const json1 = (await res1.json()) as {
+      choices?: Array<{ message?: { content?: string | null } }>;
+    };
+    return parseItemsFromContent(json1.choices?.[0]?.message?.content ?? "");
   });

@@ -84,6 +84,7 @@ export interface TrackingSettings {
   dailyProteinTarget: number;
   dailyCarbsTarget: number;
   dailyFatTarget: number;
+  useToolCalling: boolean;
 }
 
 export const DEFAULT_TRACKING_SETTINGS: TrackingSettings = {
@@ -97,6 +98,7 @@ export const DEFAULT_TRACKING_SETTINGS: TrackingSettings = {
   dailyProteinTarget: 180,
   dailyCarbsTarget: 280,
   dailyFatTarget: 80,
+  useToolCalling: true,
 };
 
 export const MEAL_LABELS: Record<MealType, string> = {

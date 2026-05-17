@@ -5,8 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useLocalTracking } from "@/hooks/useLocalTracking";
 import type { FoodLogItem } from "@/lib/tracking";
-import { estimateFoodFromImage, estimateFoodNutrition } from "@/lib/food-nutrition.functions";
+import {
+  estimateFoodNutrition,
+  estimateFoodWithTools,
+} from "@/lib/food-nutrition.functions";
 import { Camera, FileScan, PenLine, Plus, Sparkles } from "lucide-react";
 
 function emptyItem(): FoodLogItem {
@@ -70,13 +74,16 @@ export function FoodLogModal({
   onOpenChange: (open: boolean) => void;
   onAdd: (items: FoodLogItem[]) => void;
 }) {
+  const { settings } = useLocalTracking();
   const [manual, setManual] = useState<FoodLogItem>(emptyItem);
   const [description, setDescription] = useState("");
   const [parsed, setParsed] = useState<FoodLogItem[]>([]);
-  const [estimatingQuick, setEstimatingQuick] = useState(false);
+  const [quickStatus, setQuickStatus] = useState<string | null>(null);
   const [estimatingManual, setEstimatingManual] = useState(false);
   const [estimatingImage, setEstimatingImage] = useState(false);
   const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [setting, setSetting] = useState<"homemade" | "restaurant" | "packaged" | null>(null);
+  const [contextNotes, setContextNotes] = useState("");
 
   const canAddManual = manual.name.trim().length > 0 && manual.kcal > 0;
   const totalParsed = useMemo(() => parsed.reduce((sum, item) => sum + item.kcal, 0), [parsed]);
@@ -116,17 +123,70 @@ export function FoodLogModal({
     }
   };
 
+  const buildContext = () =>
+    setting || contextNotes.trim()
+      ? { setting: setting ?? undefined, notes: contextNotes.trim() || undefined }
+      : undefined;
+
+  const aiItemsToLogItems = (
+    items: Awaited<ReturnType<typeof estimateFoodWithTools>>["items"],
+    defaultSource: FoodLogItem["source"] = "ai",
+  ): FoodLogItem[] =>
+    items.map((item) => ({
+      id: crypto.randomUUID(),
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      kcal: item.kcal,
+      protein_g: item.protein_g,
+      carbs_g: item.carbs_g,
+      fat_g: item.fat_g,
+      source: item.note?.toLowerCase().includes("usda") ? ("usda" as const) : defaultSource,
+      confidence: item.confidence,
+      note: item.note,
+      loggedAt: new Date().toISOString(),
+    }));
+
   const estimateQuickItems = async () => {
-    const items = parseFoodDescription(description);
-    if (!items.length) return;
+    if (!description.trim()) return;
     setEstimateError(null);
-    setParsed(items);
-    setEstimatingQuick(true);
-    const nextItems = await Promise.all(items.map(applyUsdaEstimate));
-    setParsed(nextItems);
-    setEstimatingQuick(false);
-    if (nextItems.some((item) => item.kcal <= 0)) {
-      setEstimateError("Some items need manual macros because USDA did not return a close match.");
+    setQuickStatus("Identifying ingredients…");
+
+    try {
+      const result = await estimateFoodWithTools({
+        data: {
+          description,
+          context: buildContext(),
+          useToolCalling: settings.useToolCalling,
+        },
+      });
+
+      if (result.error === "AI_API_KEY is not configured.") {
+        // Fallback: regex split + per-ingredient USDA lookup.
+        const fallback = parseFoodDescription(description);
+        if (!fallback.length) { setQuickStatus(null); return; }
+        setParsed(fallback);
+        setQuickStatus("Looking up USDA matches…");
+        const filled = await Promise.all(fallback.map(applyUsdaEstimate));
+        setParsed(filled);
+        setQuickStatus(null);
+        if (filled.some((item) => item.kcal <= 0)) {
+          setEstimateError("Some items need manual macros — no close USDA match found.");
+        }
+        return;
+      }
+
+      if (!result.items.length) {
+        setEstimateError(result.error ?? "No food estimate found.");
+        setQuickStatus(null);
+        return;
+      }
+
+      setParsed(aiItemsToLogItems(result.items));
+      setQuickStatus(null);
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : "Estimation failed.");
+      setQuickStatus(null);
     }
   };
 
@@ -153,34 +213,30 @@ export function FoodLogModal({
 
     try {
       const imageDataUrl = await readImageDataUrl(file);
-      const result = await estimateFoodFromImage({ data: { imageDataUrl, mode } });
+      const result = await estimateFoodWithTools({
+        data: {
+          imageDataUrl,
+          mode,
+          context: buildContext(),
+          useToolCalling: settings.useToolCalling,
+        },
+      });
       if (!result.items.length) {
         setEstimateError(result.error ?? "No food estimate found.");
         return;
       }
-
+      const defaultNote =
+        mode === "nutrition_label"
+          ? "Read from nutrition facts label. Review serving size before logging."
+          : "Estimated from photo. Review portions before logging.";
       setParsed(
-        result.items.map((item) => ({
-          id: crypto.randomUUID(),
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          kcal: item.kcal,
-          protein_g: item.protein_g,
-          carbs_g: item.carbs_g,
-          fat_g: item.fat_g,
-          source: "ai",
-          confidence: item.confidence,
-          note:
-            item.note ??
-            (mode === "nutrition_label"
-              ? "Read from nutrition facts label. Review serving size before logging."
-              : "Estimated from photo. Review portions before logging."),
-          loggedAt: new Date().toISOString(),
+        aiItemsToLogItems(result.items).map((item) => ({
+          ...item,
+          note: item.note ?? defaultNote,
         })),
       );
-    } catch (error) {
-      setEstimateError(error instanceof Error ? error.message : "Image estimate failed.");
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : "Image estimate failed.");
     } finally {
       setEstimatingImage(false);
     }
@@ -208,6 +264,8 @@ export function FoodLogModal({
       setDescription("");
       setParsed([]);
       setEstimateError(null);
+      setSetting(null);
+      setContextNotes("");
     }
     onOpenChange(nextOpen);
   };
@@ -218,6 +276,28 @@ export function FoodLogModal({
         <DialogHeader>
           <DialogTitle>Log food</DialogTitle>
         </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-2 border-b pb-3">
+          {(["homemade", "restaurant", "packaged"] as const).map((s) => (
+            <Button
+              key={s}
+              type="button"
+              variant={setting === s ? "default" : "outline"}
+              size="sm"
+              className="h-7 rounded-full px-3 text-xs capitalize"
+              onClick={() => setSetting(setting === s ? null : s)}
+            >
+              {s}
+            </Button>
+          ))}
+          <Input
+            className="h-7 min-w-[120px] flex-1 text-xs"
+            placeholder="Notes (e.g. grilled, extra sauce)"
+            value={contextNotes}
+            onChange={(e) => setContextNotes(e.target.value)}
+            maxLength={200}
+          />
+        </div>
 
         <Tabs defaultValue="quick" className="mt-2">
           <TabsList className="grid w-full grid-cols-4">
@@ -250,11 +330,11 @@ export function FoodLogModal({
                 />
                 <Button
                   className="w-full"
-                  disabled={!description.trim() || estimatingQuick}
+                  disabled={!description.trim() || quickStatus !== null}
                   onClick={estimateQuickItems}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  {estimatingQuick ? "Looking up USDA matches..." : "Estimate with USDA"}
+                  {quickStatus ?? "Estimate macros"}
                 </Button>
               </>
             ) : (
@@ -318,7 +398,7 @@ export function FoodLogModal({
                   </Button>
                   <Button
                     className="flex-1"
-                    disabled={estimatingQuick}
+                    disabled={quickStatus !== null}
                     onClick={() => {
                       onAdd(parsed);
                       closeAndReset(false);
