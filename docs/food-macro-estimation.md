@@ -1,7 +1,7 @@
 # Food Macro Estimation Logic
 
 This document describes how MacroChef estimates food macros from a text description or an image.
-The end goal is a three-step pipeline:
+The pipeline has three steps:
 
 1. **Identify** – determine what the dish is and its overall portion size.
 2. **Decompose** – split the dish into constituent ingredients with individual weights/volumes.
@@ -15,117 +15,104 @@ The user reaches macro estimation through four tabs in `FoodLogModal` (`src/comp
 
 | Tab | Input | How macros are obtained |
 |-----|-------|------------------------|
-| **Text** | Free-text description | `parseFoodDescription` → USDA FDC lookup |
-| **Photo** | Meal photo | AI vision (`meal_photo` mode) |
-| **Label** | Nutrition-facts label photo | AI vision (`nutrition_label` mode) |
-| **Manual** | Name + quantity/unit | Optionally USDA FDC lookup, otherwise manual entry |
+| **Text** | Free-text description | `estimateFoodWithTools` (AI + USDA tool calls), fallback: regex + USDA |
+| **Photo** | Meal photo | `estimateFoodWithTools` (AI vision + USDA tool calls) |
+| **Label** | Nutrition-facts label photo | `estimateFoodWithTools` (AI vision, label-read mode, no decomposition) |
+| **Manual** | Name + quantity/unit | Optionally `estimateFoodNutrition` (USDA only), otherwise manual entry |
+
+A **context strip** above the tabs lets the user set the meal setting (Homemade / Restaurant / Packaged) and an optional free-text note. Both are passed to `estimateFoodWithTools` to make the prompt more precise.
 
 ---
 
-## Step 1 — Identify the food
+## Unified estimation: `estimateFoodWithTools`
 
-### Text path
+**File:** `src/lib/food-nutrition.functions.ts`
 
-`estimateQuickItems` (FoodLogModal.tsx) first calls `decomposeTextToIngredients` (food-nutrition.functions.ts), a server function that sends the raw description to the configured AI model and asks it to return a flat list of ingredients with quantities:
+All AI-powered tabs share one server function. It runs a two-round AI conversation:
 
+### Round 0 — Identify, decompose, call tools
+
+The AI receives a system prompt (see below), the user input (text or image), and the `search_usda` tool definition. It is expected to:
+
+1. Identify the dish and estimate the overall portion.
+2. Break it into constituent ingredients with realistic weights.
+3. Call `search_usda` for each ingredient (capped at 10 calls to bound cost).
+
+All tool calls are executed in parallel against the USDA FoodData Central API and results are returned to the model.
+
+### Round 1 — Decide and return JSON
+
+With the USDA results in context, the AI decides per-ingredient:
+
+- **Good USDA match** → scale the per-100g data to the portion size, set `source: "usda"`, cite the matched food name in `note`.
+- **Poor or no USDA match** → use its own trained knowledge; if most ingredients failed, collapse into a single whole-dish estimate with `confidence: "low"`.
+
+The final response is a JSON `items` array.
+
+### System prompts
+
+**Meal photo / text:**
 ```
-System: "You decompose food descriptions into individual ingredients for a
-macro tracking app. Return only JSON with an items array. Each item must
-include name (string), quantity (number), and unit (string such as oz, g,
-cup, tbsp, or serving). If the input is already a list of specific
-ingredients with quantities, return them as-is. Use realistic typical
-portion sizes."
+You are a nutrition expert for a macro tracking app.
+[context: homemade/restaurant/packaged + user notes if provided]
 
-User: <the user's raw description>
+When given a food description or image:
+1. Identify the dish and estimate the overall portion size.
+2. Break it into its likely constituent ingredients with realistic portion sizes.
+3. Call search_usda for each ingredient (max 10 calls).
+4. After reviewing USDA results, decide:
+   - If the USDA matches are clearly correct, return each ingredient as a
+     separate item, scaling the per-100g data to the portion. Cite the
+     matched USDA food name in note.
+   - If USDA results are poor or absent for most ingredients, return a
+     single item for the whole dish with your overall estimate and
+     confidence "low".
+Return only JSON: items array with name, quantity, unit, kcal,
+protein_g, carbs_g, fat_g, confidence (high/medium/low), note (optional).
 ```
 
-For a description like "a bowl of zhajiangmian" the model returns something like:
+**Nutrition label:**
+```
+You are a nutrition expert for a macro tracking app.
+[context if provided]
+
+Read the nutrition facts label carefully. Return one food item using the
+label's per-serving macros. Use the label's serving size as quantity and
+unit. Return only JSON: items array with name, quantity, unit, kcal,
+protein_g, carbs_g, fat_g, confidence (high), note (optional).
+```
+
+### `search_usda` tool
 
 ```json
-{ "items": [
-    { "name": "wheat noodles",    "quantity": 5,   "unit": "oz"     },
-    { "name": "ground pork",      "quantity": 3,   "unit": "oz"     },
-    { "name": "black bean sauce", "quantity": 2,   "unit": "tbsp"   },
-    { "name": "cucumber",         "quantity": 2,   "unit": "oz"     }
-]}
+{
+  "name": "search_usda",
+  "description": "Search USDA FoodData Central for a food item. Returns the top 5 matches with per-100g macros.",
+  "parameters": {
+    "query": "string — food name, e.g. 'wheat noodles cooked' or 'ground pork 80 lean'"
+  }
+}
 ```
 
-If `AI_API_KEY` is not set, or the AI call fails, `decomposeTextToIngredients` returns an empty list and `estimateQuickItems` falls back to `parseFoodDescription`, which splits on newlines/commas/"and" and extracts `quantity`, `unit`, `name` via regex. For example:
+`searchUsdaForTool` (internal helper) queries `POST /fdc/v1/foods/search` with `pageSize: 8`, ranks results with `rankFood`, and returns the top 5 that have complete macros in a compact per-100g format the AI can evaluate and scale.
 
-```
-"8 oz chicken breast, 1 cup rice, broccoli"
-→ [{ quantity:8, unit:"oz",      name:"chicken breast" },
-   { quantity:1, unit:"cup",     name:"rice" },
-   { quantity:1, unit:"serving", name:"broccoli" }]
-```
+### Fallback (no AI key)
 
-### Image path
-
-`estimateFoodFromImage` (food-nutrition.functions.ts:208) sends the image to an OpenAI-compatible vision model. The model is asked to identify every visible food item and estimate its portion in the same response — identification and decomposition happen in one round-trip (see Step 2 below).
+When `AI_API_KEY` is not configured, `estimateFoodWithTools` returns `error: "AI_API_KEY is not configured."`. The text tab catches this and falls back to the legacy `parseFoodDescription` (regex split) + per-ingredient `applyUsdaEstimate` path. The image tabs show the error and require configuration.
 
 ---
 
-## Step 2 — Decompose into ingredients
+## USDA ranking (`rankFood`)
 
-### Text path
-
-`decomposeTextToIngredients` handles decomposition as part of the Step 1 AI call. Each ingredient in the returned list is then sent individually to USDA for macro lookup.
-
-### Image path
-
-The AI prompt explicitly requests a flat list of food items per the system message:
-
-```
-System: "You estimate food nutrition for a macro tracking app. Return only JSON
-with an items array. Each item must include name, quantity, unit, kcal,
-protein_g, carbs_g, fat_g, confidence, and optional note. Confidence is
-high, medium, or low."
-
-User (meal_photo mode): "Estimate the visible meal's food items and portions.
-Return reasonable macro estimates with confidence."
-```
-
-The model is expected to decompose the visible meal into individual components and estimate each one's portion. For example, a photo of zhajiangmian might return:
-
-```json
-{ "items": [
-    { "name": "wheat noodles",    "quantity": 5,  "unit": "oz", "kcal": 200, ... },
-    { "name": "ground pork",      "quantity": 3,  "unit": "oz", "kcal": 210, ... },
-    { "name": "cucumber",         "quantity": 2,  "unit": "oz", "kcal": 10,  ... },
-    { "name": "black bean sauce", "quantity": 2,  "unit": "tbsp","kcal": 40, ... }
-]}
-```
-
-The AI provides macro estimates directly in its response; there is **no** subsequent USDA validation step for image-derived items.
-
-**Response validation** (`extractJsonObject`, food-nutrition.functions.ts:199):
-- Strips Markdown fences (`` ```json ... ``` ``) if present.
-- Extracts the first `{...}` block.
-- Filters out items with blank names or `kcal ≤ 0`.
-- Clamps all numeric fields to `≥ 0`.
-
----
-
-## Step 3 — Look up macros and log
-
-### USDA FDC path (text input)
-
-`estimateFoodNutrition` (food-nutrition.functions.ts:156) queries the USDA FoodData Central search endpoint:
-
-```
-POST https://api.nal.usda.gov/fdc/v1/foods/search
-{ query, pageSize: 12, requireAllWords: false }
-```
-
-It ranks the returned candidates with `rankFood` (food-nutrition.functions.ts:99):
+Used by both the AI tool path and the manual-tab lookup:
 
 ```
 score = (matching_query_words × 4)
-      + source_boost           // Survey=3, Foundation=2, SR Legacy=1
+      + source_boost           // Survey (FNDDS)=3, Foundation=2, SR Legacy=1
       + (has_all_four_macros ? 10 : 0)
 ```
 
-The highest-scoring candidate that has all four macros is selected. Macros are extracted by nutrient ID:
+Macros are extracted by nutrient ID:
 
 | Macro | Nutrient IDs |
 |-------|-------------|
@@ -134,15 +121,22 @@ The highest-scoring candidate that has all four macros is selected. Macros are e
 | Fat | 1004 |
 | Carbohydrates | 1005 |
 
-Portion conversion (`amountToGrams`, food-nutrition.functions.ts:79) handles g, kg, oz, lb, ml, l, and USDA serving sizes. All other units default to `quantity × 100 g`. Macros are then scaled from per-100 g values by `grams / 100`.
+Portion conversion (`amountToGrams`) handles g, kg, oz, lb, ml, l, and USDA serving sizes. Unknown units default to `quantity × 100 g`. Macros are scaled from per-100g values by `grams / 100`.
 
-Confidence is `"high"` unless the unit is `"serving"` and the USDA entry has no `servingSize`, in which case it is `"medium"`.
+---
 
-### AI vision path (image input)
+## Context inputs
 
-Macros are returned directly by the model at temperature 0.1 (deterministic). No USDA validation is performed. Confidence is whatever the model reports (`"high"`, `"medium"`, or `"low"`).
+The modal exposes two context signals above all tabs:
 
-### Final `FoodLogItem` shape
+| Field | Values | Effect on prompt |
+|-------|--------|-----------------|
+| **Setting** | Homemade / Restaurant / Packaged | Informs typical portion sizes and preparation style |
+| **Notes** | Free text (max 200 chars) | Appended verbatim to the system prompt, e.g. "grilled, no sauce" |
+
+---
+
+## Final `FoodLogItem` shape
 
 ```typescript
 {
@@ -155,13 +149,14 @@ Macros are returned directly by the model at temperature 0.1 (deterministic). No
   carbs_g: number
   fat_g: number
   source: "manual" | "usda" | "ai" | "recipe" | "restaurant"
+  // "usda" when note contains "USDA"; "ai" otherwise
   confidence: "high" | "medium" | "low"
-  note?: string        // source attribution or user-facing caveat
+  note?: string        // USDA match citation or caveat
   loggedAt: string     // ISO 8601 timestamp
 }
 ```
 
-Items are appended to the current diary date in `localStorage` via `useLocalTracking` (`src/hooks/useLocalTracking.ts`), keyed by `"YYYY-MM-DD"`.
+Items are written to the current diary date in `localStorage` via `useLocalTracking`, keyed by `"YYYY-MM-DD"`.
 
 ---
 
@@ -169,12 +164,14 @@ Items are appended to the current diary date in `localStorage` via `useLocalTrac
 
 | Goal | State |
 |------|-------|
-| Identify dish and overall portion from text | Works — `decomposeTextToIngredients` identifies the dish and produces per-ingredient portions via AI. Falls back to regex when `AI_API_KEY` is absent. |
-| Identify dish from image | Works — the vision model names the dish and sub-components. |
-| Decompose dish into ingredients (text) | Works — same `decomposeTextToIngredients` call returns individual ingredients with quantities. |
-| Decompose dish into ingredients (image) | Works — the vision model returns each visible component separately. |
-| Look up macros per ingredient | Works via USDA FDC (text path) or directly from the AI estimate (image path). |
-| Log foods to diary | Works — items written to localStorage after user review. |
+| Identify dish and portion (text) | AI identifies in round 0 before calling tools |
+| Identify dish and portion (image) | Vision model identifies in round 0 |
+| Decompose into ingredients (text) | AI decomposes as part of the same round-0 response |
+| Decompose into ingredients (image) | Vision model decomposes as part of round 0 |
+| USDA lookup per ingredient | AI calls `search_usda` tool for each; results returned to model |
+| Per-ingredient source decision | AI decides in round 1: USDA data or own estimate per item |
+| Whole-dish fallback | AI returns single item when USDA matches are poor overall |
+| Log to diary | Items written to localStorage after user review |
 
 ---
 
@@ -182,16 +179,16 @@ Items are appended to the current diary date in `localStorage` via `useLocalTrac
 
 | File | Role |
 |------|------|
-| `src/lib/food-nutrition.functions.ts` | Server functions: USDA lookup (`estimateFoodNutrition`) and AI vision (`estimateFoodFromImage`) |
-| `src/components/tracking/FoodLogModal.tsx` | UI + orchestration: `parseFoodDescription`, `applyUsdaEstimate`, `estimateImageItems` |
-| `src/lib/tracking.ts` | `FoodLogItem` type and `TrackingData` shape |
+| `src/lib/food-nutrition.functions.ts` | `estimateFoodWithTools`, `estimateFoodNutrition` (manual tab), `searchUsdaForTool`, `rankFood` |
+| `src/components/tracking/FoodLogModal.tsx` | UI + orchestration; context inputs; `parseFoodDescription` fallback |
+| `src/lib/tracking.ts` | `FoodLogItem` and `FoodSource` types |
 | `src/hooks/useLocalTracking.ts` | localStorage read/write for the food diary |
 
 ## Environment variables
 
 ```env
 FOODDATA_CENTRAL_API_KEY=   # USDA FDC; falls back to "DEMO_KEY"
-AI_API_KEY=                  # Required for image estimation
+AI_API_KEY=                  # Required for all AI estimation paths
 AI_BASE_URL=                 # Default: https://api.openai.com/v1
 AI_MODEL=                    # Default: gpt-4.1-mini
 ```

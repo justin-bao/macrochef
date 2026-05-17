@@ -7,9 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FoodLogItem } from "@/lib/tracking";
 import {
-  decomposeTextToIngredients,
-  estimateFoodFromImage,
   estimateFoodNutrition,
+  estimateFoodWithTools,
 } from "@/lib/food-nutrition.functions";
 import { Camera, FileScan, PenLine, Plus, Sparkles } from "lucide-react";
 
@@ -81,6 +80,8 @@ export function FoodLogModal({
   const [estimatingManual, setEstimatingManual] = useState(false);
   const [estimatingImage, setEstimatingImage] = useState(false);
   const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [setting, setSetting] = useState<"homemade" | "restaurant" | "packaged" | null>(null);
+  const [contextNotes, setContextNotes] = useState("");
 
   const canAddManual = manual.name.trim().length > 0 && manual.kcal > 0;
   const totalParsed = useMemo(() => parsed.reduce((sum, item) => sum + item.kcal, 0), [parsed]);
@@ -120,46 +121,66 @@ export function FoodLogModal({
     }
   };
 
+  const buildContext = () =>
+    setting || contextNotes.trim()
+      ? { setting: setting ?? undefined, notes: contextNotes.trim() || undefined }
+      : undefined;
+
+  const aiItemsToLogItems = (
+    items: Awaited<ReturnType<typeof estimateFoodWithTools>>["items"],
+    defaultSource: FoodLogItem["source"] = "ai",
+  ): FoodLogItem[] =>
+    items.map((item) => ({
+      id: crypto.randomUUID(),
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      kcal: item.kcal,
+      protein_g: item.protein_g,
+      carbs_g: item.carbs_g,
+      fat_g: item.fat_g,
+      source: item.note?.toLowerCase().includes("usda") ? ("usda" as const) : defaultSource,
+      confidence: item.confidence,
+      note: item.note,
+      loggedAt: new Date().toISOString(),
+    }));
+
   const estimateQuickItems = async () => {
     if (!description.trim()) return;
     setEstimateError(null);
     setQuickStatus("Identifying ingredients…");
 
-    let baseItems: Array<{ name: string; quantity: number; unit: string }>;
     try {
-      const { items: aiItems } = await decomposeTextToIngredients({ data: { description } });
-      baseItems = aiItems.length ? aiItems : parseFoodDescription(description);
-    } catch {
-      baseItems = parseFoodDescription(description);
-    }
+      const result = await estimateFoodWithTools({
+        data: { description, context: buildContext() },
+      });
 
-    if (!baseItems.length) {
+      if (result.error === "AI_API_KEY is not configured.") {
+        // Fallback: regex split + per-ingredient USDA lookup.
+        const fallback = parseFoodDescription(description);
+        if (!fallback.length) { setQuickStatus(null); return; }
+        setParsed(fallback);
+        setQuickStatus("Looking up USDA matches…");
+        const filled = await Promise.all(fallback.map(applyUsdaEstimate));
+        setParsed(filled);
+        setQuickStatus(null);
+        if (filled.some((item) => item.kcal <= 0)) {
+          setEstimateError("Some items need manual macros — no close USDA match found.");
+        }
+        return;
+      }
+
+      if (!result.items.length) {
+        setEstimateError(result.error ?? "No food estimate found.");
+        setQuickStatus(null);
+        return;
+      }
+
+      setParsed(aiItemsToLogItems(result.items));
       setQuickStatus(null);
-      return;
-    }
-
-    const stub: FoodLogItem[] = baseItems.map((item) => ({
-      id: crypto.randomUUID(),
-      name: item.name,
-      quantity: item.quantity,
-      unit: item.unit,
-      kcal: 0,
-      protein_g: 0,
-      carbs_g: 0,
-      fat_g: 0,
-      source: "usda" as const,
-      confidence: "medium" as const,
-      note: "Looking up USDA nutrition…",
-      loggedAt: new Date().toISOString(),
-    }));
-
-    setParsed(stub);
-    setQuickStatus("Looking up USDA matches…");
-    const nextItems = await Promise.all(stub.map(applyUsdaEstimate));
-    setParsed(nextItems);
-    setQuickStatus(null);
-    if (nextItems.some((item) => item.kcal <= 0)) {
-      setEstimateError("Some items need manual macros because USDA did not return a close match.");
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : "Estimation failed.");
+      setQuickStatus(null);
     }
   };
 
@@ -186,34 +207,25 @@ export function FoodLogModal({
 
     try {
       const imageDataUrl = await readImageDataUrl(file);
-      const result = await estimateFoodFromImage({ data: { imageDataUrl, mode } });
+      const result = await estimateFoodWithTools({
+        data: { imageDataUrl, mode, context: buildContext() },
+      });
       if (!result.items.length) {
         setEstimateError(result.error ?? "No food estimate found.");
         return;
       }
-
+      const defaultNote =
+        mode === "nutrition_label"
+          ? "Read from nutrition facts label. Review serving size before logging."
+          : "Estimated from photo. Review portions before logging.";
       setParsed(
-        result.items.map((item) => ({
-          id: crypto.randomUUID(),
-          name: item.name,
-          quantity: item.quantity,
-          unit: item.unit,
-          kcal: item.kcal,
-          protein_g: item.protein_g,
-          carbs_g: item.carbs_g,
-          fat_g: item.fat_g,
-          source: "ai",
-          confidence: item.confidence,
-          note:
-            item.note ??
-            (mode === "nutrition_label"
-              ? "Read from nutrition facts label. Review serving size before logging."
-              : "Estimated from photo. Review portions before logging."),
-          loggedAt: new Date().toISOString(),
+        aiItemsToLogItems(result.items).map((item) => ({
+          ...item,
+          note: item.note ?? defaultNote,
         })),
       );
-    } catch (error) {
-      setEstimateError(error instanceof Error ? error.message : "Image estimate failed.");
+    } catch (err) {
+      setEstimateError(err instanceof Error ? err.message : "Image estimate failed.");
     } finally {
       setEstimatingImage(false);
     }
@@ -241,6 +253,8 @@ export function FoodLogModal({
       setDescription("");
       setParsed([]);
       setEstimateError(null);
+      setSetting(null);
+      setContextNotes("");
     }
     onOpenChange(nextOpen);
   };
@@ -251,6 +265,28 @@ export function FoodLogModal({
         <DialogHeader>
           <DialogTitle>Log food</DialogTitle>
         </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-2 border-b pb-3">
+          {(["homemade", "restaurant", "packaged"] as const).map((s) => (
+            <Button
+              key={s}
+              type="button"
+              variant={setting === s ? "default" : "outline"}
+              size="sm"
+              className="h-7 rounded-full px-3 text-xs capitalize"
+              onClick={() => setSetting(setting === s ? null : s)}
+            >
+              {s}
+            </Button>
+          ))}
+          <Input
+            className="h-7 min-w-[120px] flex-1 text-xs"
+            placeholder="Notes (e.g. grilled, extra sauce)"
+            value={contextNotes}
+            onChange={(e) => setContextNotes(e.target.value)}
+            maxLength={200}
+          />
+        </div>
 
         <Tabs defaultValue="quick" className="mt-2">
           <TabsList className="grid w-full grid-cols-4">
