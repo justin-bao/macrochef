@@ -26,13 +26,31 @@ The user reaches macro estimation through four tabs in `FoodLogModal` (`src/comp
 
 ### Text path
 
-`parseFoodDescription` (FoodLogModal.tsx:28) splits the raw input on newlines, commas, and the word "and", then applies a single regex to each token:
+`estimateQuickItems` (FoodLogModal.tsx) first calls `decomposeTextToIngredients` (food-nutrition.functions.ts), a server function that sends the raw description to the configured AI model and asks it to return a flat list of ingredients with quantities:
 
 ```
-/^(\d+(?:\.\d+)?)\s*([a-zA-Z]+)?\s+(.+)$/
+System: "You decompose food descriptions into individual ingredients for a
+macro tracking app. Return only JSON with an items array. Each item must
+include name (string), quantity (number), and unit (string such as oz, g,
+cup, tbsp, or serving). If the input is already a list of specific
+ingredients with quantities, return them as-is. Use realistic typical
+portion sizes."
+
+User: <the user's raw description>
 ```
 
-This extracts `quantity`, `unit`, and `name`. If the pattern doesn't match, quantity defaults to `1` and unit to `"serving"`, keeping the whole token as the name. For example:
+For a description like "a bowl of zhajiangmian" the model returns something like:
+
+```json
+{ "items": [
+    { "name": "wheat noodles",    "quantity": 5,   "unit": "oz"     },
+    { "name": "ground pork",      "quantity": 3,   "unit": "oz"     },
+    { "name": "black bean sauce", "quantity": 2,   "unit": "tbsp"   },
+    { "name": "cucumber",         "quantity": 2,   "unit": "oz"     }
+]}
+```
+
+If `AI_API_KEY` is not set, or the AI call fails, `decomposeTextToIngredients` returns an empty list and `estimateQuickItems` falls back to `parseFoodDescription`, which splits on newlines/commas/"and" and extracts `quantity`, `unit`, `name` via regex. For example:
 
 ```
 "8 oz chicken breast, 1 cup rice, broccoli"
@@ -40,8 +58,6 @@ This extracts `quantity`, `unit`, and `name`. If the pattern doesn't match, quan
    { quantity:1, unit:"cup",     name:"rice" },
    { quantity:1, unit:"serving", name:"broccoli" }]
 ```
-
-**Current limitation:** For compound dishes like "a bowl of zhajiangmian", this step produces one opaque item; there is no AI call to expand it into constituent ingredients. The USDA lookup downstream may find a close match for the whole dish, but portions of sub-ingredients are not resolved separately. This is the primary gap relative to the stated three-step goal.
 
 ### Image path
 
@@ -53,9 +69,7 @@ This extracts `quantity`, `unit`, and `name`. If the pattern doesn't match, quan
 
 ### Text path
 
-Decomposition is implicit: the user must already have listed the individual ingredients in their description. There is no AI call that expands "zhajiangmian" into "4 oz cucumber, 4 oz ground beef, 5 oz noodles".
-
-Each item from `parseFoodDescription` is treated as an independent ingredient and sent separately to the USDA lookup.
+`decomposeTextToIngredients` handles decomposition as part of the Step 1 AI call. Each ingredient in the returned list is then sent individually to USDA for macro lookup.
 
 ### Image path
 
@@ -151,13 +165,13 @@ Items are appended to the current diary date in `localStorage` via `useLocalTrac
 
 ---
 
-## Current gaps vs. the stated goal
+## Pipeline coverage
 
-| Goal | Current state |
-|------|--------------|
-| Identify dish and overall portion from text | Works only if the user names individual ingredients. "A bowl of zhajiangmian" is sent as-is to USDA with no AI expansion step. |
+| Goal | State |
+|------|-------|
+| Identify dish and overall portion from text | Works — `decomposeTextToIngredients` identifies the dish and produces per-ingredient portions via AI. Falls back to regex when `AI_API_KEY` is absent. |
 | Identify dish from image | Works — the vision model names the dish and sub-components. |
-| Decompose dish into ingredients (text) | Not implemented. No AI call expands a composite dish name into ingredients. |
+| Decompose dish into ingredients (text) | Works — same `decomposeTextToIngredients` call returns individual ingredients with quantities. |
 | Decompose dish into ingredients (image) | Works — the vision model returns each visible component separately. |
 | Look up macros per ingredient | Works via USDA FDC (text path) or directly from the AI estimate (image path). |
 | Log foods to diary | Works — items written to localStorage after user review. |

@@ -6,7 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { FoodLogItem } from "@/lib/tracking";
-import { estimateFoodFromImage, estimateFoodNutrition } from "@/lib/food-nutrition.functions";
+import {
+  decomposeTextToIngredients,
+  estimateFoodFromImage,
+  estimateFoodNutrition,
+} from "@/lib/food-nutrition.functions";
 import { Camera, FileScan, PenLine, Plus, Sparkles } from "lucide-react";
 
 function emptyItem(): FoodLogItem {
@@ -73,7 +77,7 @@ export function FoodLogModal({
   const [manual, setManual] = useState<FoodLogItem>(emptyItem);
   const [description, setDescription] = useState("");
   const [parsed, setParsed] = useState<FoodLogItem[]>([]);
-  const [estimatingQuick, setEstimatingQuick] = useState(false);
+  const [quickStatus, setQuickStatus] = useState<string | null>(null);
   const [estimatingManual, setEstimatingManual] = useState(false);
   const [estimatingImage, setEstimatingImage] = useState(false);
   const [estimateError, setEstimateError] = useState<string | null>(null);
@@ -117,14 +121,43 @@ export function FoodLogModal({
   };
 
   const estimateQuickItems = async () => {
-    const items = parseFoodDescription(description);
-    if (!items.length) return;
+    if (!description.trim()) return;
     setEstimateError(null);
-    setParsed(items);
-    setEstimatingQuick(true);
-    const nextItems = await Promise.all(items.map(applyUsdaEstimate));
+    setQuickStatus("Identifying ingredients…");
+
+    let baseItems: Array<{ name: string; quantity: number; unit: string }>;
+    try {
+      const { items: aiItems } = await decomposeTextToIngredients({ data: { description } });
+      baseItems = aiItems.length ? aiItems : parseFoodDescription(description);
+    } catch {
+      baseItems = parseFoodDescription(description);
+    }
+
+    if (!baseItems.length) {
+      setQuickStatus(null);
+      return;
+    }
+
+    const stub: FoodLogItem[] = baseItems.map((item) => ({
+      id: crypto.randomUUID(),
+      name: item.name,
+      quantity: item.quantity,
+      unit: item.unit,
+      kcal: 0,
+      protein_g: 0,
+      carbs_g: 0,
+      fat_g: 0,
+      source: "usda" as const,
+      confidence: "medium" as const,
+      note: "Looking up USDA nutrition…",
+      loggedAt: new Date().toISOString(),
+    }));
+
+    setParsed(stub);
+    setQuickStatus("Looking up USDA matches…");
+    const nextItems = await Promise.all(stub.map(applyUsdaEstimate));
     setParsed(nextItems);
-    setEstimatingQuick(false);
+    setQuickStatus(null);
     if (nextItems.some((item) => item.kcal <= 0)) {
       setEstimateError("Some items need manual macros because USDA did not return a close match.");
     }
@@ -250,11 +283,11 @@ export function FoodLogModal({
                 />
                 <Button
                   className="w-full"
-                  disabled={!description.trim() || estimatingQuick}
+                  disabled={!description.trim() || quickStatus !== null}
                   onClick={estimateQuickItems}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
-                  {estimatingQuick ? "Looking up USDA matches..." : "Estimate with USDA"}
+                  {quickStatus ?? "Estimate macros"}
                 </Button>
               </>
             ) : (
@@ -318,7 +351,7 @@ export function FoodLogModal({
                   </Button>
                   <Button
                     className="flex-1"
-                    disabled={estimatingQuick}
+                    disabled={quickStatus !== null}
                     onClick={() => {
                       onAdd(parsed);
                       closeAndReset(false);

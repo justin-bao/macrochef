@@ -196,6 +196,76 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
     },
   );
 
+export type DecomposedIngredient = {
+  name: string;
+  quantity: number;
+  unit: string;
+};
+
+export const decomposeTextToIngredients = createServerFn({ method: "POST" })
+  .inputValidator(
+    z.object({
+      description: z.string().trim().min(1).max(500),
+    }).parse,
+  )
+  .handler(async ({ data }): Promise<{ items: DecomposedIngredient[] }> => {
+    const aiKey = process.env.AI_API_KEY;
+    const aiBaseUrl = process.env.AI_BASE_URL ?? "https://api.openai.com/v1";
+    const aiModel = process.env.AI_MODEL ?? "gpt-4.1-mini";
+
+    if (!aiKey) return { items: [] };
+
+    const res = await fetch(`${aiBaseUrl.replace(/\/$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${aiKey}`,
+      },
+      body: JSON.stringify({
+        model: aiModel,
+        temperature: 0.1,
+        messages: [
+          {
+            role: "system",
+            content:
+              "You decompose food descriptions into individual ingredients for a macro tracking app. Return only JSON with an items array. Each item must include name (string), quantity (number), and unit (string such as oz, g, cup, tbsp, or serving). If the input is already a list of specific ingredients with quantities, return them as-is. Use realistic typical portion sizes.",
+          },
+          {
+            role: "user",
+            content: data.description,
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) return { items: [] };
+
+    const json = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+    const content = json.choices?.[0]?.message?.content ?? "";
+
+    try {
+      const fenced = content.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+      const raw = fenced ?? content;
+      const start = raw.indexOf("{");
+      const end = raw.lastIndexOf("}");
+      if (start === -1 || end === -1 || end <= start) return { items: [] };
+      const parsed = JSON.parse(raw.slice(start, end + 1)) as { items?: unknown[] };
+      const items = (parsed.items ?? [])
+        .map((item) => {
+          const i = item as Record<string, unknown>;
+          return {
+            name: String(i.name ?? "").trim(),
+            quantity: Number(i.quantity) || 1,
+            unit: String(i.unit ?? "serving").trim(),
+          };
+        })
+        .filter((item) => item.name.length > 0);
+      return { items };
+    } catch {
+      return { items: [] };
+    }
+  });
+
 function extractJsonObject(text: string) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
   const raw = fenced ?? text;
