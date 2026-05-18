@@ -7,6 +7,7 @@ import {
   DEFAULT_TRACKING_SETTINGS,
   type ActivityLogItem,
   type FoodLogItem,
+  type GarminDaySummary,
   type MealType,
   type TrackingData,
   type TrackingSettings,
@@ -186,6 +187,17 @@ export function useLocalTracking() {
     setSettings((prev) => ({ ...prev, ...updates }));
   }, []);
 
+  const setGarminSummary = useCallback(
+    (date: Date, summary: GarminDaySummary | undefined) => {
+      setDiary((prev) => {
+        const key = keyForDate(date);
+        const day = prev[key] ?? createEmptyTrackingDay();
+        return { ...prev, [key]: { ...day, garminSummary: summary } };
+      });
+    },
+    [],
+  );
+
   return {
     diary,
     settings,
@@ -197,5 +209,6 @@ export function useLocalTracking() {
     removeActivity,
     updateActivity,
     updateSettings,
+    setGarminSummary,
   };
 }

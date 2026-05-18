@@ -1,9 +1,10 @@
 import { Card } from "@/components/ui/card";
+import { getGarminCalorieBreakdown, getBurnedToPoint } from "@/lib/garmin-calories";
 import {
-  getBurnedCalories,
   getDayTotals,
   type TrackingDay,
   type TrackingSettings,
+  type UserActivityProfile,
 } from "@/lib/tracking";
 
 function MacroMeter({
@@ -33,49 +34,107 @@ function MacroMeter({
   );
 }
 
+function settingsToProfile(settings: TrackingSettings): UserActivityProfile {
+  return {
+    weight: settings.weight,
+    height: settings.height,
+    age: settings.age,
+    sex: settings.sex,
+    unitSystem: settings.unitSystem,
+  };
+}
+
 export function FuelSummary({ day, settings }: { day: TrackingDay; settings: TrackingSettings }) {
   const totals = getDayTotals(day);
-  const burned = getBurnedCalories(day);
-  const net = totals.kcal - burned;
-  const remaining = settings.dailyCalorieTarget - net;
-  const caloriePct =
-    settings.dailyCalorieTarget > 0
-      ? Math.min((Math.max(net, 0) / settings.dailyCalorieTarget) * 100, 100)
-      : 0;
+  const profile = settingsToProfile(settings);
+  const bd = getGarminCalorieBreakdown(day, profile);
+
+  const burnedSoFar = getBurnedToPoint(day, profile);
+
+  // Net target mode: remaining = projectedBurn + netTarget − eaten
+  // netTarget > 0 = surplus; = 0 = maintain; < 0 = deficit
+  const netTarget = settings.dailyCalorieTarget;
+  const remainingKcal = Math.round(bd.projectedDayBurn + netTarget - totals.kcal);
+
+  // Progress bar: how far eaten is toward (projectedBurn + netTarget)
+  const foodTarget = bd.projectedDayBurn + netTarget;
+  const eatPct = foodTarget > 0 ? Math.min((totals.kcal / foodTarget) * 100, 100) : 0;
+
+  // Calorie balance = eaten − projected burn (negative = deficit)
+  const balance = Math.round(totals.kcal - bd.projectedDayBurn);
 
   return (
     <Card className="p-5">
       <div className="grid gap-5 md:grid-cols-[220px_1fr]">
+        {/* Left column: burn & balance */}
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Daily fuel
           </p>
+
+          {/* Balance */}
           <div className="mt-1 flex items-end gap-2">
-            <span className="text-4xl font-bold tabular-nums">{Math.round(net)}</span>
-            <span className="pb-1 text-sm text-muted-foreground">net kcal</span>
+            <span className="text-4xl font-bold tabular-nums">
+              {balance >= 0 ? "+" : ""}
+              {balance}
+            </span>
+            <span className="pb-1 text-sm text-muted-foreground">kcal balance</span>
           </div>
+
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span>{Math.round(totals.kcal)} eaten</span>
-            <span>{burned} burned</span>
+            <span>{bd.projectedDayBurn} projected burn</span>
             <span
               className={
-                remaining < 0 ? "font-semibold text-destructive" : "font-semibold text-primary"
+                remainingKcal < 0 ? "font-semibold text-destructive" : "font-semibold text-primary"
               }
             >
-              {Math.abs(Math.round(remaining))} {remaining < 0 ? "over" : "left"}
+              {Math.abs(remainingKcal)} {remainingKcal < 0 ? "over" : "remaining"}
             </span>
           </div>
+
+          {/* Intake vs food-target progress bar */}
           <div className="mt-3 h-2 rounded-full bg-muted">
             <div
               className="h-2 rounded-full bg-[var(--kcal)]"
-              style={{ width: `${caloriePct}%` }}
+              style={{ width: `${eatPct}%` }}
             />
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Target {settings.dailyCalorieTarget} kcal after activity
+            {netTarget === 0
+              ? "Target: break even"
+              : netTarget < 0
+                ? `Target: ${Math.abs(netTarget)} kcal deficit`
+                : `Target: ${netTarget} kcal surplus`}
+            {" · "}eat ~{Math.max(0, Math.round(bd.projectedDayBurn + netTarget))} kcal
           </p>
+
+          {/* Burn breakdown */}
+          <div className="mt-3 rounded-md bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground">
+            <div className="flex justify-between">
+              <span>BMR</span>
+              <span className="tabular-nums">{bd.bmrPerDay} kcal/day</span>
+            </div>
+            {bd.walkingCalories > 0 && (
+              <div className="flex justify-between">
+                <span>Walking ({bd.effectiveWalkingDistanceMi} mi)</span>
+                <span className="tabular-nums">+{bd.walkingCalories} kcal</span>
+              </div>
+            )}
+            {bd.activityActiveCalories > 0 && (
+              <div className="flex justify-between">
+                <span>Activities</span>
+                <span className="tabular-nums">+{bd.activityActiveCalories} kcal</span>
+              </div>
+            )}
+            <div className="mt-1 flex justify-between border-t border-border/40 pt-1 font-medium text-foreground/70">
+              <span>Burned so far</span>
+              <span className="tabular-nums">{burnedSoFar} kcal</span>
+            </div>
+          </div>
         </div>
 
+        {/* Right column: macro meters */}
         <div className="grid content-center gap-3 sm:grid-cols-3">
           <MacroMeter
             label="Protein"

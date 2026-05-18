@@ -27,6 +27,7 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import type { ChartConfig } from "@/components/ui/chart";
+import { getGarminCalorieBreakdown, getBurnTimeSeries } from "@/lib/garmin-calories";
 import { sumFood, type TrackingDay, type TrackingSettings } from "@/lib/tracking";
 
 type MacroKey = "kcal" | "protein_g" | "carbs_g" | "fat_g";
@@ -61,6 +62,10 @@ const progressConfig = {
   fatPct: { label: "Fat", color: "var(--fat)" },
 } satisfies ChartConfig;
 
+const burnConfig = {
+  burned: { label: "Burned so far", color: "var(--fat)" },
+} satisfies ChartConfig;
+
 function hourLabel(hour: number) {
   if (hour === 0) return "12am";
   if (hour < 12) return `${hour}am`;
@@ -77,6 +82,14 @@ export function MacroDashboard({
 }) {
   const [timingMacro, setTimingMacro] = useState<MacroKey>("kcal");
 
+  const profile = {
+    weight: settings.weight,
+    height: settings.height,
+    age: settings.age,
+    sex: settings.sex,
+    unitSystem: settings.unitSystem,
+  };
+
   const allItemsWithMeal = useMemo(
     () =>
       day.meals.flatMap((meal) =>
@@ -86,6 +99,11 @@ export function MacroDashboard({
   );
 
   const hasFood = allItemsWithMeal.length > 0;
+
+  // Calorie burn timeline (Garmin model)
+  const burnBreakdown = useMemo(() => getGarminCalorieBreakdown(day, profile), [day, profile]);
+  const burnTimeSeries = useMemo(() => getBurnTimeSeries(day, profile), [day, profile]);
+  const hasBurnData = burnTimeSeries.length > 0;
 
   // Chart 1: per-meal % distribution for each macro
   const mealDistData = useMemo(() => {
@@ -222,7 +240,7 @@ export function MacroDashboard({
     return Math.max(110, last.kcalPct, last.proteinPct, last.carbsPct, last.fatPct) + 5;
   }, [cumulativeData]);
 
-  if (!hasFood) {
+  if (!hasFood && !hasBurnData) {
     return (
       <Card className="p-8 text-center">
         <p className="font-medium text-muted-foreground">No food logged for this day</p>
@@ -236,11 +254,12 @@ export function MacroDashboard({
   const timingField = MACRO_FIELDS.find((f) => f.key === timingMacro)!;
 
   return (
-    <Tabs defaultValue="distribution" className="space-y-4">
-      <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="distribution">Distribution</TabsTrigger>
-        <TabsTrigger value="timing">Timing</TabsTrigger>
-        <TabsTrigger value="progress">Progress</TabsTrigger>
+    <Tabs defaultValue={hasFood ? "distribution" : "burn"} className="space-y-4">
+      <TabsList className="grid w-full grid-cols-4">
+        <TabsTrigger value="distribution" disabled={!hasFood}>Distribution</TabsTrigger>
+        <TabsTrigger value="timing" disabled={!hasFood}>Timing</TabsTrigger>
+        <TabsTrigger value="progress" disabled={!hasFood}>Progress</TabsTrigger>
+        <TabsTrigger value="burn">Burn</TabsTrigger>
       </TabsList>
 
       {/* Tab 1: per-meal macro distribution */}
@@ -504,6 +523,96 @@ export function MacroDashboard({
                 />
               </LineChart>
             </ChartContainer>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      {/* Tab 4: Calorie burn timeline */}
+      <TabsContent value="burn">
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Calories burned — today so far</CardTitle>
+            <CardDescription>
+              BMR accruing linearly · walking spread 6am–10pm · activities credited at end time
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {/* Burn breakdown summary */}
+            <div className="mb-4 grid grid-cols-2 gap-x-6 gap-y-1 rounded-md bg-muted/40 px-4 py-3 text-xs text-muted-foreground sm:grid-cols-4">
+              <div>
+                <div className="font-medium text-foreground">{burnBreakdown.bmrPerDay} kcal</div>
+                <div>BMR / day</div>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">{Math.round(burnBreakdown.bmrPerHour)} kcal</div>
+                <div>BMR / hour</div>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">{burnBreakdown.walkingCalories} kcal</div>
+                <div>Walking ({burnBreakdown.effectiveWalkingDistanceMi} mi)</div>
+              </div>
+              <div>
+                <div className="font-medium text-foreground">{burnBreakdown.projectedDayBurn} kcal</div>
+                <div>Projected total</div>
+              </div>
+            </div>
+
+            {hasBurnData ? (
+              <ChartContainer config={burnConfig} className="h-[240px] w-full">
+                <LineChart
+                  data={burnTimeSeries}
+                  margin={{ left: 4, right: 16, top: 4, bottom: 0 }}
+                >
+                  <CartesianGrid vertical={false} strokeOpacity={0.4} />
+                  <XAxis
+                    dataKey="time"
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v: number) => `${v}`}
+                    tickLine={false}
+                    axisLine={false}
+                    width={44}
+                  />
+                  <ReferenceLine
+                    y={burnBreakdown.projectedDayBurn}
+                    strokeDasharray="5 5"
+                    strokeOpacity={0.5}
+                    label={{
+                      value: "Projected",
+                      position: "insideTopRight",
+                      fontSize: 10,
+                      opacity: 0.6,
+                    }}
+                  />
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value) => [`${value} kcal`, "Burned so far"]}
+                        hideLabel
+                      />
+                    }
+                    labelFormatter={(label) => `${label}`}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="burned"
+                    stroke="var(--color-burned)"
+                    strokeWidth={2}
+                    dot={burnTimeSeries.length <= 20 ? { r: 3 } : false}
+                    activeDot={{ r: 4 }}
+                  />
+                </LineChart>
+              </ChartContainer>
+            ) : (
+              <p className="rounded-md bg-muted/35 py-6 text-center text-sm text-muted-foreground">
+                Enter today's Garmin distance in the activity panel to see your burn curve.
+              </p>
+            )}
           </CardContent>
         </Card>
       </TabsContent>
