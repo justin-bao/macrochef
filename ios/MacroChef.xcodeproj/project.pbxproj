@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D0E6EEE92FBCDE130055EC4F /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEE82FBCDE130055EC4F /* Auth */; };
+		D0E6EEEB2FBCDE130055EC4F /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEEA2FBCDE130055EC4F /* Functions */; };
+		D0E6EEED2FBCDE130055EC4F /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEEC2FBCDE130055EC4F /* PostgREST */; };
+		D0E6EEEF2FBCDE130055EC4F /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEEE2FBCDE130055EC4F /* Realtime */; };
+		D0E6EEF12FBCDE130055EC4F /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEF02FBCDE130055EC4F /* Storage */; };
+		D0E6EEF32FBCDE130055EC4F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEF22FBCDE130055EC4F /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		D0561A622FBCAEE7008599E4 /* MacroChef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacroChef.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D07611DE2FBCC0FA00761700 /* MacroChef-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MacroChef-Info.plist"; sourceTree = "<group>"; };
@@ -24,6 +33,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D0E6EEED2FBCDE130055EC4F /* PostgREST in Frameworks */,
+				D0E6EEEB2FBCDE130055EC4F /* Functions in Frameworks */,
+				D0E6EEF32FBCDE130055EC4F /* Supabase in Frameworks */,
+				D0E6EEE92FBCDE130055EC4F /* Auth in Frameworks */,
+				D0E6EEF12FBCDE130055EC4F /* Storage in Frameworks */,
+				D0E6EEEF2FBCDE130055EC4F /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -35,6 +50,7 @@
 			children = (
 				D07611DE2FBCC0FA00761700 /* MacroChef-Info.plist */,
 				D0561A642FBCAEE7008599E4 /* Sources/MacroChef */,
+				D0E6EEE72FBCDE130055EC4F /* Frameworks */,
 				D0561A632FBCAEE7008599E4 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -45,6 +61,13 @@
 				D0561A622FBCAEE7008599E4 /* MacroChef.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		D0E6EEE72FBCDE130055EC4F /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -67,6 +90,12 @@
 			);
 			name = MacroChef;
 			packageProductDependencies = (
+				D0E6EEE82FBCDE130055EC4F /* Auth */,
+				D0E6EEEA2FBCDE130055EC4F /* Functions */,
+				D0E6EEEC2FBCDE130055EC4F /* PostgREST */,
+				D0E6EEEE2FBCDE130055EC4F /* Realtime */,
+				D0E6EEF02FBCDE130055EC4F /* Storage */,
+				D0E6EEF22FBCDE130055EC4F /* Supabase */,
 			);
 			productName = MacroChef;
 			productReference = D0561A622FBCAEE7008599E4 /* MacroChef.app */;
@@ -272,7 +301,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
@@ -319,7 +348,7 @@
 				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 26.5;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.4;
@@ -373,6 +402,39 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D0E6EEE82FBCDE130055EC4F /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		D0E6EEEA2FBCDE130055EC4F /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		D0E6EEEC2FBCDE130055EC4F /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		D0E6EEEE2FBCDE130055EC4F /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		D0E6EEF02FBCDE130055EC4F /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		D0E6EEF22FBCDE130055EC4F /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = D0561A5A2FBCAEE7008599E4 /* Project object */;
 }

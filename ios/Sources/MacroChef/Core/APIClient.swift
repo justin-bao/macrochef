@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 
 actor APIClient {
     private let base: URL

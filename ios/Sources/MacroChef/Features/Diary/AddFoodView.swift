@@ -270,7 +270,8 @@ struct AddFoodSearchView: View {
     @State private var isSearching = false
     @State private var selectedResult: FoodSearchResult?
     @State private var searchTask: Task<Void, Never>?
-    @State private var showManual = false
+    enum AddFoodTab { case search, ai, manual }
+    @State private var activeTab: AddFoodTab = .search
 
     // Manual entry
     @State private var manualName = ""
@@ -281,20 +282,29 @@ struct AddFoodSearchView: View {
     @State private var manualQuantity = "1"
     @State private var manualUnit = "serving"
 
+    // AI estimate entry
+    @State private var aiDescription = ""
+    @State private var aiQuantity = "1"
+    @State private var aiUnit = "serving"
+    @State private var aiEstimate: FoodEstimateResult?
+    @State private var isEstimating = false
+    @State private var aiError: String?
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                Picker("Mode", selection: $showManual) {
-                    Text("Search").tag(false)
-                    Text("Manual").tag(true)
+                Picker("Mode", selection: $activeTab) {
+                    Text("Search").tag(AddFoodTab.search)
+                    Text("AI").tag(AddFoodTab.ai)
+                    Text("Manual").tag(AddFoodTab.manual)
                 }
                 .pickerStyle(.segmented)
                 .padding()
 
-                if showManual {
-                    manualForm
-                } else {
-                    searchContent
+                switch activeTab {
+                case .search:   searchContent
+                case .ai:       aiForm
+                case .manual:   manualForm
                 }
             }
             .navigationTitle("Add to \(meal.label)")
@@ -378,6 +388,100 @@ struct AddFoodSearchView: View {
                     .frame(maxWidth: .infinity).foregroundStyle(.green).disabled(manualName.isEmpty)
             }
         }
+    }
+
+    @ViewBuilder
+    private var aiForm: some View {
+        Form {
+            Section {
+                TextField("Describe the food (e.g. 2 scrambled eggs with butter)", text: $aiDescription)
+                    .textInputAutocapitalization(.sentences)
+            } header: {
+                Text("Food Description")
+            } footer: {
+                Text("Describe what you ate and we'll look up the macros from USDA.")
+            }
+
+            Section("Amount") {
+                HStack {
+                    TextField("Quantity", text: $aiQuantity).keyboardType(.decimalPad).frame(width: 80)
+                    TextField("Unit (e.g. g, oz, serving)", text: $aiUnit)
+                }
+            }
+
+            if let estimate = aiEstimate {
+                Section("Estimated Nutrition") {
+                    LabeledContent("Matched as") { Text(estimate.matchedName).foregroundStyle(.secondary).font(.caption) }
+                    LabeledContent("Calories") { Text("\(estimate.kcal) kcal") }
+                    LabeledContent("Protein")  { Text("\(estimate.protein_g, specifier: "%.1f") g") }
+                    LabeledContent("Carbs")    { Text("\(estimate.carbs_g, specifier: "%.1f") g") }
+                    LabeledContent("Fat")      { Text("\(estimate.fat_g, specifier: "%.1f") g") }
+                    LabeledContent("Source")   { Text(estimate.sourceLabel).font(.caption).foregroundStyle(.secondary) }
+                }
+
+                Section {
+                    Button("Add to \(meal.label)") {
+                        let item = FoodLogItem(
+                            name: estimate.name,
+                            quantity: Double(aiQuantity) ?? 1,
+                            unit: aiUnit,
+                            kcal: Double(estimate.kcal),
+                            protein_g: estimate.protein_g,
+                            carbs_g: estimate.carbs_g,
+                            fat_g: estimate.fat_g,
+                            source: .usda
+                        )
+                        onAdd(item)
+                        dismiss()
+                    }
+                    .frame(maxWidth: .infinity)
+                    .foregroundStyle(.green)
+                }
+            }
+
+            if let error = aiError {
+                Section {
+                    Text(error).foregroundStyle(.red).font(.caption)
+                }
+            }
+
+            Section {
+                Button {
+                    Task { await estimateFood() }
+                } label: {
+                    HStack {
+                        Spacer()
+                        if isEstimating {
+                            ProgressView().scaleEffect(0.85)
+                        } else {
+                            Label("Look Up Macros", systemImage: "wand.and.stars")
+                        }
+                        Spacer()
+                    }
+                }
+                .foregroundStyle(.green)
+                .disabled(aiDescription.trimmingCharacters(in: .whitespaces).isEmpty || isEstimating)
+            }
+        }
+        .scrollDismissesKeyboard(.interactively)
+    }
+
+    private func estimateFood() async {
+        isEstimating = true
+        aiError = nil
+        aiEstimate = nil
+        let qty = Double(aiQuantity) ?? 1
+        do {
+            aiEstimate = try await api.estimateFood(
+                name: aiDescription.trimmingCharacters(in: .whitespaces),
+                quantity: qty,
+                unit: aiUnit.trimmingCharacters(in: .whitespaces).isEmpty ? "serving" : aiUnit
+            )
+            if aiEstimate == nil { aiError = "No nutrition data found. Try rephrasing or use Manual entry." }
+        } catch {
+            aiError = error.localizedDescription
+        }
+        isEstimating = false
     }
 
     private func scheduleSearch(_ query: String) {

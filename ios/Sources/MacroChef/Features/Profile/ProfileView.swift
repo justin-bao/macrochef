@@ -3,9 +3,9 @@ import SwiftUI
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
     @Environment(TrackingStore.self) private var store
-    @State private var editingGoals = false
-    @State private var showSignOutConfirm = false
     @State private var settings: TrackingSettings = TrackingSettings()
+    @State private var showSignOutConfirm = false
+    @State private var savedConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -115,11 +115,27 @@ struct ProfileView: View {
 
                 // Save button
                 Section {
-                    Button("Save Changes") {
+                    Button {
                         store.updateSettings(settings)
+                        withAnimation {
+                            savedConfirmation = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            withAnimation { savedConfirmation = false }
+                        }
+                    } label: {
+                        HStack {
+                            Spacer()
+                            if savedConfirmation {
+                                Label("Saved!", systemImage: "checkmark.circle.fill")
+                                    .foregroundStyle(.green)
+                            } else {
+                                Text("Save Changes")
+                                    .foregroundStyle(.green)
+                            }
+                            Spacer()
+                        }
                     }
-                    .frame(maxWidth: .infinity)
-                    .foregroundStyle(.green)
                 }
 
                 // Sign out
@@ -132,6 +148,16 @@ struct ProfileView: View {
                             Text("Sign Out")
                             Spacer()
                         }
+                    }
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
+                                                        to: nil, from: nil, for: nil)
                     }
                 }
             }

@@ -1,15 +1,20 @@
 import Foundation
 import Supabase
-import Auth
+import AuthenticationServices
+
+typealias SupabaseUser = Auth.User
 
 @MainActor
 @Observable
 final class AuthManager {
     let supabase: SupabaseClient
 
-    var user: User?
+    var user: SupabaseUser?
     var isLoading: Bool = true
     var error: String?
+
+    // Held alive while OAuth is in flight
+    private var webAuthSession: ASWebAuthenticationSession?
 
     init() {
         supabase = SupabaseClient(
@@ -19,7 +24,6 @@ final class AuthManager {
     }
 
     func start() async {
-        // Restore session from keychain
         do {
             let session = try await supabase.auth.session
             user = session.user
@@ -28,7 +32,6 @@ final class AuthManager {
         }
         isLoading = false
 
-        // Listen for auth state changes
         for await (event, session) in await supabase.auth.authStateChanges {
             switch event {
             case .signedIn, .tokenRefreshed, .userUpdated:
@@ -57,11 +60,49 @@ final class AuthManager {
     }
 
     func signInWithGoogle() async throws {
+        let scheme = "macrochef"
+        let redirectURL = URL(string: "\(scheme)://auth-callback")!
+
         try await supabase.auth.signInWithOAuth(
             provider: .google,
-            redirectTo: Config.oauthRedirectURL
-        )
+            redirectTo: redirectURL
+        ) { [self] url in
+            try await withCheckedThrowingContinuation { continuation in
+                Task { @MainActor in
+                    let session = ASWebAuthenticationSession(
+                        url: url,
+                        callbackURLScheme: scheme
+                    ) { callbackURL, error in
+                        self.webAuthSession = nil
+                        if let error {
+                            continuation.resume(throwing: error)
+                        } else if let callbackURL {
+                            continuation.resume(returning: callbackURL)
+                        } else {
+                            continuation.resume(throwing: URLError(.cancelled))
+                        }
+                    }
+                    session.presentationContextProvider = PresentationAnchorHelper.shared
+                    session.prefersEphemeralWebBrowserSession = false
+                    self.webAuthSession = session
+                    session.start()
+                }
+            }
+        }
     }
 
     var isAuthenticated: Bool { user != nil }
+}
+
+// MARK: - OAuth presentation helper
+
+private final class PresentationAnchorHelper: NSObject, ASWebAuthenticationPresentationContextProviding, @unchecked Sendable {
+    static let shared = PresentationAnchorHelper()
+
+    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .compactMap { $0.windows.first }
+            .first ?? ASPresentationAnchor()
+    }
 }
