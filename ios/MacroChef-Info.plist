@@ -8,6 +8,8 @@
 	</array>
 	<key>API_BASE_URL</key>
 	<string>$(API_BASE_URL)</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>MacroChef reads your walking distance from Apple Health to calculate your projected daily calorie burn.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>MacroChef uses your camera to photograph meals and nutrition labels for macro estimation.</string>
 	<key>NSPhotoLibraryUsageDescription</key>

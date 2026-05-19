@@ -71,6 +71,16 @@ final class TrackingStore {
         saveLocal()
     }
 
+    // MARK: - Apple Health
+
+    func setHealthKitDistance(miles: Double, date: Date = .now) {
+        let key = Self.key(for: date)
+        var d = diary[key] ?? TrackingDay.empty()
+        d.healthKitDistanceMi = miles
+        diary[key] = d
+        saveLocal()
+    }
+
     // MARK: - Settings / Goals
 
     func updateSettings(_ newSettings: TrackingSettings) {

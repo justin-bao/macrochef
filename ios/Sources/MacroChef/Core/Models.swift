@@ -141,11 +141,15 @@ struct ActivityLogItem: Codable, Identifiable {
 struct TrackingDay: Codable {
     var meals: [MealLog]
     var activities: [ActivityLogItem]
+    /// Walking + running distance fetched from Apple Health for this day (miles).
+    /// Nil when HealthKit is unavailable or hasn't been fetched yet.
+    var healthKitDistanceMi: Double?
 
     static func empty() -> TrackingDay {
         TrackingDay(
             meals: MealType.allCases.map { MealLog(type: $0, items: []) },
-            activities: []
+            activities: [],
+            healthKitDistanceMi: nil
         )
     }
 
@@ -153,6 +157,7 @@ struct TrackingDay: Codable {
         meals.flatMap(\.items).reduce(.zero) { $0 + $1.macros }
     }
 
+    /// Sum of manually logged activity calories (used by MacroProgressView "Burned" field).
     var totalBurned: Double {
         activities.reduce(0) { $0 + $1.caloriesBurned }
     }
