@@ -1,4 +1,5 @@
 import SwiftUI
+internal import Auth
 
 struct ProfileView: View {
     @Environment(AuthManager.self) private var auth
@@ -151,16 +152,7 @@ struct ProfileView: View {
                     }
                 }
             }
-            .scrollDismissesKeyboard(.interactively)
-            .toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
-                    Spacer()
-                    Button("Done") {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder),
-                                                        to: nil, from: nil, for: nil)
-                    }
-                }
-            }
+            .scrollDismissesKeyboard(.immediately)
             .navigationTitle("Profile")
             .onAppear {
                 settings = store.settings
