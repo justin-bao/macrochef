@@ -1,5 +1,5 @@
 import { Card } from "@/components/ui/card";
-import { getGarminCalorieBreakdown, getBurnedToPoint } from "@/lib/garmin-calories";
+import { getGarminCalorieBreakdown } from "@/lib/garmin-calories";
 import {
   getDayTotals,
   type TrackingDay,
@@ -49,8 +49,6 @@ export function FuelSummary({ day, settings }: { day: TrackingDay; settings: Tra
   const profile = settingsToProfile(settings);
   const bd = getGarminCalorieBreakdown(day, profile);
 
-  const burnedSoFar = getBurnedToPoint(day, profile);
-
   // Net target mode: remaining = projectedBurn + netTarget − eaten
   // netTarget > 0 = surplus; = 0 = maintain; < 0 = deficit
   const netTarget = settings.dailyCalorieTarget;
@@ -59,9 +57,6 @@ export function FuelSummary({ day, settings }: { day: TrackingDay; settings: Tra
   // Progress bar: how far eaten is toward (projectedBurn + netTarget)
   const foodTarget = bd.projectedDayBurn + netTarget;
   const eatPct = foodTarget > 0 ? Math.min((totals.kcal / foodTarget) * 100, 100) : 0;
-
-  // Calorie balance = eaten − projected burn (negative = deficit)
-  const balance = Math.round(totals.kcal - bd.projectedDayBurn);
 
   return (
     <Card className="p-5">
@@ -72,25 +67,21 @@ export function FuelSummary({ day, settings }: { day: TrackingDay; settings: Tra
             Daily fuel
           </p>
 
-          {/* Balance */}
+          {/* Remaining — hero metric */}
           <div className="mt-1 flex items-end gap-2">
-            <span className="text-4xl font-bold tabular-nums">
-              {balance >= 0 ? "+" : ""}
-              {balance}
+            <span
+              className={`text-4xl font-bold tabular-nums ${remainingKcal < 0 ? "text-destructive" : ""}`}
+            >
+              {Math.abs(remainingKcal)}
             </span>
-            <span className="pb-1 text-sm text-muted-foreground">kcal balance</span>
+            <span className={`pb-1 text-sm ${remainingKcal < 0 ? "text-destructive" : "text-muted-foreground"}`}>
+              kcal {remainingKcal < 0 ? "over goal" : "remaining"}
+            </span>
           </div>
 
           <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span>{Math.round(totals.kcal)} eaten</span>
             <span>{bd.projectedDayBurn} projected burn</span>
-            <span
-              className={
-                remainingKcal < 0 ? "font-semibold text-destructive" : "font-semibold text-primary"
-              }
-            >
-              {Math.abs(remainingKcal)} {remainingKcal < 0 ? "over" : "remaining"}
-            </span>
           </div>
 
           {/* Intake vs food-target progress bar */}
@@ -127,10 +118,6 @@ export function FuelSummary({ day, settings }: { day: TrackingDay; settings: Tra
                 <span className="tabular-nums">+{bd.activityActiveCalories} kcal</span>
               </div>
             )}
-            <div className="mt-1 flex justify-between border-t border-border/40 pt-1 font-medium text-foreground/70">
-              <span>Burned so far</span>
-              <span className="tabular-nums">{burnedSoFar} kcal</span>
-            </div>
           </div>
         </div>
 

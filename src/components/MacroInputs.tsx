@@ -50,7 +50,6 @@ function Field({
       </Label>
       <Input
         type="number"
-        min={0}
         value={v ?? ""}
         onChange={onChange}
         placeholder="any"
