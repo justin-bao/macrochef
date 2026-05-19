@@ -25,6 +25,10 @@ dist-ssr
 !.vscode/extensions.json
 .idea
 .DS_Store
+.claude/
+
+# iOS / Swift Package Manager
+ios/.swiftpm/
 *.suo
 *.ntvs*
 *.njsproj
