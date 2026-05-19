@@ -12,8 +12,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Input } from "@/components/ui/input";
 import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { getGarminCalorieBreakdown } from "@/lib/garmin-calories";
 import { useLocalTracking } from "@/hooks/useLocalTracking";
-import { getBurnedCalories, getDayTotals, type MealType } from "@/lib/tracking";
+import { getDayTotals, type MealType } from "@/lib/tracking";
 import {
   CalendarDays,
   ChefHat,
@@ -40,20 +41,34 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
     addActivity,
     removeActivity,
     updateActivity,
+    setGarminSummary,
   } = useLocalTracking();
 
   const day = getDay(date);
   const totals = getDayTotals(day);
-  const burned = getBurnedCalories(day);
+  const profile = {
+    weight: settings.weight,
+    height: settings.height,
+    age: settings.age,
+    sex: settings.sex,
+    unitSystem: settings.unitSystem,
+  };
+  const bd = getGarminCalorieBreakdown(day, profile);
+
   const isToday = format(date, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
+
+  // Remaining food budget: projectedBurn + netTarget − eaten (net-target mode)
   const remaining: MacrosOptional = useMemo(
     () => ({
-      kcal: Math.max(0, Math.round(settings.dailyCalorieTarget - (totals.kcal - burned))),
+      kcal: Math.max(
+        0,
+        Math.round(bd.projectedDayBurn + settings.dailyCalorieTarget - totals.kcal),
+      ),
       protein_g: Math.max(0, Math.round(settings.dailyProteinTarget - totals.protein_g)),
       carbs_g: Math.max(0, Math.round(settings.dailyCarbsTarget - totals.carbs_g)),
       fat_g: Math.max(0, Math.round(settings.dailyFatTarget - totals.fat_g)),
     }),
-    [burned, settings, totals],
+    [bd.projectedDayBurn, settings, totals],
   );
   const [target, setTarget] = useState<MacrosOptional>(remaining);
 
@@ -199,7 +214,9 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
 
           <div className={focus === "activity" ? "lg:col-span-2" : ""}>
             <ActivityPanel
-              activities={day.activities}
+              day={day}
+              profile={profile}
+              onSetGarminSummary={(summary) => setGarminSummary(date, summary)}
               onAdd={() => setActivityOpen(true)}
               onRemove={(activityId) => removeActivity(date, activityId)}
               onUpdate={(activity) => updateActivity(date, activity)}
@@ -230,13 +247,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
         open={activityOpen}
         onOpenChange={setActivityOpen}
         onAdd={(activity) => addActivity(date, activity)}
-        profile={{
-          weight: settings.weight,
-          height: settings.height,
-          age: settings.age,
-          sex: settings.sex,
-          unitSystem: settings.unitSystem,
-        }}
+        profile={profile}
       />
     </div>
   );
