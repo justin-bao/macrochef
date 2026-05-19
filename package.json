@@ -9,7 +9,11 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "ios:sim": "bash scripts/ios.sh sim prod",
+    "ios:sim:dev": "bash scripts/ios.sh sim dev",
+    "ios:device": "bash scripts/ios.sh device prod",
+    "ios:device:dev": "bash scripts/ios.sh device dev"
   },
   "dependencies": {
     "@cloudflare/vite-plugin": "^1.25.5",
