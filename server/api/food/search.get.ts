@@ -40,8 +40,17 @@ function nutrientValue(food: FdcFood, kind: "kcal" | "protein" | "carbs" | "fat"
 
 function rankFood(food: FdcFood, query: string) {
   const desc = (food.description ?? "").toLowerCase();
-  const words = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
-  const matches = words.filter((w) => desc.includes(w)).length;
+  const queryWords = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const descWords = desc.split(/[\s,]+/).filter((w) => w.length > 2);
+
+  // How many query words appear in the description
+  const matchCount = queryWords.filter((w) => desc.includes(w)).length;
+  // Coverage: fraction of query words matched (rewards completeness)
+  const coverage = queryWords.length > 0 ? matchCount / queryWords.length : 0;
+  // Precision: penalise overly long descriptions (extra words = less precise match)
+  const extraWords = Math.max(0, descWords.length - queryWords.length);
+  const precisionPenalty = extraWords * 0.3;
+
   const sourceBoost =
     food.dataType === "Survey (FNDDS)" ? 3 : food.dataType === "Foundation" ? 2 : food.dataType === "SR Legacy" ? 1 : 0;
   const hasMacros =
@@ -49,7 +58,8 @@ function rankFood(food: FdcFood, query: string) {
     nutrientValue(food, "protein") != null &&
     nutrientValue(food, "carbs") != null &&
     nutrientValue(food, "fat") != null;
-  return matches * 4 + sourceBoost + (hasMacros ? 10 : 0);
+
+  return coverage * 10 + matchCount * 2 - precisionPenalty + sourceBoost + (hasMacros ? 5 : 0);
 }
 
 type FoodResult = {
@@ -69,7 +79,7 @@ async function searchUsda(query: string): Promise<FoodResult[]> {
   const res = await fetch(`${FDC_BASE}/foods/search?${params}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, pageSize: 10, requireAllWords: false }),
+    body: JSON.stringify({ query, pageSize: 25, requireAllWords: false }),
   });
   if (!res.ok) return [];
   const json = (await res.json()) as { foods?: FdcFood[] };

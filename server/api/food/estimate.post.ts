@@ -55,16 +55,18 @@ function amountToGrams(quantity: number, unit: string, food: FdcFood) {
 
 function rankFood(food: FdcFood, query: string) {
   const desc = (food.description ?? "").toLowerCase();
-  const words = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
-  const matches = words.filter((w) => desc.includes(w)).length;
+  const queryWords = query.toLowerCase().split(/\s+/).filter((w) => w.length > 2);
+  const descWords = desc.split(/[\s,]+/).filter((w) => w.length > 2);
+  const matchCount = queryWords.filter((w) => desc.includes(w)).length;
+  const coverage = queryWords.length > 0 ? matchCount / queryWords.length : 0;
+  const extraWords = Math.max(0, descWords.length - queryWords.length);
+  const precisionPenalty = extraWords * 0.3;
   const sourceBoost =
     food.dataType === "Survey (FNDDS)" ? 3 : food.dataType === "Foundation" ? 2 : food.dataType === "SR Legacy" ? 1 : 0;
   const hasMacros =
-    nutrientAmount(food, "kcal") != null &&
-    nutrientAmount(food, "protein") != null &&
-    nutrientAmount(food, "carbs") != null &&
-    nutrientAmount(food, "fat") != null;
-  return matches * 4 + sourceBoost + (hasMacros ? 10 : 0);
+    nutrientAmount(food, "kcal") != null && nutrientAmount(food, "protein") != null &&
+    nutrientAmount(food, "carbs") != null && nutrientAmount(food, "fat") != null;
+  return coverage * 10 + matchCount * 2 - precisionPenalty + sourceBoost + (hasMacros ? 5 : 0);
 }
 
 function buildEstimate(food: FdcFood, name: string, quantity: number, unit: string) {
