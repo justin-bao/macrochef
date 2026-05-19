@@ -256,6 +256,77 @@ struct FoodEstimateResult: Codable {
     }
 }
 
+/// Multi-item result from the AI text / photo / label endpoints.
+struct AIFoodItem: Codable, Identifiable {
+    var name: String
+    var quantity: Double
+    var unit: String
+    var kcal: Double
+    var protein_g: Double
+    var carbs_g: Double
+    var fat_g: Double
+    var confidence: String
+    var note: String?
+
+    var id: String { "\(name)-\(kcal)" }
+
+    func toFoodLogItem() -> FoodLogItem {
+        FoodLogItem(
+            name: name,
+            quantity: quantity,
+            unit: unit,
+            kcal: kcal,
+            protein_g: protein_g,
+            carbs_g: carbs_g,
+            fat_g: fat_g,
+            source: .ai,
+            confidence: confidence,
+            note: note
+        )
+    }
+}
+
+/// Mutable wrapper used in the review-and-edit screen before logging.
+struct EditableAIItem: Identifiable {
+    var id = UUID()
+    var name: String
+    var quantityText: String
+    var unit: String
+    var kcalText: String
+    var proteinText: String
+    var carbsText: String
+    var fatText: String
+    var confidence: String
+    var note: String?
+
+    init(from item: AIFoodItem) {
+        name = item.name
+        quantityText = item.quantity.formatted(.number.precision(.fractionLength(0...2)))
+        unit = item.unit
+        kcalText = "\(Int(item.kcal))"
+        proteinText = item.protein_g.formatted(.number.precision(.fractionLength(0...1)))
+        carbsText = item.carbs_g.formatted(.number.precision(.fractionLength(0...1)))
+        fatText = item.fat_g.formatted(.number.precision(.fractionLength(0...1)))
+        confidence = item.confidence
+        note = item.note
+    }
+
+    func toFoodLogItem() -> FoodLogItem {
+        FoodLogItem(
+            name: name,
+            quantity: Double(quantityText) ?? 1,
+            unit: unit.isEmpty ? "serving" : unit,
+            kcal: Double(kcalText) ?? 0,
+            protein_g: Double(proteinText) ?? 0,
+            carbs_g: Double(carbsText) ?? 0,
+            fat_g: Double(fatText) ?? 0,
+            source: .ai,
+            confidence: confidence,
+            note: note
+        )
+    }
+}
+
 // MARK: - Recipes
 
 struct RecipeSearchResult: Codable, Identifiable {

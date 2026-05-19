@@ -8,6 +8,10 @@
 	</array>
 	<key>API_BASE_URL</key>
 	<string>$(API_BASE_URL)</string>
+	<key>NSCameraUsageDescription</key>
+	<string>MacroChef uses your camera to photograph meals and nutrition labels for macro estimation.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>MacroChef reads photos from your library to estimate macros from meal photos and nutrition labels.</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
