@@ -69,7 +69,11 @@ async function searchKaggle(params: z.infer<typeof InputSchema>): Promise<Search
     const { data, error } = await q;
     if (error) { console.error("Kaggle search failed", error); return []; }
 
-    return (data ?? []).map((r) => ({
+    const rows = data ?? [];
+    // Shuffle when no query so repeat visits surface different recipes.
+    if (!params.query?.trim()) shuffle(rows);
+
+    return rows.map((r) => ({
       id: Number(r.id),
       source: "kaggle" as const,
       title: r.title,
@@ -84,6 +88,17 @@ async function searchKaggle(params: z.infer<typeof InputSchema>): Promise<Search
     console.error("Kaggle search error", err);
     return [];
   }
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Fisher-Yates in-place shuffle. Mutates and returns the array. */
+function shuffle<T>(arr: T[]): T[] {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
 }
 
 // ── Handler ───────────────────────────────────────────────────────────────────
@@ -105,7 +120,9 @@ export default defineEventHandler(async (event) => {
           number: String(data.number),
           addRecipeNutrition: "true",
           instructionsRequired: "true",
-          sort: "popularity",
+          // When there's no user query, randomize so the default grid isn't
+          // always the same ranked popularity list.
+          sort: data.query?.trim() ? "popularity" : "random",
         });
         if (data.query) params.set("query", data.query);
         if (data.diet) params.set("diet", data.diet);

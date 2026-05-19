@@ -460,6 +460,19 @@ struct AIReviewView: View {
                             TextField("Qty", text: $item.quantityText)
                                 .keyboardType(.decimalPad)
                                 .frame(width: 60)
+                                .onChange(of: item.quantityText) { _, newText in
+                                    guard let newQty = Double(newText),
+                                          newQty > 0,
+                                          item.baseQuantity > 0 else { return }
+                                    let ratio = newQty / item.baseQuantity
+                                    item.kcalText = "\(Int((item.baseKcal * ratio).rounded()))"
+                                    item.proteinText = (item.baseProtein_g * ratio)
+                                        .formatted(.number.precision(.fractionLength(0...1)))
+                                    item.carbsText = (item.baseCarbs_g * ratio)
+                                        .formatted(.number.precision(.fractionLength(0...1)))
+                                    item.fatText = (item.baseFat_g * ratio)
+                                        .formatted(.number.precision(.fractionLength(0...1)))
+                                }
                             TextField("Unit", text: $item.unit)
                         }
                         .font(.subheadline)

@@ -170,11 +170,11 @@ enum ProfileGoal: String, Codable, CaseIterable {
 
     var label: String {
         switch self {
-        case .lose_body_fat: "Lose Body Fat"
-        case .build_muscle: "Build Muscle"
-        case .maintain_weight: "Maintain Weight"
-        case .fuel_runs: "Fuel Runs"
-        case .general_nutrition: "General Nutrition"
+        case .lose_body_fat: "Lose body fat"
+        case .build_muscle: "Build muscle"
+        case .maintain_weight: "Maintain weight"
+        case .fuel_runs: "Fuel runs"
+        case .general_nutrition: "Improve general nutrition"
         }
     }
 }
@@ -304,6 +304,14 @@ struct EditableAIItem: Identifiable {
     var confidence: String
     var note: String?
 
+    /// Base values at the original quantity — used to scale macros proportionally
+    /// when the user changes the quantity field.
+    var baseQuantity: Double
+    var baseKcal: Double
+    var baseProtein_g: Double
+    var baseCarbs_g: Double
+    var baseFat_g: Double
+
     init(from item: AIFoodItem) {
         name = item.name
         quantityText = item.quantity.formatted(.number.precision(.fractionLength(0...2)))
@@ -314,6 +322,11 @@ struct EditableAIItem: Identifiable {
         fatText = item.fat_g.formatted(.number.precision(.fractionLength(0...1)))
         confidence = item.confidence
         note = item.note
+        baseQuantity = item.quantity
+        baseKcal = item.kcal
+        baseProtein_g = item.protein_g
+        baseCarbs_g = item.carbs_g
+        baseFat_g = item.fat_g
     }
 
     func toFoodLogItem() -> FoodLogItem {
