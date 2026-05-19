@@ -192,7 +192,9 @@ struct TrackingSettings: Codable {
     var sex: Sex = .unspecified
     var goal: ProfileGoal = .maintain_weight
     var unitSystem: String = "imperial"
-    var dailyCalorieTarget: Double = 2500
+    /// Net calorie goal: 0 = break even with burn, −500 = 500 kcal deficit, +500 = surplus.
+    /// Calories remaining = BMR + activeCalories + dailyCalorieTarget − foodEaten.
+    var dailyCalorieTarget: Double = 0
     var dailyProteinTarget: Double = 180
     var dailyCarbsTarget: Double = 280
     var dailyFatTarget: Double = 80

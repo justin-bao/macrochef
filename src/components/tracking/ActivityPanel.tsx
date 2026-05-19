@@ -90,11 +90,11 @@ export function ActivityPanel({
         </Button>
       </div>
 
-      {/* Garmin daily distance input */}
+      {/* Daily distance input */}
       <div className="mt-4 rounded-md border border-dashed bg-muted/20 p-3">
         <div className="mb-2 flex items-center gap-1.5 text-xs font-medium">
           <MapPin className="h-3.5 w-3.5 text-primary" />
-          Garmin total distance today
+          Daily distance (Garmin / watch / manual)
         </div>
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
@@ -128,24 +128,13 @@ export function ActivityPanel({
           )}
         </div>
 
-        {/* Calorie breakdown */}
+        {/* Burn summary (compact) */}
         <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
-          <span>BMR ({Math.round(bd.bmrPerHour)} kcal/hr)</span>
+          <span>BMR</span>
           <span className="text-right tabular-nums">{bd.bmrPerDay} kcal/day</span>
-          {bd.walkingCalories > 0 && (
-            <>
-              <span>
-                Walking{" "}
-                {bd.effectiveWalkingDistanceMi > 0
-                  ? `(${bd.effectiveWalkingDistanceMi} mi effective)`
-                  : ""}
-              </span>
-              <span className="text-right tabular-nums">+{bd.walkingCalories} kcal</span>
-            </>
-          )}
           {bd.activityActiveCalories > 0 && (
             <>
-              <span>Activities (active cal)</span>
+              <span>Logged activities</span>
               <span className="text-right tabular-nums">+{bd.activityActiveCalories} kcal</span>
             </>
           )}
@@ -158,14 +147,35 @@ export function ActivityPanel({
         </div>
       </div>
 
-      {/* Activity list */}
+      {/* Activity list — distance first, then logged workouts */}
       <div className="mt-4">
-        {activities.length === 0 ? (
+        {activities.length === 0 && !garminSummary ? (
           <p className="rounded-md bg-muted/35 px-3 py-5 text-center text-sm text-muted-foreground">
             No workouts logged.
           </p>
         ) : (
           <div className="divide-y">
+            {/* Synthetic daily-distance row */}
+            {garminSummary && bd.walkingCalories > 0 && (
+              <div className="flex items-center justify-between gap-3 py-3">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">Daily steps / walking</span>
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                      Walk
+                    </span>
+                  </div>
+                  <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                    <span>{bd.effectiveWalkingDistanceMi} mi effective</span>
+                    <span>{garminSummary.totalDistanceMi} mi total</span>
+                    <span>Auto · distance tracker</span>
+                  </div>
+                </div>
+                <div className="shrink-0 pr-2 text-sm font-semibold text-destructive tabular-nums">
+                  {bd.walkingCalories} kcal
+                </div>
+              </div>
+            )}
             {activities.map((activity) => (
               <div
                 key={activity.id}

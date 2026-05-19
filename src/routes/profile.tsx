@@ -538,11 +538,15 @@ function ProfilePage() {
             <h2 className="font-semibold">Macro Goals</h2>
           </div>
           <p className="mb-3 text-xs text-muted-foreground">
-            Calories is a <span className="font-medium">net intake target</span>: set to{" "}
-            <span className="font-mono">0</span> to break even with your burn,{" "}
-            <span className="font-mono">−500</span> for a 500 kcal/day deficit, or{" "}
-            <span className="font-mono">+500</span> for a surplus. Protein, carbs, and fat are
-            gross intake targets (grams to eat each day).
+            <span className="font-medium">Calories</span> is your{" "}
+            <span className="font-medium">net calorie goal</span> — the adjustment on top of your
+            BMR + active calories. Set to <span className="font-mono">0</span> to break even
+            (maintain weight), <span className="font-mono">−500</span> for a 500 kcal/day deficit,
+            or <span className="font-mono">+500</span> for a surplus.{" "}
+            <span className="text-foreground/70">
+              Calories remaining = BMR + active calories + this goal − food eaten.
+            </span>{" "}
+            Protein, carbs, and fat are gross intake targets (grams to eat per day).
           </p>
           <MacroInputs
             value={{

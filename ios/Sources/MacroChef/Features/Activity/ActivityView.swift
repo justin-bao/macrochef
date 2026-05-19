@@ -9,6 +9,14 @@ struct ActivityView: View {
     private var day: TrackingDay { store.day(for: selectedDate) }
     private var activities: [ActivityLogItem] { day.activities }
 
+    private var bd: CalorieModel.DayBurnBreakdown {
+        CalorieModel.breakdown(
+            healthMiles: day.healthKitDistanceMi ?? 0,
+            activities: activities,
+            settings: store.settings
+        )
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -18,7 +26,9 @@ struct ActivityView: View {
                 .listRowInsets(.init())
                 .listRowBackground(Color.clear)
 
-                if activities.isEmpty {
+                // Activities section: HealthKit distance row + manually logged workouts
+                let hasDistance = (day.healthKitDistanceMi ?? 0) > 0 && healthKit.isAvailable
+                if activities.isEmpty && !hasDistance {
                     Section {
                         ContentUnavailableView(
                             "No activities logged",
@@ -28,7 +38,36 @@ struct ActivityView: View {
                         .listRowBackground(Color.clear)
                     }
                 } else {
-                    Section("Logged Activities") {
+                    Section("Activities") {
+                        // Synthetic HealthKit distance line item
+                        if hasDistance {
+                            HStack(spacing: 14) {
+                                ZStack {
+                                    Circle()
+                                        .fill(.pink.opacity(0.15))
+                                        .frame(width: 44, height: 44)
+                                    Image(systemName: "applelogo")
+                                        .foregroundStyle(.pink)
+                                }
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Daily steps / walking")
+                                        .font(.subheadline.weight(.medium))
+                                    HStack(spacing: 6) {
+                                        Text("\(bd.walkingDistanceMi, specifier: "%.2f") mi active")
+                                        if let total = day.healthKitDistanceMi, total > bd.walkingDistanceMi {
+                                            Text("· \(total, specifier: "%.2f") mi total")
+                                        }
+                                    }
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Text("\(Int(bd.walkingCalories)) kcal")
+                                    .font(.subheadline.monospacedDigit())
+                                    .foregroundStyle(.pink)
+                            }
+                        }
+
                         ForEach(activities) { activity in
                             activityRow(activity)
                         }
@@ -63,11 +102,6 @@ struct ActivityView: View {
 
     @ViewBuilder
     private var burnCard: some View {
-        let bd = CalorieModel.breakdown(
-            healthMiles: day.healthKitDistanceMi ?? 0,
-            activities: activities,
-            settings: store.settings
-        )
         let hasHealth = day.healthKitDistanceMi != nil && healthKit.isAvailable
 
         VStack(spacing: 0) {

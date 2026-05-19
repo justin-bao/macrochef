@@ -35,10 +35,10 @@ struct ProfileView: View {
 
                 // Daily targets
                 Section {
-                    LabeledContent("Calories") {
+                    LabeledContent("Net calorie goal") {
                         HStack {
-                            TextField("2500", value: $settings.dailyCalorieTarget, format: .number)
-                                .keyboardType(.numberPad)
+                            TextField("0", value: $settings.dailyCalorieTarget, format: .number)
+                                .keyboardType(.numbersAndPunctuation)
                                 .multilineTextAlignment(.trailing)
                                 .frame(width: 70)
                             Text("kcal").foregroundStyle(.secondary)
@@ -74,7 +74,7 @@ struct ProfileView: View {
                 } header: {
                     Text("Daily Targets")
                 } footer: {
-                    Text("These targets appear on your diary progress bar.")
+                    Text("Net calorie goal: 0 = maintain weight, −500 = deficit, +500 = surplus. Remaining calories = BMR + active calories + this goal − food eaten. Protein, carbs, and fat are gross daily targets.")
                 }
 
                 // Body info

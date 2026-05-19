@@ -101,7 +101,9 @@ export const DEFAULT_TRACKING_SETTINGS: TrackingSettings = {
   sex: "unspecified",
   goal: "maintain_weight",
   unitSystem: "imperial",
-  dailyCalorieTarget: 2500,
+  // Net calorie goal: 0 = break even with burn, −500 = deficit, +500 = surplus.
+  // Calories remaining = BMR + walkingCal + activityCal + dailyCalorieTarget − foodEaten.
+  dailyCalorieTarget: 0,
   dailyProteinTarget: 180,
   dailyCarbsTarget: 280,
   dailyFatTarget: 80,

@@ -185,7 +185,11 @@ export function MacroDashboard({
     });
   }, [allItemsWithMeal, hasFood]);
 
-  // Chart 3: cumulative intake vs goals (as % of goal)
+  // Chart 3: cumulative intake vs food budget (as % of goal)
+  // Food budget = projected full-day burn + net calorie goal adjustment.
+  // dailyCalorieTarget is net: 0 = break even, −500 = deficit, +500 = surplus.
+  const foodBudgetKcal = burnBreakdown.projectedDayBurn + settings.dailyCalorieTarget;
+
   const cumulativeData = useMemo(() => {
     if (!hasFood) return [];
 
@@ -214,10 +218,8 @@ export function MacroDashboard({
 
       return {
         time: timeLabel,
-        kcalPct:
-          settings.dailyCalorieTarget > 0
-            ? Math.round((cumKcal / settings.dailyCalorieTarget) * 100)
-            : 0,
+        // Calorie % is vs food budget (BMR + active calories + net goal)
+        kcalPct: foodBudgetKcal > 0 ? Math.round((cumKcal / foodBudgetKcal) * 100) : 0,
         proteinPct:
           settings.dailyProteinTarget > 0
             ? Math.round((cumProtein / settings.dailyProteinTarget) * 100)
@@ -232,7 +234,7 @@ export function MacroDashboard({
             : 0,
       };
     });
-  }, [allItemsWithMeal, hasFood, settings]);
+  }, [allItemsWithMeal, hasFood, settings, foodBudgetKcal]);
 
   const maxProgressPct = useMemo(() => {
     if (!cumulativeData.length) return 110;

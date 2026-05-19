@@ -1,21 +1,35 @@
 import SwiftUI
 
+/// Calorie and macro progress card shown at the top of the diary.
+///
+/// Formula:
+///   foodBudget  = bmr + netCalorieGoal + activeCalories
+///   remaining   = foodBudget − consumed.kcal
+///
+/// - `bmr`              Full-day Mifflin-St Jeor resting calories (constant).
+/// - `netCalorieGoal`   User's net adjustment: 0 = maintain, −500 = deficit, +500 = surplus.
+/// - `activeCalories`   Walking calories (from distance) + logged activity calories.
+/// - `consumed`         Macros eaten today.
+/// - `target`           Gross targets for protein / carbs / fat (kcal field is ignored here).
 struct MacroProgressView: View {
     let consumed: Macros
-    let target: Macros
-    let burned: Double
+    let target: Macros        // .protein_g / .carbs_g / .fat_g are gross targets
+    let bmr: Double
+    let netCalorieGoal: Double
+    let activeCalories: Double
 
-    private var net: Double { consumed.kcal - burned }
-    private var remaining: Double { target.kcal - consumed.kcal }
+    private var foodBudget: Double { bmr + netCalorieGoal + activeCalories }
+    private var remaining: Double  { foodBudget - consumed.kcal }
+    private var eatPct: Double     { foodBudget > 0 ? min(1, consumed.kcal / foodBudget) : 0 }
 
     var body: some View {
         VStack(spacing: 16) {
-            // Calorie summary
+            // ── Top row: Eaten · Remaining · Active ──────────────────────────
             HStack(alignment: .top) {
                 macroStat(label: "Eaten", value: consumed.kcal, unit: "kcal", color: .primary)
                 Spacer()
                 VStack(spacing: 2) {
-                    Text(max(0, remaining).formatted(.number.precision(.fractionLength(0))))
+                    Text(abs(remaining).formatted(.number.precision(.fractionLength(0))))
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                     Text(remaining >= 0 ? "remaining" : "over goal")
                         .font(.caption)
@@ -23,10 +37,10 @@ struct MacroProgressView: View {
                 }
                 .frame(maxWidth: .infinity)
                 Spacer()
-                macroStat(label: "Burned", value: burned, unit: "kcal", color: .orange)
+                macroStat(label: "Active", value: activeCalories, unit: "kcal", color: .orange)
             }
 
-            // Calorie progress bar
+            // ── Calorie progress bar ─────────────────────────────────────────
             GeometryReader { geo in
                 ZStack(alignment: .leading) {
                     RoundedRectangle(cornerRadius: 6)
@@ -34,16 +48,27 @@ struct MacroProgressView: View {
                         .frame(height: 10)
                     RoundedRectangle(cornerRadius: 6)
                         .fill(remaining >= 0 ? Color.green : Color.red)
-                        .frame(width: min(geo.size.width, geo.size.width * min(1, consumed.kcal / max(1, target.kcal))), height: 10)
+                        .frame(width: geo.size.width * eatPct, height: 10)
                 }
             }
             .frame(height: 10)
 
-            // Macronutrients
+            // ── Budget footer ────────────────────────────────────────────────
+            let goalLabel: String = {
+                if netCalorieGoal == 0 { return "Maintain" }
+                let sign = netCalorieGoal < 0 ? "−" : "+"
+                return "\(sign)\(Int(abs(netCalorieGoal))) kcal goal"
+            }()
+            Text("Budget \(Int(foodBudget)) kcal · BMR \(Int(bmr)) · \(goalLabel)")
+                .font(.caption2)
+                .foregroundStyle(.tertiary)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            // ── Macro bars (protein / carbs / fat) ──────────────────────────
             HStack(spacing: 0) {
                 macroBar(label: "Protein", consumed: consumed.protein_g, target: target.protein_g, color: .blue)
-                macroBar(label: "Carbs", consumed: consumed.carbs_g, target: target.carbs_g, color: .orange)
-                macroBar(label: "Fat", consumed: consumed.fat_g, target: target.fat_g, color: .yellow)
+                macroBar(label: "Carbs",   consumed: consumed.carbs_g,   target: target.carbs_g,   color: .orange)
+                macroBar(label: "Fat",     consumed: consumed.fat_g,     target: target.fat_g,     color: .yellow)
             }
         }
         .padding(16)

@@ -11,6 +11,15 @@ struct DiaryView: View {
     private var day: TrackingDay { store.day(for: selectedDate) }
     private var settings: TrackingSettings { store.settings }
 
+    /// Calorie breakdown used by MacroProgressView.
+    private var burnBreakdown: CalorieModel.DayBurnBreakdown {
+        CalorieModel.breakdown(
+            healthMiles: day.healthKitDistanceMi ?? 0,
+            activities: day.activities,
+            settings: settings
+        )
+    }
+
     var body: some View {
         NavigationStack {
             List {
@@ -27,7 +36,9 @@ struct DiaryView: View {
                     MacroProgressView(
                         consumed: day.totalFood,
                         target: settings.targetMacros,
-                        burned: day.totalBurned
+                        bmr: burnBreakdown.bmr,
+                        netCalorieGoal: settings.dailyCalorieTarget,
+                        activeCalories: burnBreakdown.walkingCalories + burnBreakdown.activityCalories
                     )
                     .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
                     .listRowBackground(Color.clear)
