@@ -1,0 +1,502 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		FF0000000000000000000001 /* MacroChefApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* MacroChefApp.swift */; };
+		FF0000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000002 /* ContentView.swift */; };
+		FF0000000000000000000003 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* Config.swift */; };
+		FF0000000000000000000004 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000004 /* Models.swift */; };
+		FF0000000000000000000005 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000005 /* AuthManager.swift */; };
+		FF0000000000000000000006 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000006 /* APIClient.swift */; };
+		FF0000000000000000000007 /* TrackingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000007 /* TrackingStore.swift */; };
+		FF0000000000000000000008 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000008 /* AuthView.swift */; };
+		FF0000000000000000000009 /* DiaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000009 /* DiaryView.swift */; };
+		FF000000000000000000000A /* AddFoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000A /* AddFoodView.swift */; };
+		FF000000000000000000000B /* MacroProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000B /* MacroProgressView.swift */; };
+		FF000000000000000000000C /* RecipesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000C /* RecipesView.swift */; };
+		FF000000000000000000000D /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000D /* RecipeDetailView.swift */; };
+		FF000000000000000000000E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000E /* ActivityView.swift */; };
+		FF000000000000000000000F /* AddActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000F /* AddActivityView.swift */; };
+		FF0000000000000000000010 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000010 /* AnalyticsView.swift */; };
+		FF0000000000000000000011 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* ProfileView.swift */; };
+		FF0000000000000000000012 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000012 /* Assets.xcassets */; };
+		SS0000000000000000000005 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = SS0000000000000000000002 /* Supabase */; };
+		SS0000000000000000000006 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = SS0000000000000000000003 /* Auth */; };
+		SS0000000000000000000007 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = SS0000000000000000000004 /* PostgREST */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA0000000000000000000005 /* MacroChef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacroChef.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EE0000000000000000000001 /* MacroChefApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroChefApp.swift; sourceTree = "<group>"; };
+		EE0000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000003 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		EE0000000000000000000004 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		EE0000000000000000000005 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
+		EE0000000000000000000006 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		EE0000000000000000000007 /* TrackingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingStore.swift; sourceTree = "<group>"; };
+		EE0000000000000000000008 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000009 /* DiaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryView.swift; sourceTree = "<group>"; };
+		EE000000000000000000000A /* AddFoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFoodView.swift; sourceTree = "<group>"; };
+		EE000000000000000000000B /* MacroProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroProgressView.swift; sourceTree = "<group>"; };
+		EE000000000000000000000C /* RecipesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipesView.swift; sourceTree = "<group>"; };
+		EE000000000000000000000D /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
+		EE000000000000000000000E /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		EE000000000000000000000F /* AddActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddActivityView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000010 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000011 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		EE0000000000000000000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BB0000000000000000000002 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				SS0000000000000000000005 /* Supabase in Frameworks */,
+				SS0000000000000000000006 /* Auth in Frameworks */,
+				SS0000000000000000000007 /* PostgREST in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA0000000000000000000002 /* MacroChef */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000000001 /* MacroChef */,
+				AA0000000000000000000003 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA0000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA0000000000000000000005 /* MacroChef.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000001 /* MacroChef */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000000000000000000001 /* MacroChefApp.swift */,
+				EE0000000000000000000002 /* ContentView.swift */,
+				EE0000000000000000000012 /* Assets.xcassets */,
+				DD0000000000000000000002 /* Core */,
+				DD0000000000000000000003 /* Features */,
+			);
+			name = MacroChef;
+			path = Sources/MacroChef;
+			sourceTree = SOURCE_ROOT;
+		};
+		DD0000000000000000000002 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000000000000000000003 /* Config.swift */,
+				EE0000000000000000000004 /* Models.swift */,
+				EE0000000000000000000005 /* AuthManager.swift */,
+				EE0000000000000000000006 /* APIClient.swift */,
+				EE0000000000000000000007 /* TrackingStore.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000003 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				DD0000000000000000000004 /* Auth */,
+				DD0000000000000000000005 /* Diary */,
+				DD0000000000000000000006 /* Recipes */,
+				DD0000000000000000000007 /* Activity */,
+				DD0000000000000000000008 /* Analytics */,
+				DD0000000000000000000009 /* Profile */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000004 /* Auth */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000000000000000000008 /* AuthView.swift */,
+			);
+			path = Auth;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000005 /* Diary */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000000000000000000009 /* DiaryView.swift */,
+				EE000000000000000000000A /* AddFoodView.swift */,
+				EE000000000000000000000B /* MacroProgressView.swift */,
+			);
+			path = Diary;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000006 /* Recipes */ = {
+			isa = PBXGroup;
+			children = (
+				EE000000000000000000000C /* RecipesView.swift */,
+				EE000000000000000000000D /* RecipeDetailView.swift */,
+			);
+			path = Recipes;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000007 /* Activity */ = {
+			isa = PBXGroup;
+			children = (
+				EE000000000000000000000E /* ActivityView.swift */,
+				EE000000000000000000000F /* AddActivityView.swift */,
+			);
+			path = Activity;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000008 /* Analytics */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000000000000000000010 /* AnalyticsView.swift */,
+			);
+			path = Analytics;
+			sourceTree = "<group>";
+		};
+		DD0000000000000000000009 /* Profile */ = {
+			isa = PBXGroup;
+			children = (
+				EE0000000000000000000011 /* ProfileView.swift */,
+			);
+			path = Profile;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA0000000000000000000004 /* MacroChef */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC0000000000000000000002 /* Build configuration list for PBXNativeTarget "MacroChef" */;
+			buildPhases = (
+				BB0000000000000000000001 /* Sources */,
+				BB0000000000000000000002 /* Frameworks */,
+				BB0000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = MacroChef;
+			packageProductDependencies = (
+				SS0000000000000000000002 /* Supabase */,
+				SS0000000000000000000003 /* Auth */,
+				SS0000000000000000000004 /* PostgREST */,
+			);
+			productName = MacroChef;
+			productReference = AA0000000000000000000005 /* MacroChef.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000000000000000000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					AA0000000000000000000004 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = CC0000000000000000000001 /* Build configuration list for PBXProject "MacroChef" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0000000000000000000002;
+			packageReferences = (
+				SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
+			productRefGroup = AA0000000000000000000003 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA0000000000000000000004 /* MacroChef */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		BB0000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF0000000000000000000012 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		BB0000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FF0000000000000000000001 /* MacroChefApp.swift in Sources */,
+				FF0000000000000000000002 /* ContentView.swift in Sources */,
+				FF0000000000000000000003 /* Config.swift in Sources */,
+				FF0000000000000000000004 /* Models.swift in Sources */,
+				FF0000000000000000000005 /* AuthManager.swift in Sources */,
+				FF0000000000000000000006 /* APIClient.swift in Sources */,
+				FF0000000000000000000007 /* TrackingStore.swift in Sources */,
+				FF0000000000000000000008 /* AuthView.swift in Sources */,
+				FF0000000000000000000009 /* DiaryView.swift in Sources */,
+				FF000000000000000000000A /* AddFoodView.swift in Sources */,
+				FF000000000000000000000B /* MacroProgressView.swift in Sources */,
+				FF000000000000000000000C /* RecipesView.swift in Sources */,
+				FF000000000000000000000D /* RecipeDetailView.swift in Sources */,
+				FF000000000000000000000E /* ActivityView.swift in Sources */,
+				FF000000000000000000000F /* AddActivityView.swift in Sources */,
+				FF0000000000000000000010 /* AnalyticsView.swift in Sources */,
+				FF0000000000000000000011 /* ProfileView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		CC0000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		CC0000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		CC0000000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MacroChef;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.macrochef.app";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		CC0000000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = MacroChef;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.macrochef.app";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		CC0000000000000000000001 /* Build configuration list for PBXProject "MacroChef" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC0000000000000000000003 /* Debug */,
+				CC0000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC0000000000000000000002 /* Build configuration list for PBXNativeTarget "MacroChef" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CC0000000000000000000005 /* Debug */,
+				CC0000000000000000000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		SS0000000000000000000002 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+		SS0000000000000000000003 /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		SS0000000000000000000004 /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+/* End XCSwiftPackageProductDependency section */
+
+	};
+	rootObject = AA0000000000000000000001 /* Project object */;
+}
