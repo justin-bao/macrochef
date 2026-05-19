@@ -535,7 +535,7 @@ export function MacroDashboard({
           <CardHeader className="pb-2">
             <CardTitle className="text-base">Calories burned — today so far</CardTitle>
             <CardDescription>
-              BMR accruing linearly · walking spread 6am–10pm · activities credited at end time
+              BMR + Apple Health active calories + logged activities — full projected day
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -612,7 +612,7 @@ export function MacroDashboard({
               </ChartContainer>
             ) : (
               <p className="rounded-md bg-muted/35 py-6 text-center text-sm text-muted-foreground">
-                Enter today's Garmin distance in the activity panel to see your burn curve.
+                Enter Apple Health data in the activity panel to see your burn curve.
               </p>
             )}
           </CardContent>

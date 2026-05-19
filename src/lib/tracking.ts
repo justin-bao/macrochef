@@ -66,16 +66,24 @@ export interface ActivityLogItem {
   notes?: string;
 }
 
-export interface GarminDaySummary {
-  /** Total distance the device recorded for the day (miles). */
+export interface AppleHealthSummary {
+  /** Total walking + running distance for the day (miles). */
   totalDistanceMi: number;
+  /** Active energy burned reported directly by Apple Health (kcal). When set,
+   *  this is used instead of the distance-computed walking calories. */
+  activeCalories?: number;
   updatedAt: string;
 }
+
+/** @deprecated Use AppleHealthSummary */
+export type GarminDaySummary = AppleHealthSummary;
 
 export interface TrackingDay {
   meals: MealLog[];
   activities: ActivityLogItem[];
-  garminSummary?: GarminDaySummary;
+  appleHealthSummary?: AppleHealthSummary;
+  /** @deprecated use appleHealthSummary */
+  garminSummary?: AppleHealthSummary;
 }
 
 export type TrackingData = Record<string, TrackingDay>;

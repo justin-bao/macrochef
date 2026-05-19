@@ -20,11 +20,14 @@ struct ContentView: View {
 
     @ViewBuilder
     private var splashView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "fork.knife.circle.fill")
-                .font(.system(size: 72))
-                .foregroundStyle(.green)
+        VStack(spacing: 20) {
+            BrandIconView(size: 96)
+                .shadow(color: .black.opacity(0.15), radius: 16, y: 6)
+            Text("MacroChef")
+                .font(.title2.bold())
+                .foregroundStyle(.primary)
             ProgressView()
+                .tint(Color.brand)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -57,6 +60,6 @@ struct ContentView: View {
                     Label("Profile", systemImage: "person.circle")
                 }
         }
-        .tint(.green)
+        .tint(Color.brand)
     }
 }

@@ -1,5 +1,5 @@
 import { calculateBMR, caloriesPerMileWalking } from "@/lib/activity-calculator";
-import type { TrackingDay, UserActivityProfile } from "@/lib/tracking";
+import type { AppleHealthSummary, TrackingDay, UserActivityProfile } from "@/lib/tracking";
 
 export interface GarminCalorieBreakdown {
   bmrPerDay: number;
@@ -13,6 +13,13 @@ export interface GarminCalorieBreakdown {
   totalActiveCalories: number;
   /** BMR + all active calories — use this for food-budget calculations. */
   projectedDayBurn: number;
+  /** Whether active calories came directly from Apple Health (vs computed from distance). */
+  activeCaloriesFromHealthKit: boolean;
+}
+
+/** Resolve the Apple Health summary from either the new or legacy field name. */
+function getHealthSummary(day: TrackingDay): AppleHealthSummary | undefined {
+  return day.appleHealthSummary ?? day.garminSummary;
 }
 
 export function getGarminCalorieBreakdown(
@@ -22,7 +29,9 @@ export function getGarminCalorieBreakdown(
   const bmrPerDay = Math.round(calculateBMR(profile));
   const calPerMile = caloriesPerMileWalking(profile);
 
-  const totalDayDistanceMi = day.garminSummary?.totalDistanceMi ?? 0;
+  const healthSummary = getHealthSummary(day);
+  const totalDayDistanceMi = healthSummary?.totalDistanceMi ?? 0;
+  const directActiveCalories = healthSummary?.activeCalories;
 
   // Sum distances from logged activities (normalise to miles)
   const activityDistanceMi = day.activities.reduce((sum, act) => {
@@ -35,7 +44,12 @@ export function getGarminCalorieBreakdown(
   const effectiveWalkingDistanceMi =
     Math.round(Math.max(0, totalDayDistanceMi - activityDistanceMi) * 100) / 100;
 
-  const walkingCalories = Math.round(effectiveWalkingDistanceMi * calPerMile);
+  // If Apple Health reports active calories directly, use that; otherwise compute from distance
+  const activeCaloriesFromHealthKit = directActiveCalories != null && directActiveCalories > 0;
+  const walkingCalories = activeCaloriesFromHealthKit
+    ? Math.round(directActiveCalories)
+    : Math.round(effectiveWalkingDistanceMi * calPerMile);
+
   const activityActiveCalories = day.activities.reduce((sum, a) => sum + a.caloriesBurned, 0);
   const totalActiveCalories = walkingCalories + activityActiveCalories;
 
@@ -47,6 +61,7 @@ export function getGarminCalorieBreakdown(
     activityActiveCalories,
     totalActiveCalories,
     projectedDayBurn: bmrPerDay + totalActiveCalories,
+    activeCaloriesFromHealthKit,
   };
 }
 
@@ -88,7 +103,8 @@ export function getBurnTimeSeries(
   profile: UserActivityProfile,
 ): Array<{ time: string; burned: number }> {
   const bd = getGarminCalorieBreakdown(day, profile);
-  if (bd.projectedDayBurn === bd.bmrPerDay && !day.garminSummary) return [];
+  const healthSummary = getHealthSummary(day);
+  if (bd.projectedDayBurn === bd.bmrPerDay && !healthSummary) return [];
 
   // Build a deduplicated list of notable hours
   const hourSet = new Set<number>();

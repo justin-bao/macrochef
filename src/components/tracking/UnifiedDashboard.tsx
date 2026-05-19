@@ -41,7 +41,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
     addActivity,
     removeActivity,
     updateActivity,
-    setGarminSummary,
+    setAppleHealthSummary,
   } = useLocalTracking();
 
   const day = getDay(date);
@@ -216,7 +216,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
             <ActivityPanel
               day={day}
               profile={profile}
-              onSetGarminSummary={(summary) => setGarminSummary(date, summary)}
+              onSetAppleHealthSummary={(summary) => setAppleHealthSummary(date, summary)}
               onAdd={() => setActivityOpen(true)}
               onRemove={(activityId) => removeActivity(date, activityId)}
               onUpdate={(activity) => updateActivity(date, activity)}
