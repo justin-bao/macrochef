@@ -71,6 +71,28 @@ final class TrackingStore {
         saveLocal()
     }
 
+    // MARK: - Apple Health
+
+    func setAppleHealthSummary(_ summary: AppleHealthSummary?, date: Date = .now) {
+        let key = Self.key(for: date)
+        var d = diary[key] ?? TrackingDay.empty()
+        d.appleHealthSummary = summary
+        diary[key] = d
+        saveLocal()
+    }
+
+    func syncAppleHealth(healthKit: HealthKitManager, date: Date = .now) async {
+        guard healthKit.isAvailable else { return }
+        let miles = await healthKit.fetchDistanceMiles(for: date)
+        let summary = miles > 0
+            ? AppleHealthSummary(
+                totalDistanceMi: miles,
+                updatedAt: ISO8601DateFormatter().string(from: .now)
+              )
+            : nil
+        setAppleHealthSummary(summary, date: date)
+    }
+
     // MARK: - Settings / Goals
 
     func updateSettings(_ newSettings: TrackingSettings) {

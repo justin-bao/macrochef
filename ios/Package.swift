@@ -21,6 +21,9 @@ let package = Package(
             path: "Sources/MacroChef",
             swiftSettings: [
                 .enableExperimentalFeature("StrictConcurrency"),
+            ],
+            linkerSettings: [
+                .linkedFramework("HealthKit", .when(platforms: [.iOS])),
             ]
         ),
     ]

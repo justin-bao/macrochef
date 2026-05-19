@@ -64,7 +64,12 @@ enum FoodSource: String, Codable {
 }
 
 enum ActivitySource: String, Codable {
-    case manual, apple_health, strava
+    case manual, apple_health, strava, garmin
+}
+
+struct AppleHealthSummary: Codable {
+    var totalDistanceMi: Double
+    var updatedAt: String
 }
 
 struct FoodLogItem: Codable, Identifiable {
@@ -141,11 +146,13 @@ struct ActivityLogItem: Codable, Identifiable {
 struct TrackingDay: Codable {
     var meals: [MealLog]
     var activities: [ActivityLogItem]
+    var appleHealthSummary: AppleHealthSummary?
 
     static func empty() -> TrackingDay {
         TrackingDay(
             meals: MealType.allCases.map { MealLog(type: $0, items: []) },
-            activities: []
+            activities: [],
+            appleHealthSummary: nil
         )
     }
 

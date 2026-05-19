@@ -4,6 +4,7 @@ import SwiftUI
 struct MacroChefApp: App {
     @State private var auth = AuthManager()
     @State private var store: TrackingStore
+    @State private var healthKit = HealthKitManager()
 
     init() {
         let auth = AuthManager()
@@ -16,8 +17,11 @@ struct MacroChefApp: App {
             ContentView()
                 .environment(auth)
                 .environment(store)
+                .environment(healthKit)
                 .task {
                     await auth.start()
+                    await healthKit.requestAuthorization()
+                    await store.syncAppleHealth(healthKit: healthKit)
                 }
         }
     }
