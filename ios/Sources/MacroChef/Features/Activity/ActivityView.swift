@@ -104,7 +104,7 @@ struct ActivityView: View {
                 if hasHealth {
                     breakdownRow(
                         icon: "applelogo",
-                        label: "\(bd.walkingDistanceMi, specifier: "%.2f") mi walking",
+                        label: "\(bd.walkingDistanceMi.formatted(.number.precision(.fractionLength(2)))) mi walking",
                         value: bd.walkingCalories,
                         color: .pink
                     )
