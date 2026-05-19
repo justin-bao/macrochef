@@ -1,0 +1,3 @@
+// Dev environment — points to local Vite dev server
+// Run `npm run dev` first, then `npm run ios:sim:dev` or `npm run ios:device:dev`
+API_BASE_URL = http://localhost:3000/

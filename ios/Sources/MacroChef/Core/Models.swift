@@ -141,11 +141,15 @@ struct ActivityLogItem: Codable, Identifiable {
 struct TrackingDay: Codable {
     var meals: [MealLog]
     var activities: [ActivityLogItem]
+    /// Walking + running distance fetched from Apple Health for this day (miles).
+    /// Nil when HealthKit is unavailable or hasn't been fetched yet.
+    var healthKitDistanceMi: Double?
 
     static func empty() -> TrackingDay {
         TrackingDay(
             meals: MealType.allCases.map { MealLog(type: $0, items: []) },
-            activities: []
+            activities: [],
+            healthKitDistanceMi: nil
         )
     }
 
@@ -153,6 +157,7 @@ struct TrackingDay: Codable {
         meals.flatMap(\.items).reduce(.zero) { $0 + $1.macros }
     }
 
+    /// Sum of manually logged activity calories (used by MacroProgressView "Burned" field).
     var totalBurned: Double {
         activities.reduce(0) { $0 + $1.caloriesBurned }
     }
@@ -252,6 +257,77 @@ struct FoodEstimateResult: Codable {
             fat_g: fat_g,
             source: .usda,
             confidence: confidence
+        )
+    }
+}
+
+/// Multi-item result from the AI text / photo / label endpoints.
+struct AIFoodItem: Codable, Identifiable {
+    var name: String
+    var quantity: Double
+    var unit: String
+    var kcal: Double
+    var protein_g: Double
+    var carbs_g: Double
+    var fat_g: Double
+    var confidence: String
+    var note: String?
+
+    var id: String { "\(name)-\(kcal)" }
+
+    func toFoodLogItem() -> FoodLogItem {
+        FoodLogItem(
+            name: name,
+            quantity: quantity,
+            unit: unit,
+            kcal: kcal,
+            protein_g: protein_g,
+            carbs_g: carbs_g,
+            fat_g: fat_g,
+            source: .ai,
+            confidence: confidence,
+            note: note
+        )
+    }
+}
+
+/// Mutable wrapper used in the review-and-edit screen before logging.
+struct EditableAIItem: Identifiable {
+    var id = UUID()
+    var name: String
+    var quantityText: String
+    var unit: String
+    var kcalText: String
+    var proteinText: String
+    var carbsText: String
+    var fatText: String
+    var confidence: String
+    var note: String?
+
+    init(from item: AIFoodItem) {
+        name = item.name
+        quantityText = item.quantity.formatted(.number.precision(.fractionLength(0...2)))
+        unit = item.unit
+        kcalText = "\(Int(item.kcal))"
+        proteinText = item.protein_g.formatted(.number.precision(.fractionLength(0...1)))
+        carbsText = item.carbs_g.formatted(.number.precision(.fractionLength(0...1)))
+        fatText = item.fat_g.formatted(.number.precision(.fractionLength(0...1)))
+        confidence = item.confidence
+        note = item.note
+    }
+
+    func toFoodLogItem() -> FoodLogItem {
+        FoodLogItem(
+            name: name,
+            quantity: Double(quantityText) ?? 1,
+            unit: unit.isEmpty ? "serving" : unit,
+            kcal: Double(kcalText) ?? 0,
+            protein_g: Double(proteinText) ?? 0,
+            carbs_g: Double(carbsText) ?? 0,
+            fat_g: Double(fatText) ?? 0,
+            source: .ai,
+            confidence: confidence,
+            note: note
         )
     }
 }

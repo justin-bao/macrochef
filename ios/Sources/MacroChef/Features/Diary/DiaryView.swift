@@ -5,6 +5,7 @@ struct DiaryView: View {
     @Environment(AuthManager.self) private var auth
     @State private var selectedDate: Date = .now
     @State private var addingToMeal: MealType?
+    @State private var editingEntry: EditingEntry?
     @State private var api: APIClient?
 
     private var day: TrackingDay { store.day(for: selectedDate) }
@@ -12,27 +13,33 @@ struct DiaryView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 16) {
-                    // Date picker row
+            List {
+                // Date strip
+                Section {
                     dateStrip
-                        .padding(.horizontal)
+                        .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+                }
 
-                    // Macro progress card
+                // Macro progress card
+                Section {
                     MacroProgressView(
                         consumed: day.totalFood,
                         target: settings.targetMacros,
                         burned: day.totalBurned
                     )
-                    .padding(.horizontal)
-
-                    // Meals
-                    ForEach(MealType.allCases, id: \.self) { meal in
-                        mealSection(meal)
-                    }
+                    .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
                 }
-                .padding(.vertical)
+
+                // Meal sections
+                ForEach(MealType.allCases, id: \.self) { meal in
+                    mealSection(meal)
+                }
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Today's Diary")
             .navigationBarTitleDisplayMode(.large)
         }
@@ -41,6 +48,12 @@ struct DiaryView: View {
                 AddFoodSearchView(meal: meal, api: api) { item in
                     store.addFood(item, meal: meal, date: selectedDate)
                 }
+            }
+        }
+        .sheet(item: $editingEntry) { entry in
+            EditFoodView(entry: entry) { updated in
+                store.removeFood(id: entry.item.id, meal: entry.meal, date: selectedDate)
+                store.addFood(updated, meal: entry.meal, date: selectedDate)
             }
         }
         .onAppear {
@@ -72,6 +85,7 @@ struct DiaryView: View {
                 }
             }
         }
+        .padding(.horizontal, 16)
     }
 
     @ViewBuilder
@@ -79,54 +93,37 @@ struct DiaryView: View {
         let items = day.meals.first(where: { $0.type == meal })?.items ?? []
         let total = items.reduce(Macros.zero) { $0 + $1.macros }
 
-        VStack(spacing: 0) {
-            // Meal header
-            HStack {
-                Text(meal.label)
-                    .font(.headline)
-                Spacer()
-                if !items.isEmpty {
-                    Text("\(Int(total.kcal)) kcal")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                Button {
-                    addingToMeal = meal
-                } label: {
-                    Image(systemName: "plus.circle.fill")
-                        .foregroundStyle(.green)
-                        .font(.title3)
-                }
-            }
-            .padding(.horizontal)
-            .padding(.vertical, 12)
-
+        Section {
             if items.isEmpty {
                 Button {
                     addingToMeal = meal
                 } label: {
                     HStack {
-                        Image(systemName: "plus")
-                        Text("Add food")
+                        Image(systemName: "plus").foregroundStyle(.green)
+                        Text("Add food").foregroundStyle(.secondary)
                     }
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal)
             } else {
-                VStack(spacing: 0) {
-                    ForEach(items) { item in
-                        foodRow(item, meal: meal)
-                        if item.id != items.last?.id {
-                            Divider().padding(.leading)
+                ForEach(items) { item in
+                    foodRow(item, meal: meal)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                store.removeFood(id: item.id, meal: meal, date: selectedDate)
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
-                    }
+                        .swipeActions(edge: .leading) {
+                            Button {
+                                editingEntry = EditingEntry(item: item, meal: meal, date: selectedDate)
+                            } label: {
+                                Label("Edit", systemImage: "pencil")
+                            }
+                            .tint(.orange)
+                        }
                 }
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                .padding(.horizontal)
 
                 // Meal macro footer
                 HStack(spacing: 12) {
@@ -142,9 +139,27 @@ struct DiaryView: View {
                             .foregroundStyle(.green)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
             }
+        } header: {
+            HStack {
+                Text(meal.label).font(.headline).foregroundStyle(.primary)
+                Spacer()
+                if !items.isEmpty {
+                    Text("\(Int(total.kcal)) kcal")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                }
+                Button {
+                    addingToMeal = meal
+                } label: {
+                    Image(systemName: "plus.circle.fill")
+                        .foregroundStyle(.green)
+                        .font(.title3)
+                }
+            }
+            .textCase(nil)
+            .padding(.bottom, 4)
         }
     }
 
@@ -164,27 +179,108 @@ struct DiaryView: View {
                 .font(.subheadline.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive) {
-                store.removeFood(id: item.id, meal: meal, date: selectedDate)
-            } label: {
-                Label("Delete", systemImage: "trash")
-            }
-        }
+        .padding(.vertical, 2)
     }
 
     @ViewBuilder
     private func macroChip(_ letter: String, value: Double, unit: String, color: Color) -> some View {
         HStack(spacing: 2) {
-            Text(letter)
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(color)
-            Text("\(value, specifier: "%.0f")\(unit)")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            Text(letter).font(.caption2.weight(.bold)).foregroundStyle(color)
+            Text("\(value, specifier: "%.0f")\(unit)").font(.caption2).foregroundStyle(.secondary)
         }
+    }
+}
+
+// MARK: - Edit Food Sheet
+
+struct EditingEntry: Identifiable {
+    let id = UUID()
+    let item: FoodLogItem
+    let meal: MealType
+    let date: Date
+}
+
+struct EditFoodView: View {
+    let entry: EditingEntry
+    let onSave: (FoodLogItem) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var name: String
+    @State private var quantity: String
+    @State private var unit: String
+    @State private var kcal: String
+    @State private var protein: String
+    @State private var carbs: String
+    @State private var fat: String
+
+    init(entry: EditingEntry, onSave: @escaping (FoodLogItem) -> Void) {
+        self.entry = entry
+        self.onSave = onSave
+        let i = entry.item
+        _name     = State(initialValue: i.name)
+        _quantity = State(initialValue: String(format: "%.4g", i.quantity))
+        _unit     = State(initialValue: i.unit)
+        _kcal     = State(initialValue: String(Int(i.kcal)))
+        _protein  = State(initialValue: String(format: "%.1f", i.protein_g))
+        _carbs    = State(initialValue: String(format: "%.1f", i.carbs_g))
+        _fat      = State(initialValue: String(format: "%.1f", i.fat_g))
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Food") {
+                    TextField("Name", text: $name)
+                    HStack {
+                        TextField("Quantity", text: $quantity).keyboardType(.decimalPad).frame(width: 80)
+                        TextField("Unit", text: $unit)
+                    }
+                }
+                Section("Macros") {
+                    LabeledContent("Calories (kcal)") {
+                        TextField("0", text: $kcal).keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Protein (g)") {
+                        TextField("0", text: $protein).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Carbs (g)") {
+                        TextField("0", text: $carbs).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Fat (g)") {
+                        TextField("0", text: $fat).keyboardType(.decimalPad).multilineTextAlignment(.trailing)
+                    }
+                }
+                Section {
+                    Button("Save Changes") { save() }
+                        .frame(maxWidth: .infinity)
+                        .foregroundStyle(.green)
+                        .disabled(name.isEmpty)
+                }
+            }
+            .scrollDismissesKeyboard(.immediately)
+            .navigationTitle("Edit Food")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func save() {
+        let updated = FoodLogItem(
+            name: name,
+            quantity: Double(quantity) ?? entry.item.quantity,
+            unit: unit.isEmpty ? entry.item.unit : unit,
+            kcal: Double(kcal) ?? entry.item.kcal,
+            protein_g: Double(protein) ?? entry.item.protein_g,
+            carbs_g: Double(carbs) ?? entry.item.carbs_g,
+            fat_g: Double(fat) ?? entry.item.fat_g,
+            source: entry.item.source
+        )
+        onSave(updated)
+        dismiss()
     }
 }
 

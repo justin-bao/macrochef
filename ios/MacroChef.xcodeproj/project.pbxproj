@@ -3,276 +3,163 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		FF0000000000000000000001 /* MacroChefApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000001 /* MacroChefApp.swift */; };
-		FF0000000000000000000002 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000002 /* ContentView.swift */; };
-		FF0000000000000000000003 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000003 /* Config.swift */; };
-		FF0000000000000000000004 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000004 /* Models.swift */; };
-		FF0000000000000000000005 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000005 /* AuthManager.swift */; };
-		FF0000000000000000000006 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000006 /* APIClient.swift */; };
-		FF0000000000000000000007 /* TrackingStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000007 /* TrackingStore.swift */; };
-		FF0000000000000000000008 /* AuthView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000008 /* AuthView.swift */; };
-		FF0000000000000000000009 /* DiaryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000009 /* DiaryView.swift */; };
-		FF000000000000000000000A /* AddFoodView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000A /* AddFoodView.swift */; };
-		FF000000000000000000000B /* MacroProgressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000B /* MacroProgressView.swift */; };
-		FF000000000000000000000C /* RecipesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000C /* RecipesView.swift */; };
-		FF000000000000000000000D /* RecipeDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000D /* RecipeDetailView.swift */; };
-		FF000000000000000000000E /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000E /* ActivityView.swift */; };
-		FF000000000000000000000F /* AddActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE000000000000000000000F /* AddActivityView.swift */; };
-		FF0000000000000000000010 /* AnalyticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000010 /* AnalyticsView.swift */; };
-		FF0000000000000000000011 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000011 /* ProfileView.swift */; };
-		FF0000000000000000000012 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = EE0000000000000000000012 /* Assets.xcassets */; };
-		SS0000000000000000000005 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = SS0000000000000000000002 /* Supabase */; };
-		SS0000000000000000000006 /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = SS0000000000000000000003 /* Auth */; };
-		SS0000000000000000000007 /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = SS0000000000000000000004 /* PostgREST */; };
+		D0E6EEE92FBCDE130055EC4F /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEE82FBCDE130055EC4F /* Auth */; };
+		D0E6EEEB2FBCDE130055EC4F /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEEA2FBCDE130055EC4F /* Functions */; };
+		D0E6EEED2FBCDE130055EC4F /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEEC2FBCDE130055EC4F /* PostgREST */; };
+		D0E6EEEF2FBCDE130055EC4F /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEEE2FBCDE130055EC4F /* Realtime */; };
+		D0E6EEF12FBCDE130055EC4F /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEF02FBCDE130055EC4F /* Storage */; };
+		D0E6EEF32FBCDE130055EC4F /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D0E6EEF22FBCDE130055EC4F /* Supabase */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		AA0000000000000000000005 /* MacroChef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacroChef.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		EE0000000000000000000001 /* MacroChefApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroChefApp.swift; sourceTree = "<group>"; };
-		EE0000000000000000000002 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		EE0000000000000000000003 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
-		EE0000000000000000000004 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
-		EE0000000000000000000005 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthManager.swift; sourceTree = "<group>"; };
-		EE0000000000000000000006 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
-		EE0000000000000000000007 /* TrackingStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrackingStore.swift; sourceTree = "<group>"; };
-		EE0000000000000000000008 /* AuthView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthView.swift; sourceTree = "<group>"; };
-		EE0000000000000000000009 /* DiaryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiaryView.swift; sourceTree = "<group>"; };
-		EE000000000000000000000A /* AddFoodView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddFoodView.swift; sourceTree = "<group>"; };
-		EE000000000000000000000B /* MacroProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MacroProgressView.swift; sourceTree = "<group>"; };
-		EE000000000000000000000C /* RecipesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipesView.swift; sourceTree = "<group>"; };
-		EE000000000000000000000D /* RecipeDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeDetailView.swift; sourceTree = "<group>"; };
-		EE000000000000000000000E /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
-		EE000000000000000000000F /* AddActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddActivityView.swift; sourceTree = "<group>"; };
-		EE0000000000000000000010 /* AnalyticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsView.swift; sourceTree = "<group>"; };
-		EE0000000000000000000011 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
-		EE0000000000000000000012 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		D0561A622FBCAEE7008599E4 /* MacroChef.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MacroChef.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D07611DE2FBCC0FA00761700 /* MacroChef-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "MacroChef-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		D0561A642FBCAEE7008599E4 /* Sources/MacroChef */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Sources/MacroChef;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXFrameworksBuildPhase section */
-		BB0000000000000000000002 /* Frameworks */ = {
+		D0561A5F2FBCAEE7008599E4 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				SS0000000000000000000005 /* Supabase in Frameworks */,
-				SS0000000000000000000006 /* Auth in Frameworks */,
-				SS0000000000000000000007 /* PostgREST in Frameworks */,
+				D0E6EEED2FBCDE130055EC4F /* PostgREST in Frameworks */,
+				D0E6EEEB2FBCDE130055EC4F /* Functions in Frameworks */,
+				D0E6EEF32FBCDE130055EC4F /* Supabase in Frameworks */,
+				D0E6EEE92FBCDE130055EC4F /* Auth in Frameworks */,
+				D0E6EEF12FBCDE130055EC4F /* Storage in Frameworks */,
+				D0E6EEEF2FBCDE130055EC4F /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		AA0000000000000000000002 /* MacroChef */ = {
+		D0561A592FBCAEE7008599E4 = {
 			isa = PBXGroup;
 			children = (
-				DD0000000000000000000001 /* MacroChef */,
-				AA0000000000000000000003 /* Products */,
+				D07611DE2FBCC0FA00761700 /* MacroChef-Info.plist */,
+				D0561A642FBCAEE7008599E4 /* Sources/MacroChef */,
+				D0E6EEE72FBCDE130055EC4F /* Frameworks */,
+				D0561A632FBCAEE7008599E4 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		AA0000000000000000000003 /* Products */ = {
+		D0561A632FBCAEE7008599E4 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				AA0000000000000000000005 /* MacroChef.app */,
+				D0561A622FBCAEE7008599E4 /* MacroChef.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		DD0000000000000000000001 /* MacroChef */ = {
+		D0E6EEE72FBCDE130055EC4F /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				EE0000000000000000000001 /* MacroChefApp.swift */,
-				EE0000000000000000000002 /* ContentView.swift */,
-				EE0000000000000000000012 /* Assets.xcassets */,
-				DD0000000000000000000002 /* Core */,
-				DD0000000000000000000003 /* Features */,
 			);
-			name = MacroChef;
-			path = Sources/MacroChef;
-			sourceTree = SOURCE_ROOT;
-		};
-		DD0000000000000000000002 /* Core */ = {
-			isa = PBXGroup;
-			children = (
-				EE0000000000000000000003 /* Config.swift */,
-				EE0000000000000000000004 /* Models.swift */,
-				EE0000000000000000000005 /* AuthManager.swift */,
-				EE0000000000000000000006 /* APIClient.swift */,
-				EE0000000000000000000007 /* TrackingStore.swift */,
-			);
-			path = Core;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000003 /* Features */ = {
-			isa = PBXGroup;
-			children = (
-				DD0000000000000000000004 /* Auth */,
-				DD0000000000000000000005 /* Diary */,
-				DD0000000000000000000006 /* Recipes */,
-				DD0000000000000000000007 /* Activity */,
-				DD0000000000000000000008 /* Analytics */,
-				DD0000000000000000000009 /* Profile */,
-			);
-			path = Features;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000004 /* Auth */ = {
-			isa = PBXGroup;
-			children = (
-				EE0000000000000000000008 /* AuthView.swift */,
-			);
-			path = Auth;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000005 /* Diary */ = {
-			isa = PBXGroup;
-			children = (
-				EE0000000000000000000009 /* DiaryView.swift */,
-				EE000000000000000000000A /* AddFoodView.swift */,
-				EE000000000000000000000B /* MacroProgressView.swift */,
-			);
-			path = Diary;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000006 /* Recipes */ = {
-			isa = PBXGroup;
-			children = (
-				EE000000000000000000000C /* RecipesView.swift */,
-				EE000000000000000000000D /* RecipeDetailView.swift */,
-			);
-			path = Recipes;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000007 /* Activity */ = {
-			isa = PBXGroup;
-			children = (
-				EE000000000000000000000E /* ActivityView.swift */,
-				EE000000000000000000000F /* AddActivityView.swift */,
-			);
-			path = Activity;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000008 /* Analytics */ = {
-			isa = PBXGroup;
-			children = (
-				EE0000000000000000000010 /* AnalyticsView.swift */,
-			);
-			path = Analytics;
-			sourceTree = "<group>";
-		};
-		DD0000000000000000000009 /* Profile */ = {
-			isa = PBXGroup;
-			children = (
-				EE0000000000000000000011 /* ProfileView.swift */,
-			);
-			path = Profile;
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		AA0000000000000000000004 /* MacroChef */ = {
+		D0561A612FBCAEE7008599E4 /* MacroChef */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = CC0000000000000000000002 /* Build configuration list for PBXNativeTarget "MacroChef" */;
+			buildConfigurationList = D0561A6D2FBCAEE9008599E4 /* Build configuration list for PBXNativeTarget "MacroChef" */;
 			buildPhases = (
-				BB0000000000000000000001 /* Sources */,
-				BB0000000000000000000002 /* Frameworks */,
-				BB0000000000000000000003 /* Resources */,
+				D0561A5E2FBCAEE7008599E4 /* Sources */,
+				D0561A5F2FBCAEE7008599E4 /* Frameworks */,
+				D0561A602FBCAEE7008599E4 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
+			fileSystemSynchronizedGroups = (
+				D0561A642FBCAEE7008599E4 /* Sources/MacroChef */,
+			);
 			name = MacroChef;
 			packageProductDependencies = (
-				SS0000000000000000000002 /* Supabase */,
-				SS0000000000000000000003 /* Auth */,
-				SS0000000000000000000004 /* PostgREST */,
+				D0E6EEE82FBCDE130055EC4F /* Auth */,
+				D0E6EEEA2FBCDE130055EC4F /* Functions */,
+				D0E6EEEC2FBCDE130055EC4F /* PostgREST */,
+				D0E6EEEE2FBCDE130055EC4F /* Realtime */,
+				D0E6EEF02FBCDE130055EC4F /* Storage */,
+				D0E6EEF22FBCDE130055EC4F /* Supabase */,
 			);
 			productName = MacroChef;
-			productReference = AA0000000000000000000005 /* MacroChef.app */;
+			productReference = D0561A622FBCAEE7008599E4 /* MacroChef.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		AA0000000000000000000001 /* Project object */ = {
+		D0561A5A2FBCAEE7008599E4 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1500;
-				LastUpgradeCheck = 1500;
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
 				TargetAttributes = {
-					AA0000000000000000000004 = {
-						CreatedOnToolsVersion = 15.0;
+					D0561A612FBCAEE7008599E4 = {
+						CreatedOnToolsVersion = 26.5;
 					};
 				};
 			};
-			buildConfigurationList = CC0000000000000000000001 /* Build configuration list for PBXProject "MacroChef" */;
-			compatibilityVersion = "Xcode 14.0";
+			buildConfigurationList = D0561A5D2FBCAEE7008599E4 /* Build configuration list for PBXProject "MacroChef" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = AA0000000000000000000002;
+			mainGroup = D0561A592FBCAEE7008599E4;
+			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+				D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */,
 			);
-			productRefGroup = AA0000000000000000000003 /* Products */;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D0561A632FBCAEE7008599E4 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				AA0000000000000000000004 /* MacroChef */,
+				D0561A612FBCAEE7008599E4 /* MacroChef */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		BB0000000000000000000003 /* Resources */ = {
+		D0561A602FBCAEE7008599E4 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FF0000000000000000000012 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		BB0000000000000000000001 /* Sources */ = {
+		D0561A5E2FBCAEE7008599E4 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FF0000000000000000000001 /* MacroChefApp.swift in Sources */,
-				FF0000000000000000000002 /* ContentView.swift in Sources */,
-				FF0000000000000000000003 /* Config.swift in Sources */,
-				FF0000000000000000000004 /* Models.swift in Sources */,
-				FF0000000000000000000005 /* AuthManager.swift in Sources */,
-				FF0000000000000000000006 /* APIClient.swift in Sources */,
-				FF0000000000000000000007 /* TrackingStore.swift in Sources */,
-				FF0000000000000000000008 /* AuthView.swift in Sources */,
-				FF0000000000000000000009 /* DiaryView.swift in Sources */,
-				FF000000000000000000000A /* AddFoodView.swift in Sources */,
-				FF000000000000000000000B /* MacroProgressView.swift in Sources */,
-				FF000000000000000000000C /* RecipesView.swift in Sources */,
-				FF000000000000000000000D /* RecipeDetailView.swift in Sources */,
-				FF000000000000000000000E /* ActivityView.swift in Sources */,
-				FF000000000000000000000F /* AddActivityView.swift in Sources */,
-				FF0000000000000000000010 /* AnalyticsView.swift in Sources */,
-				FF0000000000000000000011 /* ProfileView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		CC0000000000000000000003 /* Debug */ = {
+		D0561A6B2FBCAEE9008599E4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -307,6 +194,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = SUU9BN76NK;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -324,17 +212,16 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
-				SDKROOT = iphoneos;
-				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 			};
 			name = Debug;
 		};
-		CC0000000000000000000004 /* Release */ = {
+		D0561A6C2FBCAEE9008599E4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -369,6 +256,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = SUU9BN76NK;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -380,88 +268,124 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
-				SWIFT_OPTIMIZATION_LEVEL = "-O";
-				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
-		CC0000000000000000000005 /* Debug */ = {
+		D0561A6E2FBCAEE9008599E4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MacroChef.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = SUU9BN76NK;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = MacroChef;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = "MacroChef-Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read fitness and activity data.";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.macrochef.app";
+				PRODUCT_BUNDLE_IDENTIFIER = MacroChef.MacroChef;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Debug;
 		};
-		CC0000000000000000000006 /* Release */ = {
+		D0561A6F2FBCAEE9008599E4 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = MacroChef.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = SUU9BN76NK;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_PREVIEWS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = MacroChef;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_FILE = "MacroChef-Info.plist";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read fitness and activity data.";
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphoneos*]" = YES;
+				"INFOPLIST_KEY_UILaunchScreen_Generation[sdk=iphonesimulator*]" = YES;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphoneos*]" = UIStatusBarStyleDefault;
+				"INFOPLIST_KEY_UIStatusBarStyle[sdk=iphonesimulator*]" = UIStatusBarStyleDefault;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				IPHONEOS_DEPLOYMENT_TARGET = 26.4;
+				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
+				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 26.4;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = "com.macrochef.app";
+				PRODUCT_BUNDLE_IDENTIFIER = MacroChef.MacroChef;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = auto;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = 1;
+				TARGETED_DEVICE_FAMILY = "1,2,7";
+				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Release;
 		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CC0000000000000000000001 /* Build configuration list for PBXProject "MacroChef" */ = {
+		D0561A5D2FBCAEE7008599E4 /* Build configuration list for PBXProject "MacroChef" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CC0000000000000000000003 /* Debug */,
-				CC0000000000000000000004 /* Release */,
+				D0561A6B2FBCAEE9008599E4 /* Debug */,
+				D0561A6C2FBCAEE9008599E4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		CC0000000000000000000002 /* Build configuration list for PBXNativeTarget "MacroChef" */ = {
+		D0561A6D2FBCAEE9008599E4 /* Build configuration list for PBXNativeTarget "MacroChef" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				CC0000000000000000000005 /* Debug */,
-				CC0000000000000000000006 /* Release */,
+				D0561A6E2FBCAEE9008599E4 /* Debug */,
+				D0561A6F2FBCAEE9008599E4 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -469,34 +393,48 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+		D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/supabase/supabase-swift.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.0.0;
+				minimumVersion = 2.5.1;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		SS0000000000000000000002 /* Supabase */ = {
+		D0E6EEE82FBCDE130055EC4F /* Auth */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
-			productName = Supabase;
-		};
-		SS0000000000000000000003 /* Auth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = Auth;
 		};
-		SS0000000000000000000004 /* PostgREST */ = {
+		D0E6EEEA2FBCDE130055EC4F /* Functions */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = SS0000000000000000000001 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		D0E6EEEC2FBCDE130055EC4F /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
 			productName = PostgREST;
 		};
+		D0E6EEEE2FBCDE130055EC4F /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		D0E6EEF02FBCDE130055EC4F /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		D0E6EEF22FBCDE130055EC4F /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = D07611DD2FBCC0EE00761700 /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
 /* End XCSwiftPackageProductDependency section */
-
 	};
-	rootObject = AA0000000000000000000001 /* Project object */;
+	rootObject = D0561A5A2FBCAEE7008599E4 /* Project object */;
 }

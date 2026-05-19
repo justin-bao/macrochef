@@ -71,6 +71,16 @@ final class TrackingStore {
         saveLocal()
     }
 
+    // MARK: - Apple Health
+
+    func setHealthKitDistance(miles: Double, date: Date = .now) {
+        let key = Self.key(for: date)
+        var d = diary[key] ?? TrackingDay.empty()
+        d.healthKitDistanceMi = miles
+        diary[key] = d
+        saveLocal()
+    }
+
     // MARK: - Settings / Goals
 
     func updateSettings(_ newSettings: TrackingSettings) {
@@ -93,13 +103,14 @@ final class TrackingStore {
                 var carbs_g: Double?
                 var fat_g: Double?
             }
-            let row: GoalRow? = try await authManager.supabase
+            let rows: [GoalRow] = try await authManager.supabase
                 .from("macro_goals")
                 .select("kcal,protein_g,carbs_g,fat_g")
                 .eq("user_id", value: userId.uuidString)
-                .maybeSingle()
+                .limit(1)
                 .execute()
                 .value
+            let row = rows.first
             if let row {
                 settings.dailyCalorieTarget = row.kcal ?? settings.dailyCalorieTarget
                 settings.dailyProteinTarget = row.protein_g ?? settings.dailyProteinTarget
@@ -117,10 +128,10 @@ final class TrackingStore {
         do {
             let row: [String: AnyJSON] = [
                 "user_id": .string(userId.uuidString),
-                "kcal": .number(settings.dailyCalorieTarget),
-                "protein_g": .number(settings.dailyProteinTarget),
-                "carbs_g": .number(settings.dailyCarbsTarget),
-                "fat_g": .number(settings.dailyFatTarget),
+                "kcal": .double(settings.dailyCalorieTarget),
+                "protein_g": .double(settings.dailyProteinTarget),
+                "carbs_g": .double(settings.dailyCarbsTarget),
+                "fat_g": .double(settings.dailyFatTarget),
             ]
             try await authManager.supabase
                 .from("macro_goals")

@@ -19,7 +19,7 @@ struct MacroProgressView: View {
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                     Text(remaining >= 0 ? "remaining" : "over goal")
                         .font(.caption)
-                        .foregroundStyle(remaining >= 0 ? .secondary : .red)
+                        .foregroundStyle(remaining >= 0 ? Color.secondary : Color.red)
                 }
                 .frame(maxWidth: .infinity)
                 Spacer()

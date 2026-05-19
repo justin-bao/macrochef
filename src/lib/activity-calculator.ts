@@ -45,13 +45,28 @@ function toKm(distance: number, unitSystem: UserActivityProfile["unitSystem"]) {
   return unitSystem === "imperial" ? distance * 1.60934 : distance;
 }
 
-function restingVo2(profile: UserActivityProfile) {
+/** Mifflin-St Jeor BMR in kcal/day. */
+export function calculateBMR(profile: UserActivityProfile): number {
   const weightKg = toKg(profile.weight, profile.unitSystem);
   const heightCm = toCm(profile.height, profile.unitSystem);
   const sexOffset = profile.sex === "male" ? 5 : profile.sex === "female" ? -161 : -78;
-  const bmrKcalDay = 10 * weightKg + 6.25 * heightCm - 5 * profile.age + sexOffset;
+  return Math.max(1200, 10 * weightKg + 6.25 * heightCm - 5 * profile.age + sexOffset);
+}
 
+function restingVo2(profile: UserActivityProfile) {
+  const weightKg = toKg(profile.weight, profile.unitSystem);
+  const bmrKcalDay = calculateBMR(profile);
   return Math.max(2.6, Math.min(4.6, (bmrKcalDay * 1000) / (1440 * 5 * weightKg)));
+}
+
+/** Active calories burned per mile of walking at ~3 mph, personalized to body weight. */
+export function caloriesPerMileWalking(profile: UserActivityProfile): number {
+  const weightKg = toKg(profile.weight, profile.unitSystem);
+  const rvo2 = restingVo2(profile);
+  // ACSM horizontal walking formula at 80.5 m/min (3 mph)
+  const vo2 = 0.1 * 80.5 + rvo2;
+  const minutesPerMile = 20; // 3 mph
+  return Math.round(((vo2 * weightKg * minutesPerMile) / 200) * 10) / 10;
 }
 
 function caloriesFromVo2(vo2MlKgMin: number, weightKg: number, durationMinutes: number) {

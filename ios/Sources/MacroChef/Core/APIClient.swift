@@ -1,4 +1,5 @@
 import Foundation
+import Supabase
 
 actor APIClient {
     private let base: URL
@@ -74,6 +75,28 @@ actor APIClient {
         return response.estimate
     }
 
+    func estimateAI(
+        description: String,
+        context: FoodContext? = nil,
+        useToolCalling: Bool = true
+    ) async throws -> AIEstimateResponse {
+        try await post(
+            path: "api/food/estimate-ai",
+            body: AIEstimateRequest(description: description, context: context, useToolCalling: useToolCalling)
+        )
+    }
+
+    func estimateImage(
+        imageDataUrl: String,
+        mode: String = "meal_photo",
+        context: FoodContext? = nil
+    ) async throws -> AIEstimateResponse {
+        try await post(
+            path: "api/food/estimate-image",
+            body: AIImageRequest(imageDataUrl: imageDataUrl, mode: mode, context: context)
+        )
+    }
+
     // MARK: - Recipes
 
     func searchRecipes(
@@ -117,6 +140,28 @@ private struct FoodEstimateRequest: Encodable {
 
 private struct FoodEstimateResponse: Decodable {
     var estimate: FoodEstimateResult?
+    var error: String?
+}
+
+struct FoodContext: Encodable {
+    var setting: String?   // "homemade" | "restaurant" | "packaged"
+    var notes: String?
+}
+
+private struct AIEstimateRequest: Encodable {
+    var description: String
+    var context: FoodContext?
+    var useToolCalling: Bool
+}
+
+private struct AIImageRequest: Encodable {
+    var imageDataUrl: String
+    var mode: String
+    var context: FoodContext?
+}
+
+struct AIEstimateResponse: Decodable {
+    var items: [AIFoodItem]
     var error: String?
 }
 

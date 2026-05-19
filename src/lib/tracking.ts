@@ -4,7 +4,7 @@ export type ActivityKind = "run" | "walk" | "bike" | "stairmaster" | "strength" 
 
 export type ActivityIntensity = "low" | "moderate" | "high" | "vigorous";
 
-export type ActivitySource = "manual" | "apple_health" | "strava";
+export type ActivitySource = "manual" | "apple_health" | "strava" | "garmin";
 
 export type FoodSource = "manual" | "recipe" | "restaurant" | "ai" | "usda";
 
@@ -66,9 +66,16 @@ export interface ActivityLogItem {
   notes?: string;
 }
 
+export interface GarminDaySummary {
+  /** Total distance the device recorded for the day (miles). */
+  totalDistanceMi: number;
+  updatedAt: string;
+}
+
 export interface TrackingDay {
   meals: MealLog[];
   activities: ActivityLogItem[];
+  garminSummary?: GarminDaySummary;
 }
 
 export type TrackingData = Record<string, TrackingDay>;

@@ -50,3 +50,5 @@ kaggle/recipes.parquet
 kaggle/reviews.csv
 kaggle/reviews.parquet
 .vercel
+.claude
+ios/.swiftpm

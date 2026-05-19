@@ -1,0 +1,2 @@
+// Production environment — points to deployed Vercel app
+API_BASE_URL = https://macrochef-log.vercel.app/
