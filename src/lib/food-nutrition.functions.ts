@@ -219,6 +219,60 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
     },
   );
 
+// Returns top Nutritionix branded results for a query in compact per-serving format.
+// Best for US chain restaurant items (McDonald's, Chipotle, Starbucks, etc.).
+async function searchNutritionixForTool(query: string) {
+  const appId = process.env.NUTRITIONIX_APP_ID;
+  const appKey = process.env.NUTRITIONIX_APP_KEY;
+  if (!appId || !appKey) return { matches: [] };
+
+  try {
+    const res = await fetch("https://trackapi.nutritionix.com/v2/search/instant", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-app-id": appId,
+        "x-app-key": appKey,
+      },
+      body: JSON.stringify({ query, branded: true, self: false, common: false }),
+    });
+    if (!res.ok) return { matches: [] };
+
+    const json = (await res.json()) as {
+      branded?: Array<{
+        food_name?: string;
+        brand_name?: string;
+        serving_qty?: number;
+        serving_unit?: string;
+        nf_calories?: number;
+        nf_total_fat?: number;
+        nf_total_carbohydrate?: number;
+        nf_protein?: number;
+      }>;
+    };
+
+    const matches = (json.branded ?? [])
+      .slice(0, 5)
+      .map((item) => {
+        const kcal = item.nf_calories;
+        if (!kcal || kcal <= 0) return null;
+        return {
+          name: [item.brand_name, item.food_name].filter(Boolean).join(" — "),
+          serving: `${item.serving_qty ?? 1} ${item.serving_unit ?? "serving"}`,
+          kcal_per_serving: Math.round(kcal),
+          protein_g_per_serving: Math.round((item.nf_protein ?? 0) * 10) / 10,
+          carbs_g_per_serving: Math.round((item.nf_total_carbohydrate ?? 0) * 10) / 10,
+          fat_g_per_serving: Math.round((item.nf_total_fat ?? 0) * 10) / 10,
+        };
+      })
+      .filter(Boolean);
+
+    return { matches };
+  } catch {
+    return { matches: [] };
+  }
+}
+
 // Returns top Open Food Facts matches for a query in compact per-100g format.
 // No API key or rate limit — preferred over FatSecret for branded/packaged products.
 async function searchOpenFoodFactsForTool(query: string) {
@@ -371,6 +425,26 @@ const SEARCH_USDA_TOOL = {
   },
 };
 
+const SEARCH_NUTRITIONIX_TOOL = {
+  type: "function" as const,
+  function: {
+    name: "search_nutritionix",
+    description:
+      "Search Nutritionix for US chain restaurant menu items (McDonald's, Chipotle, Starbucks, Chick-fil-A, etc.). Prefer this over search_usda or search_open_food_facts when the food is from a restaurant chain. Returns macros per serving.",
+    parameters: {
+      type: "object",
+      properties: {
+        query: {
+          type: "string",
+          description:
+            "Chain name plus item, e.g. 'McDonald's Big Mac' or 'Chipotle chicken burrito bowl'.",
+        },
+      },
+      required: ["query"],
+    },
+  },
+};
+
 const SEARCH_OFF_TOOL = {
   type: "function" as const,
   function: {
@@ -442,8 +516,9 @@ When given a food description or image:
 1. Identify the dish and estimate the overall portion size.
 2. Break it into its likely constituent ingredients with realistic portion sizes.
 3. For each ingredient, call the appropriate tool (max 10 calls total):
+   - search_nutritionix for restaurant chain items (McDonald's, Chipotle, Starbucks, etc.).
    - search_usda for whole/unprocessed foods (meats, grains, vegetables, dairy).
-   - search_open_food_facts for branded or packaged products.
+   - search_open_food_facts for branded packaged products.
 4. After reviewing results, decide:
    - If matches are clearly correct, return each ingredient as a separate item scaled to its portion. Cite the matched food name in note.
    - If results are poor or absent for most ingredients, return a single item for the whole dish with your overall estimate and confidence "low".
@@ -485,7 +560,10 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
           temperature: 0.1,
           messages: msgs,
           ...(enableTools
-            ? { tools: [SEARCH_USDA_TOOL, SEARCH_OFF_TOOL], tool_choice: "auto" }
+            ? {
+                tools: [SEARCH_USDA_TOOL, SEARCH_OFF_TOOL, SEARCH_NUTRITIONIX_TOOL],
+                tool_choice: "auto",
+              }
             : {}),
         }),
       });
@@ -528,7 +606,9 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
           const result =
             tc.function.name === "search_open_food_facts"
               ? await searchOpenFoodFactsForTool(query)
-              : await searchUsdaForTool(query);
+              : tc.function.name === "search_nutritionix"
+                ? await searchNutritionixForTool(query)
+                : await searchUsdaForTool(query);
           return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result) };
         } catch {
           return {
