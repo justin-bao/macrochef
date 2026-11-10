@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { MacroInputs } from "@/components/MacroInputs";
+import { MealGoalsEditor } from "@/components/MealGoalsEditor";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -539,7 +540,7 @@ function ProfilePage() {
         <Card className="p-5">
           <div className="mb-4 flex items-center gap-2">
             <Target className="h-4 w-4 text-primary" />
-            <h2 className="font-semibold">Macro Goals</h2>
+            <h2 className="font-semibold">Daily Macro Goals</h2>
           </div>
           <p className="mb-3 text-xs text-muted-foreground">
             <span className="font-medium">Calories</span> is your{" "}
@@ -577,6 +578,7 @@ function ProfilePage() {
               {busy ? "Saving..." : "Save profile"}
             </Button>
           </div>
+          <MealGoalsEditor />
         </Card>
       </div>
     </div>
