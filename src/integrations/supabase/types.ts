@@ -83,6 +83,36 @@ export type Database = {
         }
         Relationships: []
       }
+      meal_goals: {
+        Row: {
+          carbs_g: number | null
+          fat_g: number | null
+          kcal: number | null
+          meal: string
+          protein_g: number | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          meal: string
+          protein_g?: number | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          carbs_g?: number | null
+          fat_g?: number | null
+          kcal?: number | null
+          meal?: string
+          protein_g?: number | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       recipe_detail_objects: {
         Row: {
           bucket_id: string

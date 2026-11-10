@@ -27,6 +27,8 @@ import { CheckCircle2, Search, ChevronDown, UtensilsCrossed, Store } from "lucid
 import { useLocalTracking } from "@/hooks/useLocalTracking";
 import { toast } from "sonner";
 import { LocalRestaurantSearch } from "@/components/LocalRestaurantSearch";
+import { MealGoalPicker } from "@/components/MealGoalPicker";
+import { type GoalMeal } from "@/lib/per-meal-goals";
 
 const searchSchema = z.object({
   mode: z.enum(["recipes", "restaurants", "nearby"]).optional().catch(undefined).default("recipes"),
@@ -111,6 +113,7 @@ function RecipesTab() {
     fat_g: search.f ?? null,
   });
   const [allowSubs, setAllowSubs] = useState(search.subs);
+  const [goalMeal, setGoalMeal] = useState<GoalMeal | "custom">("custom");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -196,7 +199,8 @@ function RecipesTab() {
             <p className="mb-2 text-xs text-muted-foreground">
               Leave any macro blank to ignore it.
             </p>
-            <MacroInputs value={macros} onChange={setMacros} />
+            <div className="mb-3"><MealGoalPicker meal={goalMeal} onChange={(meal, targets) => { setGoalMeal(meal); if (targets) setMacros(targets); }} /></div>
+            <MacroInputs value={macros} onChange={(values) => { setGoalMeal("custom"); setMacros(values); }} />
           </div>
           <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 p-3">
             <div>
@@ -265,6 +269,7 @@ function RestaurantsTab() {
     fat_g: search.f ?? null,
   });
   const [maxItems, setMaxItems] = useState<number>(search.maxItems ?? 3);
+  const [goalMeal, setGoalMeal] = useState<GoalMeal | "custom">("custom");
   const [combos, setCombos] = useState<Combo[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -362,7 +367,8 @@ function RestaurantsTab() {
             <p className="mb-2 text-xs text-muted-foreground">
               Set the macros you want the combo to total. Leave blank to ignore.
             </p>
-            <MacroInputs value={macros} onChange={setMacros} />
+            <div className="mb-3"><MealGoalPicker meal={goalMeal} onChange={(meal, targets) => { setGoalMeal(meal); if (targets) setMacros(targets); }} /></div>
+            <MacroInputs value={macros} onChange={(values) => { setGoalMeal("custom"); setMacros(values); }} />
           </div>
           <div className="flex items-center justify-between gap-4 rounded-lg border bg-muted/30 p-3">
             <div>
