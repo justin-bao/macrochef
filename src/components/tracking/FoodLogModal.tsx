@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { NutritionEvidence } from "@/components/NutritionEvidence";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -111,6 +112,7 @@ export function FoodLogModal({
         fat_g: estimate.fat_g,
         source: "usda",
         confidence: estimate.confidence,
+        evidence: estimate.evidence,
         note: `${estimate.sourceLabel} matched "${estimate.matchedName}". ${estimate.servingBasis}. These macros are ready to use, and you can adjust them if needed.`,
       };
     } catch (error) {
@@ -141,8 +143,9 @@ export function FoodLogModal({
       protein_g: item.protein_g,
       carbs_g: item.carbs_g,
       fat_g: item.fat_g,
-      source: item.note?.toLowerCase().includes("usda") ? ("usda" as const) : defaultSource,
+      source: item.evidence?.sources.some((s) => s.id.startsWith("fdc-")) ? ("usda" as const) : defaultSource,
       confidence: item.confidence,
+      evidence: item.evidence,
       note: item.note,
       loggedAt: new Date().toISOString(),
     }));
@@ -340,8 +343,7 @@ export function FoodLogModal({
             ) : (
               <>
                 <p className="text-sm text-muted-foreground">
-                  USDA filled in the closest match it found. The macros are ready to use as-is, and
-                  you can adjust any field before adding.
+                  Estimated nutrition · Review portions, sources, and assumptions before logging.
                 </p>
                 {estimateError && <p className="text-sm text-destructive">{estimateError}</p>}
                 <div className="space-y-3">
@@ -386,6 +388,7 @@ export function FoodLogModal({
                           onChange={(value) => updateParsed(item.id, "fat_g", value)}
                         />
                       </div>
+                      <NutritionEvidence evidence={item.evidence} />
                       {item.note && (
                         <p className="mt-2 text-xs text-muted-foreground">{item.note}</p>
                       )}
@@ -537,6 +540,7 @@ export function FoodLogModal({
                   {estimateError ?? manual.note}
                 </p>
               )}
+              {manual.evidence && <NutritionEvidence evidence={manual.evidence} />}
               {manual.kcal > 0 && (
                 <p className="text-sm text-muted-foreground">
                   These macros are ready to use as-is, and you can adjust any field before adding.
@@ -674,6 +678,7 @@ function ParsedReview({
                 onChange={(value) => updateParsed(item.id, "fat_g", value)}
               />
             </div>
+            <NutritionEvidence evidence={item.evidence} />
             {item.note && <p className="mt-2 text-xs text-muted-foreground">{item.note}</p>}
           </div>
         ))}

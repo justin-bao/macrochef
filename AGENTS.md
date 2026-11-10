@@ -6,3 +6,4 @@
 - Rank restaurant dishes at their standard serving size by summed normalized absolute distance over supplied targets; never scale restaurant portions or combine dishes in this flow.
 - Register browser bearer attachment in src/start.ts so protected server functions validate signed-in callers.
 - Use request-scoped Responses AI SDK calls with streaming, strict output schemas and gateway run IDs; provider denials remain durably paused until service access is restored.
+- Keep nutrition evidence scoring in a shared pure module; cite only retrieved records or provided labels/menu excerpts, persist evidence with logged items, and distinguish evidence scores from calibrated accuracy probabilities to prevent unsupported precision.

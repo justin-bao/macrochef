@@ -1,3 +1,5 @@
+import type { NutritionEvidence } from "./nutrition-evidence";
+
 export type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
 
 export type ActivityKind = "run" | "walk" | "bike" | "stairmaster" | "strength" | "gym" | "other";
@@ -36,6 +38,7 @@ export interface FoodLogItem {
   fat_g: number;
   source: FoodSource;
   confidence?: "high" | "medium" | "low";
+  evidence?: NutritionEvidence;
   note?: string;
   loggedAt: string;
 }

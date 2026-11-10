@@ -10,6 +10,7 @@ import { Input } from "./ui/input";
 import { Card } from "./ui/card";
 import { findLocalRestaurants, getLocalRestaurantMeals, type LocalRestaurant } from "@/lib/local-restaurants.functions";
 import { rankMeals, type EstimatedDish } from "@/lib/meal-matching";
+import { NutritionEvidence } from "./NutritionEvidence";
 
 export function LocalRestaurantSearch({ initialTargets }: { initialTargets: MacrosOptional }) {
   const { user, loading: authLoading } = useAuth();
@@ -74,5 +75,5 @@ export function LocalRestaurantSearch({ initialTargets }: { initialTargets: Macr
 
 function MealCard({ dish, targets, rank }: { dish: EstimatedDish; targets: MacrosOptional; rank: number | null }) {
   const values = [["kcal", "Calories", "kcal"], ["protein_g", "Protein", "g"], ["carbs_g", "Carbs", "g"], ["fat_g", "Fat", "g"]] as const;
-  return <Card className="p-4"><div className="mb-2 flex justify-between gap-2 text-xs text-muted-foreground"><span>{rank ? `#${rank} match` : "One dish"}</span><span className="capitalize">{dish.confidence} confidence</span></div><h4 className="font-semibold">{dish.name}</h4><p className="mt-2 text-sm text-muted-foreground">{dish.description}</p><p className="mt-2 text-xs">{dish.portion}</p><dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3">{values.map(([key, label, unit]) => { const delta = targets[key] === null ? null : Math.round(dish[key] - (targets[key] ?? 0)); return <div key={key}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="text-sm font-semibold">≈ {Math.round(dish[key])} {unit}</dd>{delta !== null && <p className="text-xs text-muted-foreground">{delta > 0 ? "+" : ""}{delta} {unit} vs goal</p>}</div>; })}</dl><details className="mt-4 text-xs text-muted-foreground"><summary className="cursor-pointer">Estimate assumptions</summary><p className="mt-2">{dish.assumptions}</p></details></Card>;
+  return <Card className="p-4"><div className="mb-2 text-xs text-muted-foreground">{rank ? `#${rank} match` : "One dish"}</div><h4 className="font-semibold">{dish.name}</h4><p className="mt-2 text-sm text-muted-foreground">{dish.description}</p><p className="mt-2 text-xs">{dish.portion}</p><dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3">{values.map(([key, label, unit]) => { const delta = targets[key] === null ? null : Math.round(dish[key] - (targets[key] ?? 0)); return <div key={key}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="text-sm font-semibold">≈ {Math.round(dish[key])} {unit}</dd>{delta !== null && <p className="text-xs text-muted-foreground">{delta > 0 ? "+" : ""}{delta} {unit} vs goal</p>}</div>; })}</dl><NutritionEvidence evidence={dish.evidence} /><details className="mt-4 text-xs text-muted-foreground"><summary className="cursor-pointer">Estimate assumptions</summary><p className="mt-2">{dish.assumptions}</p></details></Card>;
 }

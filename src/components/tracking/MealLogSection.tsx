@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { NutritionEvidence } from "@/components/NutritionEvidence";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { MEAL_LABELS, sumFood, type MealLog, type MealType } from "@/lib/tracking";
@@ -71,6 +72,7 @@ export function MealLogSection({
                       </span>
                     </div>
                     {item.note && <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>}
+                    {(item.evidence || item.source === "ai" || item.source === "usda" || item.source === "restaurant") && <NutritionEvidence evidence={item.evidence} />}
                   </div>
                   <Button
                     type="button"
