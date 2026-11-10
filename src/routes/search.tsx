@@ -26,9 +26,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CheckCircle2, Search, ChevronDown, UtensilsCrossed, Store } from "lucide-react";
 import { useLocalTracking } from "@/hooks/useLocalTracking";
 import { toast } from "sonner";
+import { LocalRestaurantSearch } from "@/components/LocalRestaurantSearch";
 
 const searchSchema = z.object({
-  mode: z.enum(["recipes", "restaurants"]).optional().catch(undefined).default("recipes"),
+  mode: z.enum(["recipes", "restaurants", "nearby"]).optional().catch(undefined).default("recipes"),
   q: z.string().catch(""),
   kcal: z.coerce.number().optional().catch(undefined),
   p: z.coerce.number().optional().catch(undefined),
@@ -50,6 +51,10 @@ export const Route = createFileRoute("/search")({
         name: "description",
         content: "Search recipes or fast food combos tuned to your macro targets.",
       },
+      { property: "og:title", content: "Search recipes & restaurant meals — MacroChef" },
+      { property: "og:description", content: "Find recipes, restaurant combos and nearby single-dish meals for optional macro goals." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SearchPage,
@@ -66,15 +71,16 @@ function SearchPage() {
         value={mode}
         onValueChange={(v) =>
           navigate({
-            search: (prev: SearchState) => ({ ...prev, mode: v as "recipes" | "restaurants" }),
+            search: (prev: SearchState) => ({ ...prev, mode: v as "recipes" | "restaurants" | "nearby" }),
           })
         }
       >
-        <TabsList className="mb-4 grid w-full grid-cols-2 sm:w-auto sm:inline-grid">
+        <TabsList className="mb-4 grid w-full grid-cols-3 sm:w-auto sm:inline-grid">
           <TabsTrigger value="recipes" className="gap-2">
             <UtensilsCrossed className="h-4 w-4" />
             Recipes
           </TabsTrigger>
+          <TabsTrigger value="nearby" className="gap-2">Nearby meals</TabsTrigger>
           <TabsTrigger value="restaurants" className="gap-2">
             <Store className="h-4 w-4" />
             Restaurants
@@ -85,6 +91,9 @@ function SearchPage() {
         </TabsContent>
         <TabsContent value="restaurants" className="mt-0">
           <RestaurantsTab />
+        </TabsContent>
+        <TabsContent value="nearby" className="mt-0">
+          <LocalRestaurantSearch initialTargets={{ kcal: search.kcal ?? null, protein_g: search.p ?? null, carbs_g: search.c ?? null, fat_g: search.f ?? null }} />
         </TabsContent>
       </Tabs>
     </div>
