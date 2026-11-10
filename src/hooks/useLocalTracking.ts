@@ -84,8 +84,8 @@ export function useLocalTracking() {
               height: profile.data.height,
               age: profile.data.age,
               sex: profile.data.sex,
-              goal: profile.data.goal,
-              unitSystem: profile.data.unit_system,
+              goal: (["lose_body_fat", "build_muscle", "maintain_weight", "fuel_runs", "general_nutrition"] as const).find((goal) => goal === profile.data?.goal) ?? "maintain_weight",
+              unitSystem: profile.data.unit_system === "metric" ? "metric" as const : "imperial" as const,
             }
           : {}),
       }));

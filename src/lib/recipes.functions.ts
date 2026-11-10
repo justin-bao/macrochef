@@ -65,7 +65,7 @@ type SpoonacularIngredient = {
 type SpoonacularSearchRecipe = {
   id: number;
   title: string;
-  image?: string;
+  image: string;
   servings?: number;
   extendedIngredients?: SpoonacularIngredient[];
   nutrition?: {
@@ -518,10 +518,10 @@ export const getRecipe = createServerFn({ method: "POST" })
       const ingNut = r.nutrition?.ingredients?.find((x) => x.id === ing.id)?.nutrients ?? [];
       const inFind = (n: string) => ingNut.find((x) => x.name === n)?.amount;
       return {
-        id: ing.id,
-        name: ing.nameClean || ing.name,
-        original: ing.original,
-        amount: ing.measures?.metric?.amount ?? ing.amount,
+        id: ing.id ?? 0,
+        name: ing.nameClean || ing.name || "Ingredient",
+        original: ing.original ?? ing.name ?? "Ingredient",
+        amount: ing.measures?.metric?.amount ?? ing.amount ?? 0,
         unit: ing.measures?.metric?.unitShort ?? ing.unit ?? "",
         kcal: inFind("Calories"),
         protein_g: inFind("Protein"),
@@ -539,8 +539,8 @@ export const getRecipe = createServerFn({ method: "POST" })
         source: "spoonacular",
         title: r.title,
         image: r.image,
-        servings: r.servings,
-        readyInMinutes: r.readyInMinutes,
+        servings: r.servings ?? 1,
+        readyInMinutes: r.readyInMinutes ?? 0,
         sourceUrl: r.sourceUrl,
         summary: r.summary,
         instructions,

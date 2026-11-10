@@ -62,6 +62,10 @@ export const Route = createFileRoute("/profile")({
   head: () => ({
     meta: [
       { title: "Profile — MacroChef" },
+      { property: "og:title", content: "Profile — MacroChef" },
+      { property: "og:description", content: "Set your MacroChef goals and body profile." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         name: "description",
         content: "Set your MacroChef goals and body profile.",
@@ -141,8 +145,8 @@ function ProfilePage() {
             height: Number(savedProfile.data.height),
             age: savedProfile.data.age,
             sex: savedProfile.data.sex,
-            goal: savedProfile.data.goal,
-            unitSystem: savedProfile.data.unit_system,
+            goal: Object.keys(PROFILE_GOALS).includes(savedProfile.data.goal) ? savedProfile.data.goal as ProfileGoal : "maintain_weight",
+            unitSystem: savedProfile.data.unit_system === "metric" ? "metric" : "imperial",
           });
         }
       })
