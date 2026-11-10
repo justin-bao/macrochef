@@ -1,5 +1,6 @@
 # Architecture
 - Store optional per-meal goals separately from daily net-calorie targets; share owner-scoped query hooks and a picker across search modes so meal calories remain gross intake and blank nutrients stay unset.
+- Create the shared query client per root mount, never in a module global, to isolate SSR requests and support meal-goal queries.
 - Build with the Cloudflare Vite plugin and its `ssr` environment, not Nitro's Vercel preset, so Lovable receives the deployable `dist/` output.
 - Keep map restaurant discovery separate from the existing chain-combo search so each retains its single-dish or multi-item ranking contract.
 - Call Google Places and menu scraping only from authenticated server functions; keep credentials server-side and cap restaurant search to 12 results and menu retrieval to two pages per explicit action.

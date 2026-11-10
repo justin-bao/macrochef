@@ -3,6 +3,8 @@ import appCss from "../styles.css?url";
 import { AuthProvider } from "@/lib/auth";
 import { Header } from "@/components/Header";
 import { Toaster } from "@/components/ui/sonner";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useState } from "react";
 
 function NotFoundComponent() {
   return (
@@ -63,7 +65,9 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 function RootComponent() {
+  const [queryClient] = useState(() => new QueryClient());
   return (
+    <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <div className="min-h-screen flex flex-col">
         <Header />
@@ -76,5 +80,6 @@ function RootComponent() {
       </div>
       <Toaster />
     </AuthProvider>
+    </QueryClientProvider>
   );
 }
