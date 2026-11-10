@@ -1,4 +1,5 @@
 # Architecture
+- Build with the Cloudflare Vite plugin and its `ssr` environment, not Nitro's Vercel preset, so Lovable receives the deployable `dist/` output.
 - Keep map restaurant discovery separate from the existing chain-combo search so each retains its single-dish or multi-item ranking contract.
 - Call Google Places and menu scraping only from authenticated server functions; keep credentials server-side and cap restaurant search to 12 results and menu retrieval to two pages per explicit action.
 - Cache only website-derived menu estimates in an owner-scoped table, not Google place content; this avoids repeated paid estimates while preserving Google attribution.
