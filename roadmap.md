@@ -1,3 +1,7 @@
+# Estimate accuracy
+- [ ] Add evidence-based confidence scores and source details to food logging and nearby meal estimates.
+- [ ] Test source validation, complex-dish uncertainty, and the food logging flow.
+
 # Restaurant map search
 - [x] Add authenticated Google restaurant search and interactive map.
 - [x] Retrieve restaurant website menus and estimate single-dish macros.
