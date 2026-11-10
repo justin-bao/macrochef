@@ -2,7 +2,7 @@
 
 # North star
 
-People eat meals they enjoy that hit their macro targets
+People eat meals they enjoy while accurately tracking towards macronutrient targets
 
 ## Metric
 
