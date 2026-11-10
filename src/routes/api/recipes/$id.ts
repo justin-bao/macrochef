@@ -1,7 +1,8 @@
-import { createAPIFileRoute } from "@tanstack/react-start/api";
+import { createFileRoute } from "@tanstack/react-router";
 import { getRecipe } from "@/lib/recipes.functions";
 
-export const APIRoute = createAPIFileRoute("/api/recipes/$id")({
+export const Route = createFileRoute("/api/recipes/$id")({
+  server: { handlers: {
   GET: async ({ params, request }) => {
     const id = parseInt(params.id, 10);
     if (isNaN(id) || id <= 0) {
@@ -20,4 +21,5 @@ export const APIRoute = createAPIFileRoute("/api/recipes/$id")({
       return Response.json({ recipe: null, error: message }, { status: 500 });
     }
   },
+} },
 });

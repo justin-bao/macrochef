@@ -1,4 +1,4 @@
-import { createAPIFileRoute } from "@tanstack/react-start/api";
+import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 const FDC_BASE = "https://api.nal.usda.gov/fdc/v1";
@@ -115,7 +115,8 @@ function buildEstimate(food: FdcFood, name: string, quantity: number, unit: stri
   };
 }
 
-export const APIRoute = createAPIFileRoute("/api/food/estimate")({
+export const Route = createFileRoute("/api/food/estimate")({
+  server: { handlers: {
   POST: async ({ request }) => {
     let body: unknown;
     try {
@@ -158,4 +159,5 @@ export const APIRoute = createAPIFileRoute("/api/food/estimate")({
 
     return Response.json({ estimate: buildEstimate(food, name, quantity, unit), error: null });
   },
+} },
 });

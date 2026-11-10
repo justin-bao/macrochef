@@ -19,6 +19,10 @@ import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RecipeIdRouteImport } from './routes/recipe.$id'
 import { Route as IntegrationsStravaCallbackRouteImport } from './routes/integrations.strava.callback'
+import { Route as ApiRecipesSearchRouteImport } from './routes/api/recipes/search'
+import { Route as ApiRecipesIdRouteImport } from './routes/api/recipes/$id'
+import { Route as ApiFoodSearchRouteImport } from './routes/api/food/search'
+import { Route as ApiFoodEstimateRouteImport } from './routes/api/food/estimate'
 
 const SearchRoute = SearchRouteImport.update({
   id: '/search',
@@ -71,6 +75,26 @@ const IntegrationsStravaCallbackRoute =
     path: '/integrations/strava/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiRecipesSearchRoute = ApiRecipesSearchRouteImport.update({
+  id: '/api/recipes/search',
+  path: '/api/recipes/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRecipesIdRoute = ApiRecipesIdRouteImport.update({
+  id: '/api/recipes/$id',
+  path: '/api/recipes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFoodSearchRoute = ApiFoodSearchRouteImport.update({
+  id: '/api/food/search',
+  path: '/api/food/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFoodEstimateRoute = ApiFoodEstimateRouteImport.update({
+  id: '/api/food/estimate',
+  path: '/api/food/estimate',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +106,10 @@ export interface FileRoutesByFullPath {
   '/saved': typeof SavedRoute
   '/search': typeof SearchRoute
   '/recipe/$id': typeof RecipeIdRoute
+  '/api/food/estimate': typeof ApiFoodEstimateRoute
+  '/api/food/search': typeof ApiFoodSearchRoute
+  '/api/recipes/$id': typeof ApiRecipesIdRoute
+  '/api/recipes/search': typeof ApiRecipesSearchRoute
   '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
 }
 export interface FileRoutesByTo {
@@ -94,6 +122,10 @@ export interface FileRoutesByTo {
   '/saved': typeof SavedRoute
   '/search': typeof SearchRoute
   '/recipe/$id': typeof RecipeIdRoute
+  '/api/food/estimate': typeof ApiFoodEstimateRoute
+  '/api/food/search': typeof ApiFoodSearchRoute
+  '/api/recipes/$id': typeof ApiRecipesIdRoute
+  '/api/recipes/search': typeof ApiRecipesSearchRoute
   '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
 }
 export interface FileRoutesById {
@@ -107,6 +139,10 @@ export interface FileRoutesById {
   '/saved': typeof SavedRoute
   '/search': typeof SearchRoute
   '/recipe/$id': typeof RecipeIdRoute
+  '/api/food/estimate': typeof ApiFoodEstimateRoute
+  '/api/food/search': typeof ApiFoodSearchRoute
+  '/api/recipes/$id': typeof ApiRecipesIdRoute
+  '/api/recipes/search': typeof ApiRecipesSearchRoute
   '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
 }
 export interface FileRouteTypes {
@@ -121,6 +157,10 @@ export interface FileRouteTypes {
     | '/saved'
     | '/search'
     | '/recipe/$id'
+    | '/api/food/estimate'
+    | '/api/food/search'
+    | '/api/recipes/$id'
+    | '/api/recipes/search'
     | '/integrations/strava/callback'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -133,6 +173,10 @@ export interface FileRouteTypes {
     | '/saved'
     | '/search'
     | '/recipe/$id'
+    | '/api/food/estimate'
+    | '/api/food/search'
+    | '/api/recipes/$id'
+    | '/api/recipes/search'
     | '/integrations/strava/callback'
   id:
     | '__root__'
@@ -145,6 +189,10 @@ export interface FileRouteTypes {
     | '/saved'
     | '/search'
     | '/recipe/$id'
+    | '/api/food/estimate'
+    | '/api/food/search'
+    | '/api/recipes/$id'
+    | '/api/recipes/search'
     | '/integrations/strava/callback'
   fileRoutesById: FileRoutesById
 }
@@ -158,6 +206,10 @@ export interface RootRouteChildren {
   SavedRoute: typeof SavedRoute
   SearchRoute: typeof SearchRoute
   RecipeIdRoute: typeof RecipeIdRoute
+  ApiFoodEstimateRoute: typeof ApiFoodEstimateRoute
+  ApiFoodSearchRoute: typeof ApiFoodSearchRoute
+  ApiRecipesIdRoute: typeof ApiRecipesIdRoute
+  ApiRecipesSearchRoute: typeof ApiRecipesSearchRoute
   IntegrationsStravaCallbackRoute: typeof IntegrationsStravaCallbackRoute
 }
 
@@ -233,6 +285,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegrationsStravaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/recipes/search': {
+      id: '/api/recipes/search'
+      path: '/api/recipes/search'
+      fullPath: '/api/recipes/search'
+      preLoaderRoute: typeof ApiRecipesSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recipes/$id': {
+      id: '/api/recipes/$id'
+      path: '/api/recipes/$id'
+      fullPath: '/api/recipes/$id'
+      preLoaderRoute: typeof ApiRecipesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/food/search': {
+      id: '/api/food/search'
+      path: '/api/food/search'
+      fullPath: '/api/food/search'
+      preLoaderRoute: typeof ApiFoodSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/food/estimate': {
+      id: '/api/food/estimate'
+      path: '/api/food/estimate'
+      fullPath: '/api/food/estimate'
+      preLoaderRoute: typeof ApiFoodEstimateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,6 +326,10 @@ const rootRouteChildren: RootRouteChildren = {
   SavedRoute: SavedRoute,
   SearchRoute: SearchRoute,
   RecipeIdRoute: RecipeIdRoute,
+  ApiFoodEstimateRoute: ApiFoodEstimateRoute,
+  ApiFoodSearchRoute: ApiFoodSearchRoute,
+  ApiRecipesIdRoute: ApiRecipesIdRoute,
+  ApiRecipesSearchRoute: ApiRecipesSearchRoute,
   IntegrationsStravaCallbackRoute: IntegrationsStravaCallbackRoute,
 }
 export const routeTree = rootRouteImport

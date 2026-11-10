@@ -1,4 +1,4 @@
-import { createAPIFileRoute } from "@tanstack/react-start/api";
+import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 
 const FDC_BASE = "https://api.nal.usda.gov/fdc/v1";
@@ -146,7 +146,8 @@ async function searchOpenFoodFacts(query: string): Promise<FoodSearchResult[]> {
   }
 }
 
-export const APIRoute = createAPIFileRoute("/api/food/search")({
+export const Route = createFileRoute("/api/food/search")({
+  server: { handlers: {
   GET: async ({ request }) => {
     const url = new URL(request.url);
     const query = url.searchParams.get("q") ?? "";
@@ -200,4 +201,5 @@ export const APIRoute = createAPIFileRoute("/api/food/search")({
     }
     return Response.json({ results });
   },
+} },
 });

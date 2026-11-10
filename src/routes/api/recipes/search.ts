@@ -1,4 +1,4 @@
-import { createAPIFileRoute } from "@tanstack/react-start/api";
+import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { searchRecipes } from "@/lib/recipes.functions";
 
@@ -15,7 +15,8 @@ const InputSchema = z.object({
   allowSubs: z.boolean().optional().default(true),
 });
 
-export const APIRoute = createAPIFileRoute("/api/recipes/search")({
+export const Route = createFileRoute("/api/recipes/search")({
+  server: { handlers: {
   POST: async ({ request }) => {
     let body: unknown;
     try {
@@ -37,4 +38,5 @@ export const APIRoute = createAPIFileRoute("/api/recipes/search")({
       return Response.json({ results: [], error: message }, { status: 500 });
     }
   },
+} },
 });
