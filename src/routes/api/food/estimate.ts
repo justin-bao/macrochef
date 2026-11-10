@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
+import { assessNutritionEvidence, confidenceLabel } from "@/lib/nutrition-evidence";
 
 const FDC_BASE = "https://api.nal.usda.gov/fdc/v1";
 const ENERGY_NUTRIENT_IDS = new Set([1008, 2047, 2048]);
@@ -98,13 +99,17 @@ function buildEstimate(food: FdcFood, name: string, quantity: number, unit: stri
   const servingBasis = food.householdServingFullText
     ? `${quantity} ${unit}; USDA serving: ${food.householdServingFullText}`
     : `${Math.round(grams)}g estimated from ${quantity} ${unit}`;
-  const confidence: "high" | "medium" | "low" =
-    unit.toLowerCase().startsWith("serv") && !food.servingSize ? "medium" : "high";
+  const evidence = assessNutritionEvidence({
+    sources: [{ id: `fdc-${food.fdcId}`, label: `USDA FoodData Central: ${matchedName}`, url: `https://fdc.nal.usda.gov/food-details/${food.fdcId}/nutrients`, kind: "database" }],
+    portionKnown: /^(g|grams?|kg|kilograms?|oz|ounces?|lb|lbs|pounds?)$/i.test(unit.trim()),
+  });
+  const confidence = confidenceLabel(evidence.score);
   return {
     name,
     quantity,
     unit,
     matchedName,
+    evidence,
     sourceLabel: `USDA FoodData Central${food.dataType ? `: ${food.dataType}` : ""}`,
     servingBasis,
     kcal: Math.round(kcal * factor),

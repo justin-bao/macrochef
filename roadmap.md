@@ -1,6 +1,7 @@
 # Estimate accuracy
-- [ ] Add evidence-based confidence scores and source details to food logging and nearby meal estimates.
-- [ ] Test source validation, complex-dish uncertainty, and the food logging flow.
+- [x] Add evidence-based confidence scores and source details to food logging and nearby meal estimates.
+- [x] Test source validation and complex-dish uncertainty; 13 tests pass. Verify real USDA lookup, logging, and evidence persistence after reload.
+- [ ] Verify live AI text/photo and nearby restaurant evidence — restaurant checks require a signed-in account; AI provider output has not been exercised in this turn.
 
 # Restaurant map search
 - [x] Add authenticated Google restaurant search and interactive map.

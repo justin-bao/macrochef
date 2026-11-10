@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const nutritionSourceSchema = z.object({
-  id: z.string(), label: z.string(), url: z.string().url().nullable(),
+  id: z.string(), label: z.string(), url: z.string().url().refine((url) => url.startsWith("https://")).nullable(),
   kind: z.enum(["database", "label", "menu", "ai"]),
 }).strict();
 export const nutritionEvidenceSchema = z.object({
@@ -35,7 +35,7 @@ export function confidenceLabel(score: number): "high" | "medium" | "low" {
 
 export function resolveNutritionSources(ids: unknown, available: NutritionSource[]) {
   const requested = z.array(z.string()).safeParse(ids);
-  return requested.success ? available.filter((s) => requested.data.includes(s.id)) : [];
+  return requested.success ? available.filter((s, index) => requested.data.includes(s.id) && available.findIndex((other) => other.id === s.id) === index) : [];
 }
 
 export const aiNutritionSource: NutritionSource = { id: "ai", label: "AI nutrition estimate (no verified nutrition record)", url: null, kind: "ai" };
