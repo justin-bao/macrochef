@@ -34,13 +34,13 @@ export const getLocalRestaurantMeals = createServerFn({ method: "POST" })
       const cached = await supabase.from("restaurant_menu_estimates").select("dishes,source_urls,updated_at").eq("user_id", userId).eq("place_id", data.placeId).maybeSingle();
       if (cached.error) throw new Error("Could not read the saved menu estimates.");
       const parsed = z.array(dishSchema).safeParse(cached.data?.dishes);
-      if (cached.data && parsed.success && Date.now() - Date.parse(cached.data.updated_at) < 86400000) {
+      if (cached.data && parsed.success && parsed.data.every((dish) => dish.evidence) && Date.now() - Date.parse(cached.data.updated_at) < 86400000) {
         return { dishes: parsed.data, best: rankMeals(parsed.data, data.targets), sourceUrls: z.array(z.string()).parse(cached.data.source_urls), estimatedAt: cached.data.updated_at, error: null };
       }
       const details = await connectorRequest("google_maps", `/places/v1/places/${encodeURIComponent(data.placeId)}`, { method: "GET", headers: { "X-Goog-FieldMask": "id,websiteUri" } }) as GooglePlace;
       if (!details.websiteUri) throw new Error("Google does not list a website for this restaurant, so its menu cannot be retrieved.");
       const menu = await retrieveMenu(details.websiteUri);
-      const dishes = await estimateMenu(menu.text, getRequest());
+      const dishes = await estimateMenu(menu.text, getRequest(), menu.documents);
       if (!dishes.length) throw new Error("No individual meals could be identified on this website. No dishes or nutrition facts have been invented.");
       const estimatedAt = new Date().toISOString();
       const saved = await supabase.from("restaurant_menu_estimates").upsert({ user_id: userId, place_id: data.placeId, dishes: dishes as unknown as Json, source_urls: menu.sourceUrls, status: "ready", error_message: null, updated_at: estimatedAt });
