@@ -83,11 +83,63 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_detail_objects: {
+        Row: {
+          bucket_id: string
+          byte_size: number | null
+          content_encoding: string
+          content_sha256: string | null
+          content_type: string
+          created_at: string
+          object_path: string
+          recipe_id: number
+          source: string
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id?: string
+          byte_size?: number | null
+          content_encoding?: string
+          content_sha256?: string | null
+          content_type?: string
+          created_at?: string
+          object_path: string
+          recipe_id: number
+          source: string
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          byte_size?: number | null
+          content_encoding?: string
+          content_sha256?: string | null
+          content_type?: string
+          created_at?: string
+          object_path?: string
+          recipe_id?: number
+          source?: string
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_detail_objects_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: true
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
           carbs_g: number | null
           created_at: string
           description: string | null
+          detail_bucket_id: string
+          detail_object_path: string | null
           fat_g: number | null
           id: number
           image_url: string | null
@@ -107,6 +159,8 @@ export type Database = {
           carbs_g?: number | null
           created_at?: string
           description?: string | null
+          detail_bucket_id?: string
+          detail_object_path?: string | null
           fat_g?: number | null
           id?: number
           image_url?: string | null
@@ -126,6 +180,8 @@ export type Database = {
           carbs_g?: number | null
           created_at?: string
           description?: string | null
+          detail_bucket_id?: string
+          detail_object_path?: string | null
           fat_g?: number | null
           id?: number
           image_url?: string | null
