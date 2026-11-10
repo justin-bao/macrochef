@@ -1,3 +1,4 @@
+/// <reference types="google.maps" />
 import { useEffect, useRef, useState } from "react";
 import type { LocalRestaurant } from "@/lib/local-restaurants.functions";
 import { MapPin } from "lucide-react";

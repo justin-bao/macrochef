@@ -12,6 +12,10 @@ export const Route = createFileRoute("/saved")({
     meta: [
       { title: "Saved recipes — MacroChef" },
       { name: "description", content: "Your saved tuned recipes." },
+      { property: "og:title", content: "Saved recipes — MacroChef" },
+      { property: "og:description", content: "Your saved recipes, tuned to your macro goals." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SavedPage,

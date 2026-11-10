@@ -15,6 +15,10 @@ export const Route = createFileRoute("/analytics")({
   head: () => ({
     meta: [
       { title: "MacroChef — Analytics" },
+      { property: "og:title", content: "MacroChef — Analytics" },
+      { property: "og:description", content: "Explore macro distribution, calorie trends and progress." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         name: "description",
         content:
