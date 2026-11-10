@@ -12,6 +12,8 @@ import { Card } from "./ui/card";
 import { findLocalRestaurants, getLocalRestaurantMeals, type LocalRestaurant } from "@/lib/local-restaurants.functions";
 import { rankMeals, type EstimatedDish } from "@/lib/meal-matching";
 import { NutritionEvidence } from "./NutritionEvidence";
+import { MealGoalPicker } from "./MealGoalPicker";
+import { type GoalMeal } from "@/lib/per-meal-goals";
 
 export function LocalRestaurantSearch({ initialTargets }: { initialTargets: MacrosOptional }) {
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +21,7 @@ export function LocalRestaurantSearch({ initialTargets }: { initialTargets: Macr
   const getMeals = useServerFn(getLocalRestaurantMeals);
   const [query, setQuery] = useState("");
   const [targets, setTargets] = useState(initialTargets);
+  const [goalMeal, setGoalMeal] = useState<GoalMeal | "custom">("custom");
   const [restaurants, setRestaurants] = useState<LocalRestaurant[]>([]);
   const [selected, setSelected] = useState<LocalRestaurant | null>(null);
   const [dishes, setDishes] = useState<EstimatedDish[]>([]);
@@ -57,7 +60,7 @@ export function LocalRestaurantSearch({ initialTargets }: { initialTargets: Macr
     <div className="flex items-center gap-3"><MapPin className="h-6 w-6 text-primary" /><h1 className="text-2xl font-semibold">Nearby meals</h1></div>
     <form onSubmit={search} className="space-y-4 border-b pb-6">
       <div className="flex flex-col gap-2 sm:flex-row"><Input aria-label="Restaurant or cuisine and location" placeholder="Restaurants, cuisine + city or neighborhood" value={query} onChange={(e) => setQuery(e.target.value)} className="flex-1" maxLength={200} /><Button type="submit" disabled={!user || searching || query.trim().length < 2} className="gap-2">{searching ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}Find restaurants</Button></div>
-      <div><h2 className="mb-3 text-sm font-medium">Per-meal targets <span className="text-muted-foreground">· optional</span></h2><MacroInputs value={targets} onChange={setTargets} /></div>
+      <div><h2 className="mb-3 text-sm font-medium">Per-meal targets <span className="text-muted-foreground">· optional</span></h2><div className="mb-3"><MealGoalPicker meal={goalMeal} onChange={(meal, values) => { setGoalMeal(meal); if (values) setTargets(values); }} /></div><MacroInputs value={targets} onChange={(values) => { setGoalMeal("custom"); setTargets(values); }} /></div>
       {!authLoading && !user && <Button asChild variant="outline"><Link to="/auth">Sign in to find restaurant meals</Link></Button>}
     </form>
     {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
