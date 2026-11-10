@@ -1,8 +1,8 @@
 # Estimate accuracy
-- [ ] Break complex estimates into ingredients with individual nutrition evidence; verify totals and saved breakdowns.
+- [x] Break complex estimates into nested ingredients with separate portions, macro contributions, confidence, and sources; 18 tests pass. Verified real three-ingredient USDA lookup, logging/reload, phone layout, and live menu AI decomposition.
 - [x] Add evidence-based confidence scores and source details to food logging and nearby meal estimates.
 - [x] Test source validation and complex-dish uncertainty; 13 tests pass. Verify real USDA lookup, logging, and evidence persistence after reload.
-- [ ] Verify live AI text/photo and nearby restaurant evidence — restaurant checks require a signed-in account; AI provider output has not been exercised in this turn.
+- [ ] Verify live AI text/photo for dish-name or photo decomposition — the existing text/photo AI service key is not configured. Explicit ingredient lists use USDA and are verified.
 
 # Restaurant map search
 - [x] Add authenticated Google restaurant search and interactive map.

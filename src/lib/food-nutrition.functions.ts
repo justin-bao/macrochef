@@ -342,6 +342,7 @@ function parseItemsFromContent(
     const items = (parsed.items ?? [])
       .map((item) => {
         const ingredients = isLabel ? [] : resolveIngredients(item.ingredients, available);
+        if (complex && !isLabel && !ingredients.length) throw new Error("The meal estimate did not include a valid ingredient breakdown. No opaque estimate was logged.");
         const totals = ingredients.length ? ingredientTotals(ingredients) : null;
         return ({
         ingredients,

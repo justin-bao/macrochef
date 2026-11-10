@@ -32,6 +32,7 @@ export function ingredientTotals(ingredients: MealIngredient[]) {
 }
 
 export function ingredientMealEvidence(ingredients: MealIngredient[]) {
+  if (!ingredients.length) return assessNutritionEvidence({ sources: [aiNutritionSource], uncertainties: ["No ingredient breakdown is available."] });
   const sources = ingredients.flatMap((i) => i.evidence.sources).filter((s, index, all) => all.findIndex((other) => other.id === s.id) === index);
   return {
     score: Math.min(...ingredients.map((i) => i.evidence.score)), sources,
