@@ -2,6 +2,8 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assessNutritionEvidence, confidenceLabel, resolveNutritionSources, aiNutritionSource, type NutritionEvidence, type NutritionSource } from "./nutrition-evidence";
 
+import { resolveIngredients, ingredientTotals, ingredientMealEvidence, type MealIngredient } from "./meal-ingredients";
+
 const FDC_BASE = "https://api.nal.usda.gov/fdc/v1";
 const ENERGY_NUTRIENT_IDS = new Set([1008, 2047, 2048]);
 
@@ -65,6 +67,7 @@ export type FoodNutritionEstimate = {
 };
 
 export type ImageFoodEstimate = {
+  ingredients?: MealIngredient[];
   name: string;
   quantity: number;
   unit: string;
@@ -328,7 +331,7 @@ function extractJsonObject(text: string) {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) throw new Error("AI response was not JSON.");
-  return JSON.parse(raw.slice(start, end + 1)) as { items?: Array<ImageFoodEstimate & { sourceIds?: string[]; uncertainties?: string[] }> };
+  return JSON.parse(raw.slice(start, end + 1)) as { items?: Array<ImageFoodEstimate & { sourceIds?: string[]; uncertainties?: string[]; ingredients?: unknown }> };
 }
 
 function parseItemsFromContent(
@@ -337,7 +340,12 @@ function parseItemsFromContent(
   try {
     const parsed = extractJsonObject(content);
     const items = (parsed.items ?? [])
-      .map((item) => ({
+      .map((item) => {
+        const ingredients = isLabel ? [] : resolveIngredients(item.ingredients, available);
+        if (complex && !isLabel && !ingredients.length) throw new Error("The meal estimate did not include a valid ingredient breakdown. No opaque estimate was logged.");
+        const totals = ingredients.length ? ingredientTotals(ingredients) : null;
+        return ({
+        ingredients,
         name: String(item.name ?? "Food"),
         quantity: Number(item.quantity) || 1,
         unit: String(item.unit ?? "serving"),
@@ -356,7 +364,9 @@ function parseItemsFromContent(
           uncertainties: isLabel ? ["Label transcription and serving size need review."] : Array.isArray(item.uncertainties) ? item.uncertainties.filter((u): u is string => typeof u === "string").slice(0, 5) : [],
         }),
         note: item.note ? String(item.note) : undefined,
-      }))
+        ...(totals ?? {}),
+        ...(ingredients.length ? { evidence: ingredientMealEvidence(ingredients) } : {}),
+      }); })
       .filter((item) => item.name.trim() && item.kcal > 0);
     return { items: items.map((item) => ({ ...item, confidence: confidenceLabel(item.evidence.score) })), error: items.length ? null : "No usable nutrition estimate found." };
   } catch (err) {
@@ -410,8 +420,7 @@ const SEARCH_OFF_TOOL = {
 // Unified AI estimation used by both the text tab and the image tabs.
 // Sends the description or image to the AI along with a search_usda tool.
 // The AI identifies the dish, breaks it into ingredients, calls search_usda
-// for each, then returns either per-ingredient items (when USDA matches are
-// clear) or a single overall estimate (when they are not).
+// for each, then returns parent meals with nested ingredient evidence.
 // Falls back to an error when AI_API_KEY is not configured so the caller
 // can fall back to the regex + USDA path.
 export const estimateFoodWithTools = createServerFn({ method: "POST" })
@@ -460,13 +469,11 @@ When given a food description or image:
 3. For each ingredient, call the appropriate tool (max 10 calls total):
    - search_usda for whole/unprocessed foods (meats, grains, vegetables, dairy).
    - search_open_food_facts for branded or packaged products.
-4. After reviewing results, decide:
-   - If matches are clearly correct, return each ingredient as a separate item scaled to its portion. Cite the matched food name in note.
-   - If results are poor or absent for most ingredients, return a single item for the whole dish with your overall estimate and confidence "low".
+4. Return each meal as ONE parent item with a nested ingredients array. Keep ingredients with uncertain or missing database matches in the breakdown, marked as estimates; do not collapse them into an opaque dish. Never return both a parent meal and its ingredients as sibling items.
 Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high/medium/low), note (optional).`
         : `You are a nutrition expert for a macro tracking app.${contextStr}
 
-Identify the dish and estimate macros from your own knowledge. Break into constituent ingredients with realistic portions and estimate each. If you are uncertain about specific ingredients, return a single item for the whole dish with confidence "low".
+Identify the dish and estimate macros from your own knowledge. Return ONE parent item per meal with a nested ingredients array, including uncertain ingredients, oils and sauces as inferred estimates. Never return the parent and ingredients as sibling items.
 Return only JSON with an items array: name, quantity, unit, kcal, protein_g, carbs_g, fat_g, confidence (high/medium/low), note (optional).`;
 
     const userMessage: ChatMessage = data.imageDataUrl
@@ -486,7 +493,7 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
 
     const complex = !isLabel && (Boolean(data.imageDataUrl) || data.context?.setting === "restaurant" || !/^\s*\d+(?:\.\d+)?\s*(?:g|grams?|oz|ounces?|kg|lb)\s+[\w ]+$/i.test(data.description ?? ""));
     const availableSources: NutritionSource[] = [];
-    const provenanceInstruction = " For each returned item include sourceIds (only source.id values from tool results actually used, empty if none) and uncertainties (specific unknowns about ingredient weights, oil, sauces, or preparation). Never invent citations. A database match does not verify the portion or the complete dish.";
+    const provenanceInstruction = " For every non-label meal include ingredients: [{name, quantity, unit, kcal, protein_g, carbs_g, fat_g, portionAssumption, portionConfirmed, sourceIds, uncertainties}]. Set portionConfirmed true ONLY when the user explicitly supplied this ingredient quantity; quantities inferred from a photo, dish name or typical recipe are never confirmed, even in grams. Use ingredient sourceIds only for retrieved records actually used; empty when inferred. Explain likely versus explicitly supplied ingredients in portionAssumption. Parent macros must equal the sum of ingredient contributions. For each returned item include sourceIds (only source.id values from tool results actually used, empty if none) and uncertainties (specific unknowns about ingredient weights, oil, sauces, or preparation). Never invent citations. A database match does not verify the portion or the complete dish.";
     const messages: ChatMessage[] = [
       { role: "system", content: systemMessage + provenanceInstruction },
       userMessage,
