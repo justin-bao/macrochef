@@ -1,4 +1,6 @@
 import { IngredientBreakdown } from "@/components/IngredientBreakdown";
+import { ingredientTotals, ingredientMealEvidence, type MealIngredient } from "@/lib/meal-ingredients";
+import { confidenceLabel } from "@/lib/nutrition-evidence";
 import { useMemo, useState } from "react";
 import { NutritionEvidence } from "@/components/NutritionEvidence";
 import { Button } from "@/components/ui/button";
@@ -173,7 +175,19 @@ export function FoodLogModal({
         setParsed(fallback);
         setQuickStatus("Looking up USDA matches…");
         const filled = await Promise.all(fallback.map(applyUsdaEstimate));
-        setParsed(filled);
+        const ingredients: MealIngredient[] = filled.filter((item) => item.kcal > 0 && item.evidence).flatMap((item) => item.evidence ? [{
+          name: item.name, quantity: item.quantity, unit: item.unit,
+          kcal: item.kcal, protein_g: item.protein_g, carbs_g: item.carbs_g, fat_g: item.fat_g,
+          evidence: item.evidence, confidence: item.confidence ?? "low",
+          portionConfirmed: /^\d+(?:\.\d+)?\s*\w+\s+/.test(description.split(/\n|,| and /i).find((part) => part.includes(item.name))?.trim() ?? ""),
+          portionAssumption: item.note ?? "Closest USDA match; review the food and serving weight.",
+        }] : []);
+        if (ingredients.length === filled.length && ingredients.length > 1) {
+          const evidence = ingredientMealEvidence(ingredients);
+          setParsed([{ id: crypto.randomUUID(), name: description.slice(0, 160), quantity: 1, unit: "meal", source: "usda", loggedAt: new Date().toISOString(), ingredients, ...ingredientTotals(ingredients), evidence, confidence: confidenceLabel(evidence.score) }]);
+        } else {
+          setParsed(filled);
+        }
         setQuickStatus(null);
         if (filled.some((item) => item.kcal <= 0)) {
           setEstimateError("Some items need manual macros — no close USDA match found.");
@@ -253,6 +267,7 @@ export function FoodLogModal({
         item.id === id
           ? {
               ...item,
+              ingredients: undefined,
               [field]:
                 field === "name" || field === "unit" || field === "note"
                   ? value

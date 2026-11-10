@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { assessNutritionEvidence, confidenceLabel, resolveNutritionSources, aiNutritionSource, type NutritionEvidence, type NutritionSource } from "./nutrition-evidence";
 
-import { resolveIngredients, ingredientTotals, type MealIngredient } from "./meal-ingredients";
+import { resolveIngredients, ingredientTotals, ingredientMealEvidence, type MealIngredient } from "./meal-ingredients";
 
 const FDC_BASE = "https://api.nal.usda.gov/fdc/v1";
 const ENERGY_NUTRIENT_IDS = new Set([1008, 2047, 2048]);
@@ -364,6 +364,7 @@ function parseItemsFromContent(
         }),
         note: item.note ? String(item.note) : undefined,
         ...(totals ?? {}),
+        ...(ingredients.length ? { evidence: ingredientMealEvidence(ingredients) } : {}),
       }); })
       .filter((item) => item.name.trim() && item.kcal > 0);
     return { items: items.map((item) => ({ ...item, confidence: confidenceLabel(item.evidence.score) })), error: items.length ? null : "No usable nutrition estimate found." };
@@ -418,8 +419,7 @@ const SEARCH_OFF_TOOL = {
 // Unified AI estimation used by both the text tab and the image tabs.
 // Sends the description or image to the AI along with a search_usda tool.
 // The AI identifies the dish, breaks it into ingredients, calls search_usda
-// for each, then returns either per-ingredient items (when USDA matches are
-// clear) or a single overall estimate (when they are not).
+// for each, then returns parent meals with nested ingredient evidence.
 // Falls back to an error when AI_API_KEY is not configured so the caller
 // can fall back to the regex + USDA path.
 export const estimateFoodWithTools = createServerFn({ method: "POST" })

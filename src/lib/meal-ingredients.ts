@@ -30,3 +30,12 @@ export function ingredientTotals(ingredients: MealIngredient[]) {
   const total = ingredients.reduce((t, i) => ({ kcal: t.kcal + i.kcal, protein_g: t.protein_g + i.protein_g, carbs_g: t.carbs_g + i.carbs_g, fat_g: t.fat_g + i.fat_g }), { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
   return { kcal: Math.round(total.kcal), protein_g: Math.round(total.protein_g * 10) / 10, carbs_g: Math.round(total.carbs_g * 10) / 10, fat_g: Math.round(total.fat_g * 10) / 10 };
 }
+
+export function ingredientMealEvidence(ingredients: MealIngredient[]) {
+  const sources = ingredients.flatMap((i) => i.evidence.sources).filter((s, index, all) => all.findIndex((other) => other.id === s.id) === index);
+  return {
+    score: Math.min(...ingredients.map((i) => i.evidence.score)), sources,
+    reason: "Meal totals are summed from the ingredient estimates; confidence is limited by the least certain ingredient.",
+    uncertainties: ingredients.flatMap((i) => i.evidence.uncertainties.map((u) => `${i.name}: ${u}`)),
+  };
+}

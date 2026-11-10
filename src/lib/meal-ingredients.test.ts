@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ingredientTotals, resolveIngredients } from "./meal-ingredients";
+import { ingredientTotals, ingredientMealEvidence, resolveIngredients } from "./meal-ingredients";
 import type { NutritionSource } from "./nutrition-evidence";
 const source: NutritionSource = { id: "rice-record", kind: "database", label: "Retrieved rice record", url: "https://fdc.nal.usda.gov/food-details/1/nutrients" };
 const rice = { name: "Rice", quantity: 150, unit: "g", kcal: 195, protein_g: 4, carbs_g: 42, fat_g: 0.5, portionAssumption: "150g inferred from photo", portionConfirmed: false, sourceIds: ["rice-record"], uncertainties: [] };
@@ -19,5 +19,10 @@ describe("ingredient-level meal estimates", () => {
   });
   it("retains valid zero-calorie ingredients", () => {
     expect(resolveIngredients([{ ...rice, name: "Water", kcal: 0 }])).toHaveLength(1);
+  });
+  it("limits overall meal confidence by its least certain ingredient", () => {
+    const ingredients = resolveIngredients([rice, { ...rice, sourceIds: [] }], [source]);
+    expect(ingredientMealEvidence(ingredients).score).toBe(40);
+    expect(ingredientMealEvidence(ingredients).sources).toHaveLength(2);
   });
 });
