@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { assessNutritionEvidence, confidenceLabel, resolveNutritionSources, aiNutritionSource, type NutritionEvidence, type NutritionSource } from "./nutrition-evidence";
 
 const FDC_BASE = "https://api.nal.usda.gov/fdc/v1";
 const ENERGY_NUTRIENT_IDS = new Set([1008, 2047, 2048]);
@@ -60,6 +61,7 @@ export type FoodNutritionEstimate = {
   carbs_g: number;
   fat_g: number;
   confidence: "high" | "medium" | "low";
+  evidence?: NutritionEvidence;
 };
 
 export type ImageFoodEstimate = {
@@ -71,6 +73,7 @@ export type ImageFoodEstimate = {
   carbs_g: number;
   fat_g: number;
   confidence: "high" | "medium" | "low";
+  evidence?: NutritionEvidence;
   note?: string;
 };
 
@@ -155,14 +158,18 @@ function buildEstimate(food: FdcFood, name: string, quantity: number, unit: stri
   const servingBasis = food.householdServingFullText
     ? `${quantity} ${unit}; USDA serving: ${food.householdServingFullText}`
     : `${Math.round(grams)}g estimated from ${quantity} ${unit}`;
-  const confidence: FoodNutritionEstimate["confidence"] =
-    unit.toLowerCase().startsWith("serv") && !food.servingSize ? "medium" : "high";
+  const evidence = assessNutritionEvidence({
+    sources: [{ id: `fdc-${food.fdcId}`, label: `USDA FoodData Central: ${matchedName}`, url: `https://fdc.nal.usda.gov/food-details/${food.fdcId}/nutrients`, kind: "database" }],
+    portionKnown: /^(g|grams?|kg|kilograms?|oz|ounces?|lb|lbs|pounds?)$/i.test(unit.trim()),
+  });
+  const confidence = confidenceLabel(evidence.score);
 
   return {
     name,
     quantity,
     unit,
     matchedName,
+    evidence,
     sourceLabel: `USDA FoodData Central${food.dataType ? `: ${food.dataType}` : ""}`,
     servingBasis,
     kcal: Math.round(kcal * factor),
@@ -228,7 +235,7 @@ async function searchOpenFoodFactsForTool(query: string) {
     url.searchParams.set("search_simple", "1");
     url.searchParams.set("action", "process");
     url.searchParams.set("json", "1");
-    url.searchParams.set("fields", "product_name,brands,nutriments,serving_size");
+    url.searchParams.set("fields", "code,product_name,brands,nutriments,serving_size");
     url.searchParams.set("page_size", "5");
 
     const res = await fetch(url.toString(), {
@@ -238,6 +245,7 @@ async function searchOpenFoodFactsForTool(query: string) {
 
     const json = (await res.json()) as {
       products?: Array<{
+        code?: string;
         product_name?: string;
         brands?: string;
         nutriments?: {
@@ -259,6 +267,7 @@ async function searchOpenFoodFactsForTool(query: string) {
         if (kcal == null || protein == null || carbs == null || fat == null) return null;
         const name = [p.product_name, p.brands].filter(Boolean).join(" — ");
         return {
+          source: { id: `off-${p.code ?? "unknown"}`, label: `Open Food Facts: ${name || query}`, url: p.code && /^\d+$/.test(p.code) ? `https://world.openfoodfacts.org/product/${p.code}` : null, kind: "database" as const },
           name: name || query,
           kcal_per_100g: Math.round(kcal),
           protein_g_per_100g: Math.round(protein * 10) / 10,
@@ -296,6 +305,7 @@ async function searchUsdaForTool(query: string) {
         const fat = nutrientAmount(food, "fat");
         if (kcal == null || protein == null || carbs == null || fat == null) return null;
         return {
+          source: { id: `fdc-${food.fdcId}`, label: `USDA FoodData Central: ${food.description ?? query}`, url: `https://fdc.nal.usda.gov/food-details/${food.fdcId}/nutrients`, kind: "database" as const },
           name: food.description ?? query,
           dataType: food.dataType,
           kcal_per_100g: Math.round(kcal),
@@ -318,11 +328,11 @@ function extractJsonObject(text: string) {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
   if (start === -1 || end === -1 || end <= start) throw new Error("AI response was not JSON.");
-  return JSON.parse(raw.slice(start, end + 1)) as { items?: ImageFoodEstimate[] };
+  return JSON.parse(raw.slice(start, end + 1)) as { items?: Array<ImageFoodEstimate & { sourceIds?: string[]; uncertainties?: string[] }> };
 }
 
 function parseItemsFromContent(
-  content: string,
+  content: string, available: NutritionSource[] = [], isLabel = false, complex = false,
 ): { items: ImageFoodEstimate[]; error: string | null } {
   try {
     const parsed = extractJsonObject(content);
@@ -339,10 +349,16 @@ function parseItemsFromContent(
           item.confidence === "high" || item.confidence === "medium"
             ? item.confidence
             : ("low" as const),
+        evidence: assessNutritionEvidence({
+          sources: isLabel ? [{ id: "uploaded-label", label: "Uploaded nutrition facts label (AI transcription)", url: null, kind: "label" }] : (() => { const verified = resolveNutritionSources(item.sourceIds, available); return verified.length ? verified : [aiNutritionSource]; })(),
+          portionKnown: /^(g|grams?|kg|kilograms?|oz|ounces?|lb|lbs|pounds?)$/i.test(String(item.unit)),
+          complex,
+          uncertainties: isLabel ? ["Label transcription and serving size need review."] : Array.isArray(item.uncertainties) ? item.uncertainties.filter((u): u is string => typeof u === "string").slice(0, 5) : [],
+        }),
         note: item.note ? String(item.note) : undefined,
       }))
       .filter((item) => item.name.trim() && item.kcal > 0);
-    return { items, error: items.length ? null : "No usable nutrition estimate found." };
+    return { items: items.map((item) => ({ ...item, confidence: confidenceLabel(item.evidence.score) })), error: items.length ? null : "No usable nutrition estimate found." };
   } catch (err) {
     return {
       items: [],
@@ -468,8 +484,11 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
         }
       : { role: "user", content: data.description ?? "" };
 
+    const complex = !isLabel && (Boolean(data.imageDataUrl) || data.context?.setting === "restaurant" || !/^\s*\d+(?:\.\d+)?\s*(?:g|grams?|oz|ounces?|kg|lb)\s+[\w ]+$/i.test(data.description ?? ""));
+    const availableSources: NutritionSource[] = [];
+    const provenanceInstruction = " For each returned item include sourceIds (only source.id values from tool results actually used, empty if none) and uncertainties (specific unknowns about ingredient weights, oil, sauces, or preparation). Never invent citations. A database match does not verify the portion or the complete dish.";
     const messages: ChatMessage[] = [
-      { role: "system", content: systemMessage },
+      { role: "system", content: systemMessage + provenanceInstruction },
       userMessage,
     ];
 
@@ -510,7 +529,7 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
 
     // No tool calls (label mode, tools disabled, or AI skipped tools): parse directly.
     if (!msg0.tool_calls?.length) {
-      return parseItemsFromContent(msg0.content ?? "");
+      return parseItemsFromContent(msg0.content ?? "", availableSources, isLabel, complex);
     }
 
     // Execute all tool calls in parallel (cap at 10).
@@ -529,6 +548,7 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
             tc.function.name === "search_open_food_facts"
               ? await searchOpenFoodFactsForTool(query)
               : await searchUsdaForTool(query);
+          for (const match of result.matches) { if (match?.source) availableSources.push(match.source); }
           return { role: "tool" as const, tool_call_id: tc.id, content: JSON.stringify(result) };
         } catch {
           return {
@@ -552,5 +572,5 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
     const json1 = (await res1.json()) as {
       choices?: Array<{ message?: { content?: string | null } }>;
     };
-    return parseItemsFromContent(json1.choices?.[0]?.message?.content ?? "");
+    return parseItemsFromContent(json1.choices?.[0]?.message?.content ?? "", availableSources, isLabel, complex);
   });

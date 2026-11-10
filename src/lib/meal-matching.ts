@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { nutritionEvidenceSchema } from "./nutrition-evidence";
 
 export const mealTargetsSchema = z.object({
   kcal: z.number().nonnegative().max(10000).nullable(),
@@ -11,6 +12,7 @@ export const dishSchema = z.object({
   name: z.string(), description: z.string(), portion: z.string(),
   kcal: z.number().nonnegative(), protein_g: z.number().nonnegative(),
   carbs_g: z.number().nonnegative(), fat_g: z.number().nonnegative(),
+  evidence: nutritionEvidenceSchema.optional(),
   confidence: z.enum(["low", "medium", "high"]), assumptions: z.string(),
 }).strict();
 export type EstimatedDish = z.infer<typeof dishSchema>;
