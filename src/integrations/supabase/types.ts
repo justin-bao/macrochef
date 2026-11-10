@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_connections: {
+        Row: {
+          access_token: string | null
+          connected_at: string
+          expires_at: string | null
+          id: string
+          provider: Database["public"]["Enums"]["activity_connection_provider"]
+          provider_user_id: string | null
+          provider_username: string | null
+          refresh_token: string | null
+          scopes: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          id?: string
+          provider: Database["public"]["Enums"]["activity_connection_provider"]
+          provider_user_id?: string | null
+          provider_username?: string | null
+          refresh_token?: string | null
+          scopes?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          id?: string
+          provider?: Database["public"]["Enums"]["activity_connection_provider"]
+          provider_user_id?: string | null
+          provider_username?: string | null
+          refresh_token?: string | null
+          scopes?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       macro_goals: {
         Row: {
           carbs_g: number
@@ -173,6 +215,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          age: number
+          goal: string
+          height: number
+          sex: Database["public"]["Enums"]["profile_sex"]
+          unit_system: string
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          age?: number
+          goal?: string
+          height?: number
+          sex?: Database["public"]["Enums"]["profile_sex"]
+          unit_system?: string
+          updated_at?: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          age?: number
+          goal?: string
+          height?: number
+          sex?: Database["public"]["Enums"]["profile_sex"]
+          unit_system?: string
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -181,7 +256,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      activity_connection_provider: "strava"
+      profile_sex: "female" | "male" | "unspecified"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -308,6 +384,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_connection_provider: ["strava"],
+      profile_sex: ["female", "male", "unspecified"],
+    },
   },
 } as const
