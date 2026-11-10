@@ -1,3 +1,4 @@
+import type { MealIngredient } from "./meal-ingredients";
 import type { NutritionEvidence } from "./nutrition-evidence";
 
 export type MealType = "breakfast" | "lunch" | "dinner" | "snacks";
@@ -39,6 +40,7 @@ export interface FoodLogItem {
   source: FoodSource;
   confidence?: "high" | "medium" | "low";
   evidence?: NutritionEvidence;
+  ingredients?: MealIngredient[];
   note?: string;
   loggedAt: string;
 }

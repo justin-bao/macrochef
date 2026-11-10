@@ -1,3 +1,4 @@
+import { IngredientBreakdown } from "@/components/IngredientBreakdown";
 import { useState } from "react";
 import { NutritionEvidence } from "@/components/NutritionEvidence";
 import { Button } from "@/components/ui/button";
@@ -71,6 +72,7 @@ export function MealLogSection({
                         {item.source}
                       </span>
                     </div>
+                    <IngredientBreakdown ingredients={item.ingredients} />
                     {item.note && <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>}
                     {(item.evidence || item.source === "ai" || item.source === "usda" || item.source === "restaurant") && <NutritionEvidence evidence={item.evidence} />}
                   </div>

@@ -1,3 +1,4 @@
+import { IngredientBreakdown } from "@/components/IngredientBreakdown";
 import { useMemo, useState } from "react";
 import { NutritionEvidence } from "@/components/NutritionEvidence";
 import { Button } from "@/components/ui/button";
@@ -146,6 +147,7 @@ export function FoodLogModal({
       source: item.evidence?.sources.some((s) => s.id.startsWith("fdc-")) ? ("usda" as const) : defaultSource,
       confidence: item.confidence,
       evidence: item.evidence,
+      ingredients: item.ingredients,
       note: item.note,
       loggedAt: new Date().toISOString(),
     }));
@@ -389,6 +391,7 @@ export function FoodLogModal({
                         />
                       </div>
                       <NutritionEvidence evidence={item.evidence} />
+                      <IngredientBreakdown ingredients={item.ingredients} />
                       {item.note && (
                         <p className="mt-2 text-xs text-muted-foreground">{item.note}</p>
                       )}
@@ -679,6 +682,7 @@ function ParsedReview({
               />
             </div>
             <NutritionEvidence evidence={item.evidence} />
+                      <IngredientBreakdown ingredients={item.ingredients} />
             {item.note && <p className="mt-2 text-xs text-muted-foreground">{item.note}</p>}
           </div>
         ))}
