@@ -9,49 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SearchRouteImport } from './routes/search'
-import { Route as SavedRouteImport } from './routes/saved'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as GoalsRouteImport } from './routes/goals'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AnalyticsRouteImport } from './routes/analytics'
-import { Route as ActivityRouteImport } from './routes/activity'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ActivityRouteImport } from './routes/activity'
+import { Route as AnalyticsRouteImport } from './routes/analytics'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as GoalsRouteImport } from './routes/goals'
+import { Route as ProfileRouteImport } from './routes/profile'
+import { Route as SavedRouteImport } from './routes/saved'
+import { Route as SearchRouteImport } from './routes/search'
 import { Route as RecipeIdRouteImport } from './routes/recipe.$id'
-import { Route as IntegrationsStravaCallbackRouteImport } from './routes/integrations.strava.callback'
-import { Route as ApiRecipesSearchRouteImport } from './routes/api/recipes/search'
-import { Route as ApiRecipesIdRouteImport } from './routes/api/recipes/$id'
-import { Route as ApiFoodSearchRouteImport } from './routes/api/food/search'
 import { Route as ApiFoodEstimateRouteImport } from './routes/api/food/estimate'
+import { Route as ApiFoodSearchRouteImport } from './routes/api/food/search'
+import { Route as ApiRecipesIdRouteImport } from './routes/api/recipes/$id'
+import { Route as ApiRecipesSearchRouteImport } from './routes/api/recipes/search'
+import { Route as IntegrationsStravaCallbackRouteImport } from './routes/integrations.strava.callback'
 
-const SearchRoute = SearchRouteImport.update({
-  id: '/search',
-  path: '/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SavedRoute = SavedRouteImport.update({
-  id: '/saved',
-  path: '/saved',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const GoalsRoute = GoalsRouteImport.update({
-  id: '/goals',
-  path: '/goals',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AnalyticsRoute = AnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ActivityRoute = ActivityRouteImport.update({
@@ -59,14 +34,59 @@ const ActivityRoute = ActivityRouteImport.update({
   path: '/activity',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AnalyticsRoute = AnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GoalsRoute = GoalsRouteImport.update({
+  id: '/goals',
+  path: '/goals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SavedRoute = SavedRouteImport.update({
+  id: '/saved',
+  path: '/saved',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SearchRoute = SearchRouteImport.update({
+  id: '/search',
+  path: '/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RecipeIdRoute = RecipeIdRouteImport.update({
   id: '/recipe/$id',
   path: '/recipe/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFoodEstimateRoute = ApiFoodEstimateRouteImport.update({
+  id: '/api/food/estimate',
+  path: '/api/food/estimate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiFoodSearchRoute = ApiFoodSearchRouteImport.update({
+  id: '/api/food/search',
+  path: '/api/food/search',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRecipesIdRoute = ApiRecipesIdRouteImport.update({
+  id: '/api/recipes/$id',
+  path: '/api/recipes/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiRecipesSearchRoute = ApiRecipesSearchRouteImport.update({
+  id: '/api/recipes/search',
+  path: '/api/recipes/search',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IntegrationsStravaCallbackRoute =
@@ -75,26 +95,6 @@ const IntegrationsStravaCallbackRoute =
     path: '/integrations/strava/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiRecipesSearchRoute = ApiRecipesSearchRouteImport.update({
-  id: '/api/recipes/search',
-  path: '/api/recipes/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiRecipesIdRoute = ApiRecipesIdRouteImport.update({
-  id: '/api/recipes/$id',
-  path: '/api/recipes/$id',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFoodSearchRoute = ApiFoodSearchRouteImport.update({
-  id: '/api/food/search',
-  path: '/api/food/search',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiFoodEstimateRoute = ApiFoodEstimateRouteImport.update({
-  id: '/api/food/estimate',
-  path: '/api/food/estimate',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -215,46 +215,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/search': {
-      id: '/search'
-      path: '/search'
-      fullPath: '/search'
-      preLoaderRoute: typeof SearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/saved': {
-      id: '/saved'
-      path: '/saved'
-      fullPath: '/saved'
-      preLoaderRoute: typeof SavedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/goals': {
-      id: '/goals'
-      path: '/goals'
-      fullPath: '/goals'
-      preLoaderRoute: typeof GoalsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/analytics': {
-      id: '/analytics'
-      path: '/analytics'
-      fullPath: '/analytics'
-      preLoaderRoute: typeof AnalyticsRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/activity': {
@@ -264,11 +229,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ActivityRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/analytics': {
+      id: '/analytics'
+      path: '/analytics'
+      fullPath: '/analytics'
+      preLoaderRoute: typeof AnalyticsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/goals': {
+      id: '/goals'
+      path: '/goals'
+      fullPath: '/goals'
+      preLoaderRoute: typeof GoalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/saved': {
+      id: '/saved'
+      path: '/saved'
+      fullPath: '/saved'
+      preLoaderRoute: typeof SavedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/search': {
+      id: '/search'
+      path: '/search'
+      fullPath: '/search'
+      preLoaderRoute: typeof SearchRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/recipe/$id': {
@@ -278,25 +278,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RecipeIdRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/integrations/strava/callback': {
-      id: '/integrations/strava/callback'
-      path: '/integrations/strava/callback'
-      fullPath: '/integrations/strava/callback'
-      preLoaderRoute: typeof IntegrationsStravaCallbackRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/recipes/search': {
-      id: '/api/recipes/search'
-      path: '/api/recipes/search'
-      fullPath: '/api/recipes/search'
-      preLoaderRoute: typeof ApiRecipesSearchRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/recipes/$id': {
-      id: '/api/recipes/$id'
-      path: '/api/recipes/$id'
-      fullPath: '/api/recipes/$id'
-      preLoaderRoute: typeof ApiRecipesIdRouteImport
+    '/api/food/estimate': {
+      id: '/api/food/estimate'
+      path: '/api/food/estimate'
+      fullPath: '/api/food/estimate'
+      preLoaderRoute: typeof ApiFoodEstimateRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/food/search': {
@@ -306,11 +292,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiFoodSearchRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/food/estimate': {
-      id: '/api/food/estimate'
-      path: '/api/food/estimate'
-      fullPath: '/api/food/estimate'
-      preLoaderRoute: typeof ApiFoodEstimateRouteImport
+    '/api/recipes/$id': {
+      id: '/api/recipes/$id'
+      path: '/api/recipes/$id'
+      fullPath: '/api/recipes/$id'
+      preLoaderRoute: typeof ApiRecipesIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/recipes/search': {
+      id: '/api/recipes/search'
+      path: '/api/recipes/search'
+      fullPath: '/api/recipes/search'
+      preLoaderRoute: typeof ApiRecipesSearchRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/integrations/strava/callback': {
+      id: '/integrations/strava/callback'
+      path: '/integrations/strava/callback'
+      fullPath: '/integrations/strava/callback'
+      preLoaderRoute: typeof IntegrationsStravaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
