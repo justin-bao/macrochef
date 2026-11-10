@@ -6,6 +6,8 @@ import { ActivityPanel } from "@/components/tracking/ActivityPanel";
 import { FoodLogModal } from "@/components/tracking/FoodLogModal";
 import { FuelSummary } from "@/components/tracking/FuelSummary";
 import { MealLogSection } from "@/components/tracking/MealLogSection";
+import { MealGoalsEditor } from "@/components/MealGoalsEditor";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Calendar } from "@/components/ui/calendar";
@@ -189,8 +191,23 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
         <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
           {focus !== "activity" && (
             <div className="space-y-3">
-              <div className="flex items-center justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-xl font-semibold">Food log</h2>
+                <div className="flex items-center gap-2">
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button size="sm" variant="outline" className="gap-1">
+                        <Target className="h-4 w-4" />
+                        Meal goals
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-h-[85dvh] w-[calc(100%-2rem)] overflow-y-auto" aria-describedby={undefined}>
+                      <DialogHeader>
+                        <DialogTitle>Per-meal goals</DialogTitle>
+                      </DialogHeader>
+                      <MealGoalsEditor embedded />
+                    </DialogContent>
+                  </Dialog>
                 <Button
                   size="sm"
                   variant="outline"
@@ -200,6 +217,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
                   <Plus className="h-4 w-4" />
                   Quick add
                 </Button>
+                </div>
               </div>
               {day.meals.map((meal) => (
                 <MealLogSection
