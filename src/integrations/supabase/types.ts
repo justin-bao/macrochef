@@ -101,6 +101,36 @@ export type Database = {
         }
         Relationships: []
       }
+      restaurant_menu_estimates: {
+        Row: {
+          dishes: Json
+          error_message: string | null
+          place_id: string
+          source_urls: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          dishes?: Json
+          error_message?: string | null
+          place_id: string
+          source_urls?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          dishes?: Json
+          error_message?: string | null
+          place_id?: string
+          source_urls?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_recipes: {
         Row: {
           applied_swaps: Json | null
