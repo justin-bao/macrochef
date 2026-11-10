@@ -11,6 +11,8 @@ export const Route = createFileRoute("/")({
           "Track food and workouts, then use MacroChef to decide what to eat next based on the macros you have left.",
       },
       { property: "og:title", content: "MacroChef — Fuel, food, and training" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       {
         property: "og:description",
         content:
