@@ -1,7 +1,8 @@
 # Saved per-meal goals
-- [ ] Save optional breakfast, lunch, dinner, and snack targets on Profile.
-- [ ] Add a meal picker to all search modes, preserving manual overrides and blank targets.
-- [ ] Test goal rules and verify saving, reload, and search prefilling.
+- [x] Save optional breakfast, lunch, dinner, and snack targets on Profile.
+- [x] Add a meal picker to all search modes, preserving manual overrides and blank targets.
+- [x] Test goal rules: 13 tests pass; verify desktop search pickers and phone layout with no overflow.
+- [ ] Verify signed-in save/reload and saved-goal prefilling — no auth users exist, so a preview session cannot be minted; requires signing up/signing in.
 
 # Estimate accuracy
 - [x] Break complex estimates into nested ingredients with separate portions, macro contributions, confidence, and sources; 18 tests pass. Verified real three-ingredient USDA lookup, logging/reload, phone layout, and live menu AI decomposition.
