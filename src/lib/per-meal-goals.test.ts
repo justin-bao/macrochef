@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { goalsFromRows, goalForMeal, MEALS, optionalMealMacrosSchema } from "./per-meal-goals";
-import { macroDistance } from "./meal-matching";
+import { mealDistance } from "./meal-matching";
 
 describe("saved per-meal goals", () => {
   it("supports separate breakfast, lunch, dinner, and snacks goals", () => {
@@ -14,7 +14,7 @@ describe("saved per-meal goals", () => {
   });
   it("ignores blank nutrient goals in matching", () => {
     const targets = goalsFromRows([{ meal: "breakfast", kcal: 500, protein_g: null, carbs_g: null, fat_g: null }]).breakfast;
-    expect(macroDistance({ kcal: 500, protein_g: 200, carbs_g: 900, fat_g: 100 }, targets)).toBe(0);
+    expect(mealDistance({ name: "Meal", description: "", portion: "1 serving", confidence: "low", assumptions: "", kcal: 500, protein_g: 200, carbs_g: 900, fat_g: 100 }, targets)).toBe(0);
   });
   it("allows custom edits without changing saved goals", () => {
     const goals = goalsFromRows([{ meal: "snacks", kcal: 200, protein_g: null, carbs_g: null, fat_g: null }]);
