@@ -10,14 +10,14 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+      <div className="mx-auto flex min-h-16 max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-2">
         <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Salad className="h-4 w-4" />
           </span>
           <span className="text-lg">MacroChef</span>
         </Link>
-        <nav className="flex items-center gap-1">
+        <nav className="flex max-w-full flex-wrap items-center gap-1">
           <Link to="/">
             <Button variant={isActive("/") ? "secondary" : "ghost"} size="sm">
               Dashboard

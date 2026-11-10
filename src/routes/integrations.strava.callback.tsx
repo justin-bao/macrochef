@@ -7,7 +7,12 @@ import { connectStrava } from "@/lib/activity-integrations.functions";
 
 export const Route = createFileRoute("/integrations/strava/callback")({
   head: () => ({
-    meta: [{ title: "Connecting Strava — MacroChef" }],
+    meta: [{ title: "Connecting Strava — MacroChef" },
+      { name: "description", content: "Complete your Strava connection to MacroChef." },
+      { property: "og:title", content: "Connecting Strava — MacroChef" },
+      { property: "og:description", content: "Connect Strava activity to your MacroChef food log." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" }],
   }),
   component: StravaCallbackPage,
 });

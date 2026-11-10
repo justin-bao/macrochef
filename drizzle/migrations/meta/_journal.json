@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1794326265732,
+      "tag": "0000_restaurant_menu_estimates",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794326434204,
+      "tag": "0001_restore_existing_profile_and_activity_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794326499086,
+      "tag": "0002_restore_recipe_detail_metadata_and_profile_constraints",
+      "breakpoints": true
+    }
+  ]
+}

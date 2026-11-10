@@ -39,6 +39,10 @@ export const Route = createFileRoute("/recipe/$id")({
     meta: [
       { title: `Recipe ${params.id} — MacroChef` },
       { name: "description", content: "Tune this recipe to your macronutrient targets." },
+      { property: "og:title", content: `Recipe ${params.id} — MacroChef` },
+      { property: "og:description", content: "Tune this recipe to your macronutrient targets." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: RecipePage,

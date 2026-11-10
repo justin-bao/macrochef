@@ -14,6 +14,10 @@ export const Route = createFileRoute("/auth")({
     meta: [
       { title: "Sign in — MacroChef" },
       { name: "description", content: "Sign in to save recipes and macro goals." },
+      { property: "og:title", content: "Sign in — MacroChef" },
+      { property: "og:description", content: "Sign in to save recipes and macro goals." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: AuthPage,

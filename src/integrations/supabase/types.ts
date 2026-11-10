@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_connections: {
+        Row: {
+          access_token: string | null
+          connected_at: string
+          expires_at: string | null
+          id: string
+          provider: Database["public"]["Enums"]["activity_connection_provider"]
+          provider_user_id: string | null
+          provider_username: string | null
+          refresh_token: string | null
+          scopes: string[]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          access_token?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          id?: string
+          provider: Database["public"]["Enums"]["activity_connection_provider"]
+          provider_user_id?: string | null
+          provider_username?: string | null
+          refresh_token?: string | null
+          scopes?: string[]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          access_token?: string | null
+          connected_at?: string
+          expires_at?: string | null
+          id?: string
+          provider?: Database["public"]["Enums"]["activity_connection_provider"]
+          provider_user_id?: string | null
+          provider_username?: string | null
+          refresh_token?: string | null
+          scopes?: string[]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       macro_goals: {
         Row: {
           carbs_g: number
@@ -41,11 +83,63 @@ export type Database = {
         }
         Relationships: []
       }
+      recipe_detail_objects: {
+        Row: {
+          bucket_id: string
+          byte_size: number | null
+          content_encoding: string
+          content_sha256: string | null
+          content_type: string
+          created_at: string
+          object_path: string
+          recipe_id: number
+          source: string
+          source_id: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_id?: string
+          byte_size?: number | null
+          content_encoding?: string
+          content_sha256?: string | null
+          content_type?: string
+          created_at?: string
+          object_path: string
+          recipe_id: number
+          source: string
+          source_id: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_id?: string
+          byte_size?: number | null
+          content_encoding?: string
+          content_sha256?: string | null
+          content_type?: string
+          created_at?: string
+          object_path?: string
+          recipe_id?: number
+          source?: string
+          source_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_detail_objects_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: true
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       recipes: {
         Row: {
           carbs_g: number | null
           created_at: string
           description: string | null
+          detail_bucket_id: string
+          detail_object_path: string | null
           fat_g: number | null
           id: number
           image_url: string | null
@@ -65,6 +159,8 @@ export type Database = {
           carbs_g?: number | null
           created_at?: string
           description?: string | null
+          detail_bucket_id?: string
+          detail_object_path?: string | null
           fat_g?: number | null
           id?: number
           image_url?: string | null
@@ -84,6 +180,8 @@ export type Database = {
           carbs_g?: number | null
           created_at?: string
           description?: string | null
+          detail_bucket_id?: string
+          detail_object_path?: string | null
           fat_g?: number | null
           id?: number
           image_url?: string | null
@@ -98,6 +196,36 @@ export type Database = {
           tags?: Json
           title?: string
           total_minutes?: number | null
+        }
+        Relationships: []
+      }
+      restaurant_menu_estimates: {
+        Row: {
+          dishes: Json
+          error_message: string | null
+          place_id: string
+          source_urls: Json
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          dishes?: Json
+          error_message?: string | null
+          place_id: string
+          source_urls?: Json
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          dishes?: Json
+          error_message?: string | null
+          place_id?: string
+          source_urls?: Json
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -143,6 +271,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_profiles: {
+        Row: {
+          age: number
+          goal: string
+          height: number
+          sex: Database["public"]["Enums"]["profile_sex"]
+          unit_system: string
+          updated_at: string
+          user_id: string
+          weight: number
+        }
+        Insert: {
+          age?: number
+          goal?: string
+          height?: number
+          sex?: Database["public"]["Enums"]["profile_sex"]
+          unit_system?: string
+          updated_at?: string
+          user_id: string
+          weight?: number
+        }
+        Update: {
+          age?: number
+          goal?: string
+          height?: number
+          sex?: Database["public"]["Enums"]["profile_sex"]
+          unit_system?: string
+          updated_at?: string
+          user_id?: string
+          weight?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -151,7 +312,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      activity_connection_provider: "strava"
+      profile_sex: "female" | "male" | "unspecified"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -278,6 +440,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      activity_connection_provider: ["strava"],
+      profile_sex: ["female", "male", "unspecified"],
+    },
   },
 } as const

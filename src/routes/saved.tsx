@@ -12,6 +12,10 @@ export const Route = createFileRoute("/saved")({
     meta: [
       { title: "Saved recipes — MacroChef" },
       { name: "description", content: "Your saved tuned recipes." },
+      { property: "og:title", content: "Saved recipes — MacroChef" },
+      { property: "og:description", content: "Your saved recipes, tuned to your macro goals." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: SavedPage,
@@ -63,7 +67,7 @@ function SavedPage() {
             const ps = r.computed_macros?.perServing;
             return (
               <Card key={r.id} className="overflow-hidden p-0">
-                <Link to="/recipe/$id" params={{ id: String(r.spoonacular_id) }} search={{ subs: true }}>
+                <Link to="/recipe/$id" params={{ id: String(r.spoonacular_id) }} search={{ subs: true, src: "spoonacular" }}>
                   <div className="aspect-[4/3] overflow-hidden bg-muted">
                     {r.image && <img src={r.image} alt={r.title} className="h-full w-full object-cover" />}
                   </div>
