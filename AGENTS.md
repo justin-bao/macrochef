@@ -3,7 +3,7 @@
 - Reuse the same meal-goal editor in Profile and the Dashboard Food log dialog so saved targets and validation remain consistent.
 - Create the shared query client per root mount, never in a module global, to isolate SSR requests and support meal-goal queries.
 - Build with the Cloudflare Vite plugin and its `ssr` environment, not Nitro's Vercel preset, so Lovable receives the deployable `dist/` output.
-- Resolve allowlisted public auth values in a post config hook after managed preview injection, preserving wrapper overrides and rejecting missing/private keys; never serialize the full environment.
+- Resolve allowlisted public auth values in configResolved after Vite loads settings, with checked-in public connection defaults for isolated builds; preserve wrapper overrides in client and SSR and reject missing/private keys without serializing the full environment.
 - Keep map restaurant discovery separate from the existing chain-combo search so each retains its single-dish or multi-item ranking contract.
 - Call Google Places and menu scraping only from authenticated server functions; keep credentials server-side and cap restaurant search to 12 results and menu retrieval to two pages per explicit action.
 - Cache only website-derived menu estimates in an owner-scoped table, not Google place content; this avoids repeated paid estimates while preserving Google attribution.
