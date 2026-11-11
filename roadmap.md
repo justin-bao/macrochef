@@ -1,4 +1,6 @@
 # USDA lookup and evidence presentation
+- [x] Store the personal USDA key through the encrypted form, show state-only setup checks, and use server-side authenticated requests with regression coverage.
+- [ ] Verify the personal USDA key in a real manual lookup and saved food reload.
 - [x] Diagnose manual USDA failure as live HTTP 429 from shared DEMO_KEY access; preserve actual lookup errors in the form rather than overwriting them as no match, handle connection failures, and avoid provider-body logging.
 - [x] Move Add ingredient below constituents and overall food evidence above Ingredients; replace displayed numeric scores with five colored/icon confidence levels. Desktop and phone verified; 90 tests pass.
 - [ ] Restore live USDA lookup success — requires shared demo quota recovery or a personal USDA key; no USDA key is configured.

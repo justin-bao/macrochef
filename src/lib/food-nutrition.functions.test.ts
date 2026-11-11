@@ -16,7 +16,7 @@ vi.mock("@tanstack/react-start", () => ({
 }));
 
 vi.mock("../integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
-import { estimateFoodNutrition, estimateFoodWithTools, getFoodAiSetup, searchSingleFoods } from "./food-nutrition.functions";
+import { estimateFoodNutrition, estimateFoodWithTools, getFoodAiSetup, getUsdaSetup, searchSingleFoods } from "./food-nutrition.functions";
 
 const fetchMock = vi.fn<typeof fetch>();
 const ingredient = {
@@ -49,6 +49,8 @@ beforeEach(() => {
   vi.stubEnv("AI_API_KEY", "unit-test-key");
   vi.stubEnv("AI_BASE_URL", "https://food-ai.example/v1/");
   vi.stubEnv("AI_MODEL", "test-model");
+  vi.stubEnv("FOODDATA_CENTRAL_API_KEY", "");
+  vi.stubEnv("USDA_FDC_API_KEY", "");
   vi.stubGlobal("fetch", fetchMock);
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
@@ -208,6 +210,44 @@ describe("AI meal logging handlers", () => {
 });
 
 describe("other logging pathways and saved totals", () => {
+  it("uses the saved personal key only in server request headers and returns only setup state", async () => {
+    vi.stubEnv("FOODDATA_CENTRAL_API_KEY", "test-usda-credential");
+    expect(await getUsdaSetup()).toEqual({ state: "personal_key" });
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ foods: [food] })));
+    const result = await estimateFoodNutrition({ data: { name: "rice", quantity: 100, unit: "g" } });
+    expect(fetchMock.mock.calls[0]?.[0]).toBe("https://api.nal.usda.gov/fdc/v1/foods/search");
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({ "X-Api-Key": "test-usda-credential" });
+    expect(JSON.stringify(result)).not.toContain("test-usda-credential");
+    expect(result.estimate?.kcal).toBe(130);
+  });
+  it("keeps shared access when no personal credential is configured", async () => {
+    expect(await getUsdaSetup()).toEqual({ state: "shared_access" });
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ foods: [food] })));
+    await estimateFoodNutrition({ data: { name: "rice", quantity: 100, unit: "g" } });
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({ "X-Api-Key": "DEMO_KEY" });
+  });
+  it("uses the legacy USDA key for hybrid search when the primary key is blank", async () => {
+    vi.stubEnv("USDA_FDC_API_KEY", "test-legacy-credential");
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ foods: [food] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ products: [] })));
+    await searchSingleFoods({ data: { query: "rice" } });
+    expect(fetchMock.mock.calls[0]?.[1]?.headers).toMatchObject({ "X-Api-Key": "test-legacy-credential" });
+  });
+  it("uses personal quota for AI ingredient lookups too", async () => {
+    vi.stubEnv("FOODDATA_CENTRAL_API_KEY", "test-usda-credential");
+    fetchMock.mockResolvedValueOnce(reply({ content: null, tool_calls: [toolCall("usda")] }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ foods: [food] })))
+      .mockResolvedValueOnce(contentReply([meal]));
+    await estimateFoodWithTools({ data: { description: "Rice bowl" } });
+    expect(fetchMock.mock.calls[1]?.[1]?.headers).toMatchObject({ "X-Api-Key": "test-usda-credential" });
+  });
+  it("reports personal quota exhaustion without switching back to shared access", async () => {
+    vi.stubEnv("FOODDATA_CENTRAL_API_KEY", "test-usda-credential");
+    fetchMock.mockResolvedValueOnce(new Response("unavailable", { status: 429 }));
+    expect(await estimateFoodNutrition({ data: { name: "rice", quantity: 100, unit: "g" } }))
+      .toEqual({ estimate: null, error: "Your USDA quota is currently rate-limited. Try again later or enter macros manually." });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
   it("scales USDA per-100g macros to the logged weight", async () => {
     fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ foods: [food] })));
     const result = await estimateFoodNutrition({ data: { name: "rice", quantity: 150, unit: "g" } });

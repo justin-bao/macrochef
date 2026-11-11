@@ -1,4 +1,5 @@
 # Architecture
+- Use request-time USDA secrets in server-only request headers for manual, hybrid and AI ingredient searches; protect personal-quota calls with auth and return setup state only to avoid browser or URL credential exposure.
 - Keep food AI credentials in a request-time server-only configuration helper; authenticated setup checks return only configuration state, and a real estimate—not key presence—establishes live validation.
 - Declare allowlisted environment variable names as preview-only Cloudflare worker secrets so supervisor credentials reach request-time handlers without copying values into files, browser defines, or production build configuration.
 - Test nutrition server-function validators and handlers with a lightweight RPC-builder mock and mocked external responses; keep real signed-in logging checks separate so simulated AI success is never mistaken for provider verification.

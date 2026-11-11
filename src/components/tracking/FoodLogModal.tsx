@@ -20,6 +20,7 @@ import {
   estimateFoodNutrition,
   estimateFoodWithTools,
   getFoodAiSetup,
+  getUsdaSetup,
 } from "@/lib/food-nutrition.functions";
 import { Camera, FileScan, PenLine, Plus, Sparkles } from "lucide-react";
 
@@ -88,6 +89,9 @@ export function FoodLogModal({
   const { user } = useAuth();
   const checkSetup = useServerFn(getFoodAiSetup);
   const estimateAi = useServerFn(estimateFoodWithTools);
+  const estimateUsda = useServerFn(estimateFoodNutrition);
+  const checkUsda = useServerFn(getUsdaSetup);
+  const usdaSetup = useQuery({ queryKey: ["usda-setup", user?.id], queryFn: () => checkUsda(), enabled: open && Boolean(user), retry: false, staleTime: 0 });
   const setup = useQuery({ queryKey: ["food-ai-setup", user?.id], queryFn: () => checkSetup(), enabled: open && Boolean(user), retry: false, staleTime: 0 });
   const [liveValidated, setLiveValidated] = useState(false);
   const [manual, setManual] = useState<FoodLogItem>(emptyItem);
@@ -106,7 +110,7 @@ export function FoodLogModal({
 
   const applyUsdaEstimate = async (item: FoodLogItem): Promise<FoodLogItem> => {
     try {
-      const result = await estimateFoodNutrition({
+      const result = await estimateUsda({
         data: { name: item.name, quantity: item.quantity, unit: item.unit },
       });
       if (!result.estimate) {
@@ -536,6 +540,12 @@ export function FoodLogModal({
           </TabsContent>
 
           <TabsContent value="manual" className="mt-4 space-y-4">
+            <div className="flex items-center justify-between gap-3 border-b pb-3">
+              <p className="text-sm text-muted-foreground" role="status">
+                {!user ? "Sign in to use USDA searches." : usdaSetup.isFetching ? "Checking USDA access…" : usdaSetup.isError ? "USDA setup check failed." : usdaSetup.data?.state === "personal_key" ? "USDA · personal key configured" : "USDA · shared access"}
+              </p>
+              <Button type="button" size="sm" variant="outline" disabled={!user || usdaSetup.isFetching} onClick={() => void usdaSetup.refetch()}>Check USDA</Button>
+            </div>
             <div className="grid gap-3">
               <div className="space-y-2">
                 <Label>Food name</Label>
@@ -570,7 +580,7 @@ export function FoodLogModal({
               <Button
                 type="button"
                 variant="secondary"
-                disabled={!manual.name.trim() || estimatingManual}
+                disabled={!user || !manual.name.trim() || estimatingManual}
                 onClick={estimateManualItem}
               >
                 <Sparkles className="mr-2 h-4 w-4" />
