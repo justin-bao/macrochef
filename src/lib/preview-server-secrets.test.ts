@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import { previewServerSecretNames } from "../../scripts/preview-server-secrets";
 
 describe("preview worker secret declarations", () => {
+  it("declares the saved USDA key by name only for the preview worker", () => {
+    expect(previewServerSecretNames({ FOODDATA_CENTRAL_API_KEY: "test-only-value" })).toEqual(["FOODDATA_CENTRAL_API_KEY"]);
+  });
   it("declares the saved AI key by name without serializing its value", () => {
     expect(previewServerSecretNames({ AI_API_KEY: "test-only-value" })).toEqual(["AI_API_KEY"]);
   });

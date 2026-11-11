@@ -83,8 +83,12 @@ export type ImageFoodEstimate = {
 };
 
 function fdcApiKey() {
-  return process.env.FOODDATA_CENTRAL_API_KEY || process.env.USDA_FDC_API_KEY || "DEMO_KEY";
+  return process.env.FOODDATA_CENTRAL_API_KEY?.trim() || process.env.USDA_FDC_API_KEY?.trim() || "DEMO_KEY";
 }
+
+export const getUsdaSetup = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => ({ state: fdcApiKey() === "DEMO_KEY" ? "shared_access" as const : "personal_key" as const }));
 
 function nutrientAmount(food: FdcFood, kind: "kcal" | "protein" | "carbs" | "fat") {
   const nutrients = food.foodNutrients ?? [];
@@ -187,6 +191,7 @@ function buildEstimate(food: FdcFood, name: string, quantity: number, unit: stri
 
 // Used by the manual tab's "Fill macros from USDA" button.
 export const estimateFoodNutrition = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       name: z.string().trim().min(1).max(160),
@@ -196,11 +201,10 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
   )
   .handler(
     async ({ data }): Promise<{ estimate: FoodNutritionEstimate | null; error: string | null }> => {
-      const params = new URLSearchParams({ api_key: fdcApiKey() });
       let res: Response;
-      try { res = await fetch(`${FDC_BASE}/foods/search?${params}`, {
+      try { res = await fetch(`${FDC_BASE}/foods/search`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Api-Key": fdcApiKey() },
         body: JSON.stringify({
           query: data.name,
           pageSize: 12,
@@ -213,7 +217,11 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
       if (!res.ok) {
         console.error("USDA FDC search failed", res.status);
         return { estimate: null, error: res.status === 429
-          ? "USDA's lookup limit has been reached. Try again later or use a personal USDA API key for higher limits. You can still enter macros manually."
+          ? fdcApiKey() === "DEMO_KEY"
+            ? "USDA's lookup limit has been reached. Try again later or use a personal USDA API key for higher limits. You can still enter macros manually."
+            : "Your USDA quota is currently rate-limited. Try again later or enter macros manually."
+          : res.status === 401 || res.status === 403
+          ? "USDA rejected the configured access. Check your saved USDA API key or enter macros manually."
           : `USDA nutrition lookup is unavailable (${res.status}). Try again later or enter macros manually.` };
       }
 
@@ -295,11 +303,10 @@ async function searchOpenFoodFactsForTool(query: string) {
 
 // Returns the top USDA matches for a query in a compact per-100g format for AI tool use.
 async function searchUsdaForTool(query: string) {
-  const params = new URLSearchParams({ api_key: fdcApiKey() });
   try {
-    const res = await fetch(`${FDC_BASE}/foods/search?${params}`, {
+    const res = await fetch(`${FDC_BASE}/foods/search`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Api-Key": fdcApiKey() },
       body: JSON.stringify({ query, pageSize: 8, requireAllWords: false }),
     });
     if (!res.ok) { console.error("USDA food search status", res.status); return { matches: [] }; }

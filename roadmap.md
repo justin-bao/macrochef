@@ -1,7 +1,9 @@
 # USDA lookup and evidence presentation
+- [x] Store the personal USDA key through the encrypted form, show state-only setup checks, and use server-side authenticated requests with regression coverage.
+- [x] Verify personal-key state and real signed-in manual USDA lookup (150g, 161 kcal); logged food survives browser-local diary reload. Desktop/mobile checked; all 96 tests pass.
 - [x] Diagnose manual USDA failure as live HTTP 429 from shared DEMO_KEY access; preserve actual lookup errors in the form rather than overwriting them as no match, handle connection failures, and avoid provider-body logging.
 - [x] Move Add ingredient below constituents and overall food evidence above Ingredients; replace displayed numeric scores with five colored/icon confidence levels. Desktop and phone verified; 90 tests pass.
-- [ ] Restore live USDA lookup success — requires shared demo quota recovery or a personal USDA key; no USDA key is configured.
+- [x] Restore live USDA lookup success using the securely saved personal key, without exposing it to browser requests or URLs.
 
 # Food search and logged estimates
 - [x] Add AI / database-only hybrid selection for single foods with explicit USDA/Open Food Facts record picking and gram portions; mocked handler verifies both sources without AI calls.
