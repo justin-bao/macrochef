@@ -1,4 +1,5 @@
 # Sign-in repair
+- [ ] Fix premature configuration validation so managed preview builds can inject public auth values; run regression tests.
 - [x] Restore explicit public sign-in configuration; four missing/private-key safeguards pass, automatic build passes, and browser login reaches the account service without runtime errors.
 - [x] Replace legacy Google sign-in with managed login; confirm Google and email providers are enabled and return addresses are allowed.
 - [ ] Verify successful account sign-in and Google consent — no auth users exist to mint a test session; requires the user's signup and Google consent.
