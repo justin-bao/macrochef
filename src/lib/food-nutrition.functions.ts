@@ -246,7 +246,7 @@ async function searchOpenFoodFactsForTool(query: string) {
     const res = await fetch(url.toString(), {
       headers: { "User-Agent": "MacroChef/1.0" },
     });
-    if (!res.ok) return { matches: [] };
+    if (!res.ok) { console.error("Packaged food search status", res.status); return { matches: [] }; }
 
     const json = (await res.json()) as {
       products?: Array<{
@@ -298,7 +298,7 @@ async function searchUsdaForTool(query: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, pageSize: 8, requireAllWords: false }),
     });
-    if (!res.ok) return { matches: [] };
+    if (!res.ok) { console.error("USDA food search status", res.status); return { matches: [] }; }
     const json = (await res.json()) as FdcSearchResponse;
     const ranked = [...(json.foods ?? [])].sort((a, b) => rankFood(b, query) - rankFood(a, query));
     const matches = ranked
