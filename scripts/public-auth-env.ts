@@ -42,7 +42,7 @@ export function publicAuthConfigurationPlugin(defaults: Record<string, string>):
         // Vite loads env files after config hooks. Resolve the final values here,
         // using public defaults when the isolated build has no local env file.
         const env = { ...defaults, ...config.env };
-        Object.assign(config.define, publicAuthDefines(env, config.define));
+        config.define = { ...config.define, ...publicAuthDefines(env, config.define) };
         // Environment options are already resolved; keep client and SSR aligned.
         for (const environment of Object.values(config.environments)) {
           environment.define = {

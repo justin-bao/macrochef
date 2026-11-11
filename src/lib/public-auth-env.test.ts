@@ -62,6 +62,7 @@ describe("isolated preview configuration resolution", () => {
       configFile: false,
       envFile: false,
       envPrefix: "ISOLATED_TEST_",
+      environments: { client: {}, ssr: { consumer: "server" } },
       define,
       plugins: [publicAuthConfigurationPlugin(defaults), ...plugins],
     }, "build", "development");
@@ -83,10 +84,10 @@ describe("isolated preview configuration resolution", () => {
         "import.meta.env.VITE_SUPABASE_ANON_KEY": '"injected-legacy-key"',
       } }),
     }]);
-    expect(config.define["import.meta.env.VITE_SUPABASE_URL"]).toBe('"https://injected.example.test"');
-    expect(config.define["import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"]).toBe('"injected-legacy-key"');
-    expect(config.environments.client.define).toMatchObject(config.define);
-    expect(config.environments.ssr.define).toMatchObject(config.define);
+    expect(config.define?.["import.meta.env.VITE_SUPABASE_URL"]).toBe('"https://injected.example.test"');
+    expect(config.define?.["import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"]).toBe('"injected-legacy-key"');
+    expect(config.environments.client.define).toMatchObject(config.define ?? {});
+    expect(config.environments.ssr.define).toMatchObject(config.define ?? {});
   });
 
   it("rejects private wrapper keys even with valid public defaults", async () => {
