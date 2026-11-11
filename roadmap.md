@@ -1,3 +1,7 @@
+# Sign-in repair
+- [ ] Restore public sign-in configuration in deployed browser assets and test missing/private-key safeguards.
+- [ ] Replace legacy Google sign-in with managed login and verify available sign-in flows.
+
 # Saved per-meal goals
 - [x] Save optional breakfast, lunch, dinner, and snack targets on Profile.
 - [x] Add a meal picker to all search modes, preserving manual overrides and blank targets.
