@@ -119,7 +119,7 @@ export function ActivityPanel({
       <div className="mt-4 rounded-md border border-dashed bg-muted/20 p-3">
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-medium">
-            <Heart className="h-3.5 w-3.5 text-pink-500" />
+            <Route className="h-3.5 w-3.5 text-primary" />
             Total distance
           </div>
           {healthSummary && (
