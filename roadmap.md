@@ -1,3 +1,8 @@
+# Logging pathway tests
+- [ ] Test AI text/photo/label estimates, database tool follow-ups, evidence, malformed output, and failures.
+- [ ] Test manual and USDA logging, meal totals, and persistence; exercise food logging and reload in the signed-in preview.
+- [ ] Verify live AI generation — check the existing food AI connection before claiming success.
+
 # Numeric entry
 - [x] Replace numeric steppers with plain entry; five regression tests pass, desktop/phone typing and replacement preserve signed decimals and pasted precision, and automatic build passes.
 
