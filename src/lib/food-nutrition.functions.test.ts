@@ -9,7 +9,7 @@ vi.mock("@tanstack/react-start", () => ({
       inputValidator: (validator: typeof validate) => { validate = validator; return builder; },
       middleware: () => builder,
       handler: (handler: (input: { data: unknown }) => unknown) =>
-        async ({ data }: { data: unknown }) => handler({ data: validate(data) }),
+        async ({ data }: { data?: unknown } = {}) => handler({ data: validate(data) }),
     };
     return builder;
   },
