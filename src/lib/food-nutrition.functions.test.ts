@@ -7,6 +7,7 @@ vi.mock("@tanstack/react-start", () => ({
     let validate: (data: unknown) => unknown = (data) => data;
     const builder = {
       inputValidator: (validator: typeof validate) => { validate = validator; return builder; },
+      middleware: () => builder,
       handler: (handler: (input: { data: unknown }) => unknown) =>
         async ({ data }: { data: unknown }) => handler({ data: validate(data) }),
     };
@@ -14,7 +15,8 @@ vi.mock("@tanstack/react-start", () => ({
   },
 }));
 
-import { estimateFoodNutrition, estimateFoodWithTools } from "./food-nutrition.functions";
+vi.mock("../integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
+import { estimateFoodNutrition, estimateFoodWithTools, getFoodAiSetup } from "./food-nutrition.functions";
 
 const fetchMock = vi.fn<typeof fetch>();
 const ingredient = {
@@ -53,6 +55,19 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); fetchMock.mockReset(); });
 
 describe("AI meal logging handlers", () => {
+  it("returns only setup state, never credentials or configuration values", async () => {
+    expect(await getFoodAiSetup()).toEqual({ state: "configured" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("distinguishes missing key from an invalid server address", async () => {
+    vi.stubEnv("AI_API_KEY", "");
+    expect(await getFoodAiSetup()).toEqual({ state: "missing_key" });
+    vi.stubEnv("AI_API_KEY", "unit-test-key");
+    vi.stubEnv("AI_BASE_URL", "http://insecure.example");
+    expect(await getFoodAiSetup()).toEqual({ state: "invalid_endpoint" });
+    expect((await estimateFoodWithTools({ data: { description: "Rice bowl" } })).items).toEqual([]);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
   it("reports a missing AI connection without making a request", async () => {
     vi.stubEnv("AI_API_KEY", "");
     expect(await estimateFoodWithTools({ data: { description: "Rice bowl" } })).toEqual({ items: [], error: "AI_API_KEY is not configured." });
