@@ -1,6 +1,6 @@
 # Logging pathway tests
 - [x] Save AI_API_KEY through the encrypted secret form; use a request-time server-only helper, authenticated status/estimate calls, HTTPS configuration validation, secret-free setup responses and logs, and visible setup/error/validated states. All 69 tests pass.
-- [ ] Verify live AI meal logging — encrypted key is saved, but the running preview server still reports missing_key after a supervised refresh; requires secret propagation to the preview runtime. Check setup exposes the blocker without claiming provider validation.
+- [ ] Verify live AI meal logging — refreshed the signed-in preview again and the authenticated setup check still returns missing_key. Encrypted key is saved, but secret propagation to the preview runtime remains blocked; no AI request or persistence claim was made.
 - [x] Add 29 handler regression tests covering AI text/photo/label estimates, USDA/Open Food Facts follow-ups, ingredient totals, evidence, invalid output, HTTP failures, and diary serialization; all 67 project tests pass.
 - [x] Exercise signed-in text logging through real USDA fallback (312 kcal, two nested ingredients, evidence retained after reload) and manual logging (220 kcal, 20g protein, 25g carbs, 5g fat retained and visible after reload).
 - [ ] Resolve existing Dashboard hydration mismatch — signed-in logging works, but reload emits a server/client mismatch in locally stored diary/settings. Kept outside this tests-only change.
