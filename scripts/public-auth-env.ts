@@ -1,3 +1,5 @@
+import type { Plugin } from "vite";
+
 // Build-time allowlist: never serialize the complete environment into the browser.
 export function publicAuthDefines(
   env: Record<string, string | undefined>,
@@ -28,5 +30,30 @@ export function publicAuthDefines(
   return {
     "import.meta.env.VITE_SUPABASE_URL": JSON.stringify(url),
     "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY": JSON.stringify(key),
+  };
+}
+
+export function publicAuthConfigurationPlugin(defaults: Record<string, string>): Plugin {
+  return {
+    name: "public-auth-configuration",
+    config: () => ({ define: {} }),
+    configResolved: {
+      order: "post",
+      handler(config) {
+        // Vite loads env files after config hooks. Resolve the final values here,
+        // using public defaults when the isolated build has no local env file.
+        const env = { ...defaults, ...config.env };
+        const define = config.define;
+        if (!define) throw new Error("Public sign-in define map was not initialized.");
+        Object.assign(define, publicAuthDefines(env, define));
+        // Environment options are already resolved; keep client and SSR aligned.
+        for (const environment of Object.values(config.environments)) {
+          environment.define = {
+            ...environment.define,
+            ...publicAuthDefines(env, { ...config.define, ...environment.define }),
+          };
+        }
+      },
+    },
   };
 }
