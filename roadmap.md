@@ -1,7 +1,8 @@
 # Strava workouts and daily movement
-- [ ] Connect each user's Strava account securely and verify workout imports; confirm available OAuth setup and provider access.
-- [ ] Support manual daily walking/running distance or steps; exclude workout-covered movement and use active-only workout calories.
-- [ ] Add regression coverage and verify daily movement logging and reload.
+- [x] Save Strava client credentials securely; implement authenticated popup OAuth, owner-bound one-time state, encrypted server-only tokens, refresh/revoke, and multi-sport imports. Signed-in configuration check and real Strava consent launch verified.
+- [ ] Verify consent completion and real workout imports — requires the user's Strava login/approval and callback-domain configuration in their Strava app.
+- [x] Support manual daily walking/running distance or steps; subtract walking/running workout distance, never cycling distance, and use net active workout estimates when provider calories have no documented active basis. Whole-day active energy excludes workout overlap.
+- [x] Verify 10,000 daily steps and manual run logging/reload in the signed-in browser-local diary; 113 tests pass. Desktop checked; correct narrow-screen movement controls after phone inspection.
 
 # Food navigation and resting baseline
 - [x] Explain that the existing Mifflin–St Jeor formula estimates resting expenditure despite its BMR name; leave calorie calculations unchanged.

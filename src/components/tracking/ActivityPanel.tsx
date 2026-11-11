@@ -142,7 +142,7 @@ export function ActivityPanel({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {/* Distance */}
           <div>
             <div className="mb-1 flex gap-1" role="group" aria-label="Daily movement input">
@@ -342,6 +342,7 @@ export function ActivityPanel({
                           ...activity,
                           caloriesBurned: estimatedCaloriesBurned,
                           estimatedCaloriesBurned,
+                          calorieBasis: "active",
                           manualCaloriesBurned: undefined,
                         });
                       }}
