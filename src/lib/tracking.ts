@@ -55,7 +55,9 @@ export interface ActivityLogItem {
   kind: ActivityKind;
   name: string;
   durationMin: number;
+  /** Active (net of resting expenditure) energy only. */
   caloriesBurned: number;
+  calorieBasis?: "active";
   estimatedCaloriesBurned?: number;
   manualCaloriesBurned?: number;
   intensity?: ActivityIntensity;
@@ -64,6 +66,7 @@ export interface ActivityLogItem {
   estimateMethod?: string;
   distance?: number;
   distanceUnit?: "mi" | "km";
+  steps?: number;
   sets?: number;
   reps?: number;
   load?: number;
@@ -74,8 +77,10 @@ export interface ActivityLogItem {
 export interface AppleHealthSummary {
   /** Total walking + running distance for the day (miles). */
   totalDistanceMi: number;
-  /** Active energy burned reported directly by Apple Health (kcal). When set,
-   *  this is used instead of the distance-computed walking calories. */
+  /** Daily total steps, including walking/running workouts; distance takes precedence. */
+  totalSteps?: number;
+  movementInput?: "distance" | "steps";
+  /** Whole-day active energy, INCLUDING workouts. Subtract workouts before adding it. */
   activeCalories?: number;
   updatedAt: string;
 }

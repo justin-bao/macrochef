@@ -62,9 +62,8 @@ function restingVo2(profile: UserActivityProfile) {
 /** Active calories burned per mile of walking at ~3 mph, personalized to body weight. */
 export function caloriesPerMileWalking(profile: UserActivityProfile): number {
   const weightKg = toKg(profile.weight, profile.unitSystem);
-  const rvo2 = restingVo2(profile);
   // ACSM horizontal walking formula at 80.5 m/min (3 mph)
-  const vo2 = 0.1 * 80.5 + rvo2;
+  const vo2 = 0.1 * 80.5;
   const minutesPerMile = 20; // 3 mph
   return Math.round(((vo2 * weightKg * minutesPerMile) / 200) * 10) / 10;
 }
@@ -78,7 +77,7 @@ function caloriesFromMet(met: number, profile: UserActivityProfile, durationMinu
   const personalizedMet = met * (restingVo2(profile) / 3.5);
 
   return {
-    calories: Math.round(personalizedMet * weightKg * (durationMinutes / 60)),
+    calories: Math.max(0, Math.round(personalizedMet * weightKg * (durationMinutes / 60) - calculateBMR(profile) * durationMinutes / 1440)),
     met: Number(personalizedMet.toFixed(1)),
   };
 }
@@ -119,7 +118,7 @@ export function estimateActivityCalories(input: EstimateInput): EstimateResult {
       const vo2 = 0.1 * speedMetersMin + restVo2;
       const met = vo2 / 3.5;
       return {
-        calories: caloriesFromVo2(vo2, weightKg, durationMinutes),
+        calories: caloriesFromVo2(vo2 - restVo2, weightKg, durationMinutes),
         met: Number(met.toFixed(1)),
         method: "profile_acsm_walk",
       };
@@ -129,7 +128,7 @@ export function estimateActivityCalories(input: EstimateInput): EstimateResult {
       const vo2 = 0.2 * speedMetersMin + restVo2;
       const met = vo2 / 3.5;
       return {
-        calories: caloriesFromVo2(vo2, weightKg, durationMinutes),
+        calories: caloriesFromVo2(vo2 - restVo2, weightKg, durationMinutes),
         met: Number(met.toFixed(1)),
         method: "profile_acsm_run",
       };

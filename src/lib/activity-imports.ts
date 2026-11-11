@@ -16,6 +16,8 @@ export type ImportedActivity = {
   distance?: number;
   distanceUnit?: "mi" | "km";
   caloriesBurned?: number;
+  calorieBasis?: "active" | "total" | "unknown";
+  steps?: number;
 };
 
 export function normalizeImportedActivity(
@@ -36,19 +38,21 @@ export function normalizeImportedActivity(
     distance,
     profile,
   });
+  const trustedCalories = activity.calorieBasis === "active" && Number.isFinite(activity.caloriesBurned) && (activity.caloriesBurned ?? -1) >= 0 ? activity.caloriesBurned : undefined;
 
   return {
     id: `${activity.provider}:${activity.providerActivityId}`,
     kind: activity.kind,
     name: activity.name?.trim() || activity.kind,
     durationMin: activity.durationMin,
-    caloriesBurned: Math.round(activity.caloriesBurned ?? estimate.calories),
+    caloriesBurned: Math.round(trustedCalories ?? estimate.calories),
+    calorieBasis: "active",
     estimatedCaloriesBurned: estimate.calories,
-    manualCaloriesBurned: activity.caloriesBurned == null ? undefined : Math.round(activity.caloriesBurned),
     source: activity.provider,
-    estimateMethod: activity.caloriesBurned == null ? estimate.method : "provider_reported",
+    estimateMethod: trustedCalories == null ? estimate.method : "provider_reported_active",
     loggedAt: activity.startedAt,
     distance,
     distanceUnit: distance ? (profile.unitSystem === "imperial" ? "mi" : "km") : undefined,
+    steps: activity.steps,
   };
 }

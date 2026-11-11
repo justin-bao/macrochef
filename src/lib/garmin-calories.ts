@@ -1,5 +1,6 @@
 import { calculateBMR, caloriesPerMileWalking } from "@/lib/activity-calculator";
 import type { AppleHealthSummary, TrackingDay, UserActivityProfile } from "@/lib/tracking";
+import { stepsToMiles, workoutActiveCalories } from "./activity-energy";
 
 export interface GarminCalorieBreakdown {
   bmrPerDay: number;
@@ -30,13 +31,14 @@ export function getGarminCalorieBreakdown(
   const calPerMile = caloriesPerMileWalking(profile);
 
   const healthSummary = getHealthSummary(day);
-  const totalDayDistanceMi = healthSummary?.totalDistanceMi ?? 0;
+  const totalDayDistanceMi = healthSummary?.movementInput === "steps" ? stepsToMiles(healthSummary.totalSteps ?? 0, profile) : healthSummary?.totalDistanceMi ?? 0;
   const directActiveCalories = healthSummary?.activeCalories;
 
   // Sum distances from logged activities (normalise to miles)
   const activityDistanceMi = day.activities.reduce((sum, act) => {
-    if (!act.distance) return sum;
-    const mi = act.distanceUnit === "km" ? act.distance / 1.60934 : act.distance;
+    // Daily distance means walking/running, not cycling, swimming or vehicle miles.
+    if (act.kind !== "run" && act.kind !== "walk") return sum;
+    const mi = act.distance ? (act.distanceUnit === "km" ? act.distance / 1.60934 : act.distance) : stepsToMiles(act.steps ?? 0, profile);
     return sum + mi;
   }, 0);
 
@@ -45,12 +47,12 @@ export function getGarminCalorieBreakdown(
     Math.round(Math.max(0, totalDayDistanceMi - activityDistanceMi) * 100) / 100;
 
   // If Apple Health reports active calories directly, use that; otherwise compute from distance
-  const activeCaloriesFromHealthKit = directActiveCalories != null && directActiveCalories > 0;
+  const activityActiveCalories = day.activities.reduce((sum, a) => sum + workoutActiveCalories(a, profile), 0);
+  const activeCaloriesFromHealthKit = directActiveCalories != null && directActiveCalories >= 0;
   const walkingCalories = activeCaloriesFromHealthKit
-    ? Math.round(directActiveCalories)
+    ? Math.max(0, Math.round(directActiveCalories - activityActiveCalories))
     : Math.round(effectiveWalkingDistanceMi * calPerMile);
 
-  const activityActiveCalories = day.activities.reduce((sum, a) => sum + a.caloriesBurned, 0);
   const totalActiveCalories = walkingCalories + activityActiveCalories;
 
   return {
@@ -88,9 +90,9 @@ export function getBurnedToPoint(
     try {
       const d = new Date(activity.loggedAt);
       const endHours = d.getHours() + d.getMinutes() / 60 + activity.durationMin / 60;
-      return endHours <= nowHours ? sum + activity.caloriesBurned : sum;
+      return endHours <= nowHours ? sum + workoutActiveCalories(activity, profile) : sum;
     } catch {
-      return sum + activity.caloriesBurned;
+      return sum + workoutActiveCalories(activity, profile);
     }
   }, 0);
 
