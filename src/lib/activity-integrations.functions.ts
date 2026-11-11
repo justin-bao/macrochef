@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { requireSupabaseAuth } from "../integrations/supabase/auth-middleware";
 import { decryptStravaTokens, encryptStravaTokens, hashOAuthState, normalizeStravaActivity, stravaRequest } from "./strava.server";
 import type { ImportedActivity } from "./activity-imports";
 
@@ -18,7 +18,7 @@ export const getActivityConnections = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
     const configured = Boolean(process.env['STRAVA_CLIENT_ID'] && process.env['STRAVA_CLIENT_SECRET'] && process.env['STRAVA_TOKEN_ENCRYPTION_SECRET']);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("../integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("strava_oauth_connections").select("provider_username, connected_at").eq("user_id", context.userId).maybeSingle();
     if (error) throw new Error("Could not check Strava connection.");
     return { configured, connections: [{ provider: "strava" as const, connected: Boolean(data), providerUsername: data?.provider_username ?? undefined, connectedAt: data?.connected_at }] };
@@ -35,7 +35,7 @@ export const startStravaConnect = createServerFn({ method: "POST" })
     const requestOrigin = request.headers.get("origin") ?? new URL(request.url).origin;
     if (origin.origin !== requestOrigin || (origin.protocol !== "https:" && origin.hostname !== "localhost")) throw new Error("Invalid Strava return address.");
     const state = crypto.randomUUID();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("../integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("strava_oauth_attempts").insert({ state_hash: await hashOAuthState(state), user_id: context.userId, expires_at: new Date(Date.now() + 10 * 60_000).toISOString() });
     if (error) throw new Error("Could not start Strava connection.");
     const params = new URLSearchParams({ client_id: clientId, redirect_uri: `${origin.origin}/api/public/strava/return`, response_type: "code", approval_prompt: "force", scope: "activity:read_all", state });
@@ -47,7 +47,7 @@ export const connectStrava = createServerFn({ method: "POST" })
   .inputValidator(z.object({ code: z.string().min(1).max(1024), state: z.string().uuid(), scope: z.string().max(512) }).parse)
   .handler(async ({ data, context }) => {
     const { clientId, clientSecret, encryptionSecret } = config();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("../integrations/supabase/client.server");
     const { data: attempt, error } = await supabaseAdmin.from("strava_oauth_attempts").delete().eq("state_hash", await hashOAuthState(data.state)).eq("user_id", context.userId).gt("expires_at", new Date().toISOString()).select("user_id").maybeSingle();
     if (error || !attempt) throw new Error("Strava authorization expired or could not be verified. Try connecting again.");
     if (!data.scope.split(/[ ,]+/).includes("activity:read_all")) throw new Error("Allow workout access in Strava to import your activities.");
@@ -63,7 +63,7 @@ export const connectStrava = createServerFn({ method: "POST" })
 export const disconnectActivityProvider = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("../integrations/supabase/client.server");
     const { data, error } = await supabaseAdmin.from("strava_oauth_connections").select("token_ciphertext").eq("user_id", context.userId).maybeSingle();
     if (error) throw new Error("Could not check Strava connection.");
     if (data) {
@@ -80,7 +80,7 @@ export const fetchConnectedActivities = createServerFn({ method: "POST" })
   .inputValidator(z.object({ days: z.number().int().min(1).max(365).default(30) }).parse)
   .handler(async ({ data, context }) => {
     const { clientId, clientSecret, encryptionSecret } = config();
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { supabaseAdmin } = await import("../integrations/supabase/client.server");
     const { data: connection, error } = await supabaseAdmin.from("strava_oauth_connections").select("token_ciphertext").eq("user_id", context.userId).maybeSingle();
     if (error || !connection) throw new Error("Strava is not connected.");
     let tokens = await decryptStravaTokens(connection.token_ciphertext, encryptionSecret);
