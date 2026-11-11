@@ -229,6 +229,10 @@ describe("other logging pathways and saved totals", () => {
     await expect(estimateFoodNutrition({ data: { name: "rice", quantity: -1, unit: "g" } })).rejects.toThrow();
     expect(fetchMock).not.toHaveBeenCalled();
   });
+  it("returns an actionable connection error when USDA cannot be reached", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("network unavailable"));
+    expect(await estimateFoodNutrition({ data: { name: "rice", quantity: 100, unit: "g" } })).toEqual({ estimate: null, error: "USDA cannot be reached right now. Try again later or enter macros manually." });
+  });
   it("preserves AI evidence and ingredients through diary serialization and counts only parents", async () => {
     fetchMock.mockResolvedValueOnce(contentReply([meal]));
     const { items } = await estimateFoodWithTools({ data: { description: "Rice bowl" } });

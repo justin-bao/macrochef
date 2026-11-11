@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { assessNutritionEvidence, resolveNutritionSources, aiNutritionSource, type NutritionSource } from "./nutrition-evidence";
+import { assessNutritionEvidence, confidenceLevel, resolveNutritionSources, aiNutritionSource, type NutritionSource } from "./nutrition-evidence";
 const usda: NutritionSource = { id: "fdc-1", label: "USDA record", kind: "database", url: "https://fdc.nal.usda.gov/food-details/1/nutrients" };
 describe("meal estimate accuracy evidence", () => {
+  it.each([[0, "very-low"], [29, "very-low"], [30, "low"], [49, "low"], [50, "moderate"], [69, "moderate"], [70, "high"], [84, "high"], [85, "very-high"], [100, "very-high"]] as const)("maps evidence %s into confidence level %s", (score, level) => {
+    expect(confidenceLevel(score)).toBe(level);
+  });
   it("only cites records actually retrieved, not invented AI citations", () => {
     expect(resolveNutritionSources(["fdc-1", "invented"], [usda])).toEqual([usda]);
     expect(resolveNutritionSources(["invented"], [usda])).toEqual([]);
