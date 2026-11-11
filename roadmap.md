@@ -1,4 +1,5 @@
 # Sign-in repair
+- [x] Defer validation until managed preview injection; seven regression tests and actual Vite config resolution pass, and automatic build reports build OK.
 - [x] Restore explicit public sign-in configuration; four missing/private-key safeguards pass, automatic build passes, and browser login reaches the account service without runtime errors.
 - [x] Replace legacy Google sign-in with managed login; confirm Google and email providers are enabled and return addresses are allowed.
 - [ ] Verify successful account sign-in and Google consent — no auth users exist to mint a test session; requires the user's signup and Google consent.

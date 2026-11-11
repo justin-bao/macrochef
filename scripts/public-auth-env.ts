@@ -1,7 +1,24 @@
 // Build-time allowlist: never serialize the complete environment into the browser.
-export function publicAuthDefines(env: Record<string, string | undefined>) {
-  const url = env.VITE_SUPABASE_URL;
-  const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
+export function publicAuthDefines(
+  env: Record<string, string | undefined>,
+  injected: Record<string, unknown> = {},
+) {
+  const readInjected = (name: string): string | undefined => {
+    const value = injected[`import.meta.env.${name}`];
+    if (typeof value !== "string") return undefined;
+    try {
+      const parsed: unknown = JSON.parse(value);
+      return typeof parsed === "string" && parsed ? parsed : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+  // The managed preview injects these after evaluating the base config.
+  // Its values must take precedence over local settings.
+  const url = readInjected("VITE_SUPABASE_URL") || env.VITE_SUPABASE_URL;
+  const key = readInjected("VITE_SUPABASE_PUBLISHABLE_KEY") ||
+    readInjected("VITE_SUPABASE_ANON_KEY") ||
+    env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
   if (!url || !key) {
     throw new Error("Public sign-in configuration is missing; refusing to publish a broken sign-in page.");
   }
