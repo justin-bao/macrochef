@@ -235,7 +235,7 @@ export function FoodLogModal({
     file: File | undefined,
     mode: "meal_photo" | "nutrition_label",
   ) => {
-    if (!file) return;
+    if (!file || !user || setup.data?.state !== "configured") return;
     setEstimateError(null);
     setEstimatingImage(true);
     setParsed([]);
@@ -460,7 +460,7 @@ export function FoodLogModal({
                     type="file"
                     accept="image/*"
                     className="mt-2"
-                    disabled={estimatingImage}
+                    disabled={estimatingImage || !user || setup.isFetching || setup.data?.state !== "configured"}
                     onChange={(event) => estimateImageItems(event.target.files?.[0], "meal_photo")}
                   />
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -497,7 +497,7 @@ export function FoodLogModal({
                     type="file"
                     accept="image/*"
                     className="mt-2"
-                    disabled={estimatingImage}
+                    disabled={estimatingImage || !user || setup.isFetching || setup.data?.state !== "configured"}
                     onChange={(event) =>
                       estimateImageItems(event.target.files?.[0], "nutrition_label")
                     }
