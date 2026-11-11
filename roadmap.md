@@ -1,3 +1,9 @@
+# Food search and logged estimates
+- [x] Add AI / database-only hybrid selection for single foods with explicit USDA/Open Food Facts record picking and gram portions; mocked handler verifies both sources without AI calls.
+- [x] Add logged-food editing for proportional servings, constituent names/amounts/macros, ingredient addition/removal, and atomic moves between meals. Live signed-in AI ingredient edits/removal and moving to Lunch survive reload; desktop and phone checked.
+- [ ] Verify live hybrid result selection — live search returned no complete records in preview; public packaged-food endpoint returned HTTP 503. Empty/error state verified; provider availability blocks result-selection verification.
+- [x] Seven new regression tests; 79 tests pass and automatic build passes.
+
 # Logging pathway tests
 - [x] Save AI_API_KEY through the encrypted secret form; use a request-time server-only helper, authenticated status/estimate calls, HTTPS configuration validation, secret-free setup responses and logs, and visible setup/error/validated states. All 69 tests pass.
 - [x] Diagnose preview key access: Wrangler loaded only .env, excluding the supervisor's securely supplied environment. Add preview-only, allowlisted secret-name declarations (no values or browser defines); 34 focused tests and automatic build pass. Verify signed-in live AI rice bowl logging: 390 kcal, three ingredients and evidence retained unchanged and visible after reload in browser-local diary storage.

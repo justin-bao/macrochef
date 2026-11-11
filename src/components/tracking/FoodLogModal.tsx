@@ -1,4 +1,6 @@
 import { IngredientBreakdown } from "@/components/IngredientBreakdown";
+import { SingleFoodSearch } from "@/components/tracking/SingleFoodSearch";
+import { resizeLoggedFood } from "@/lib/food-log-editing";
 import { ingredientTotals, ingredientMealEvidence, type MealIngredient } from "@/lib/meal-ingredients";
 import { confidenceLabel } from "@/lib/nutrition-evidence";
 import { useMemo, useState } from "react";
@@ -90,6 +92,7 @@ export function FoodLogModal({
   const [liveValidated, setLiveValidated] = useState(false);
   const [manual, setManual] = useState<FoodLogItem>(emptyItem);
   const [description, setDescription] = useState("");
+  const [foodMode, setFoodMode] = useState("ai");
   const [parsed, setParsed] = useState<FoodLogItem[]>([]);
   const [quickStatus, setQuickStatus] = useState<string | null>(null);
   const [estimatingManual, setEstimatingManual] = useState(false);
@@ -276,7 +279,7 @@ export function FoodLogModal({
     setParsed((items) =>
       items.map((item) =>
         item.id === id
-          ? {
+          ? field === "quantity" ? resizeLoggedFood(item, Number(value)) : {
               ...item,
               ingredients: undefined,
               [field]:
@@ -358,6 +361,10 @@ export function FoodLogModal({
           </TabsList>
 
           <TabsContent value="quick" className="mt-4 space-y-4">
+            <Tabs value={foodMode} onValueChange={value => { setFoodMode(value); setParsed([]); setEstimateError(null); }}>
+              <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="ai">AI mode</TabsTrigger><TabsTrigger value="hybrid">Hybrid search · no AI</TabsTrigger></TabsList>
+            </Tabs>
+            {foodMode === "hybrid" ? <SingleFoodSearch onAdd={items => { onAdd(items); closeAndReset(false); }} /> : <>
             {parsed.length === 0 ? (
               <>
                 <Textarea
@@ -449,6 +456,7 @@ export function FoodLogModal({
                 </div>
               </>
             )}
+            </>}
           </TabsContent>
 
           <TabsContent value="photo" className="mt-4 space-y-4">

@@ -246,7 +246,7 @@ async function searchOpenFoodFactsForTool(query: string) {
     const res = await fetch(url.toString(), {
       headers: { "User-Agent": "MacroChef/1.0" },
     });
-    if (!res.ok) return { matches: [] };
+    if (!res.ok) { console.error("Packaged food search status", res.status); return { matches: [] }; }
 
     const json = (await res.json()) as {
       products?: Array<{
@@ -298,7 +298,7 @@ async function searchUsdaForTool(query: string) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ query, pageSize: 8, requireAllWords: false }),
     });
-    if (!res.ok) return { matches: [] };
+    if (!res.ok) { console.error("USDA food search status", res.status); return { matches: [] }; }
     const json = (await res.json()) as FdcSearchResponse;
     const ranked = [...(json.foods ?? [])].sort((a, b) => rankFood(b, query) - rankFood(a, query));
     const matches = ranked
@@ -326,6 +326,20 @@ async function searchUsdaForTool(query: string) {
     return { matches: [] };
   }
 }
+
+// Deterministic database-only search; no AI request and no automatic food selection.
+export const searchSingleFoods = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ query: z.string().trim().min(1).max(200) }).parse(input))
+  .handler(async ({ data }) => {
+    const [usda, packaged] = await Promise.all([searchUsdaForTool(data.query), searchOpenFoodFactsForTool(data.query)]);
+    const seen = new Set<string>();
+    return { matches: [...usda.matches, ...packaged.matches].flatMap(match => {
+      if (!match || seen.has(match.source.id)) return [];
+      seen.add(match.source.id);
+      return [match];
+    }) };
+  });
 
 function extractJsonObject(text: string) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];

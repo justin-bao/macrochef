@@ -2,6 +2,7 @@ import { format } from "date-fns";
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth";
+import { saveLoggedFood } from "@/lib/food-log-editing";
 import {
   createEmptyTrackingDay,
   DEFAULT_TRACKING_SETTINGS,
@@ -126,6 +127,14 @@ export function useLocalTracking() {
     });
   }, []);
 
+  const updateFoodItem = useCallback((date: Date, from: MealType, to: MealType, item: FoodLogItem) => {
+    setDiary(prev => {
+      const key = keyForDate(date);
+      const day = prev[key];
+      return day ? { ...prev, [key]: saveLoggedFood(day, from, to, item) } : prev;
+    });
+  }, []);
+
   const addActivity = useCallback((date: Date, activity: ActivityLogItem) => {
     setDiary((prev) => {
       const key = keyForDate(date);
@@ -204,6 +213,7 @@ export function useLocalTracking() {
     getDay,
     addFoodItems,
     removeFoodItem,
+    updateFoodItem,
     addActivity,
     addActivities,
     removeActivity,
