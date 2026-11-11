@@ -327,6 +327,20 @@ async function searchUsdaForTool(query: string) {
   }
 }
 
+// Deterministic database-only search; no AI request and no automatic food selection.
+export const searchSingleFoods = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: unknown) => z.object({ query: z.string().trim().min(1).max(200) }).parse(input))
+  .handler(async ({ data }) => {
+    const [usda, packaged] = await Promise.all([searchUsdaForTool(data.query), searchOpenFoodFactsForTool(data.query)]);
+    const seen = new Set<string>();
+    return { matches: [...usda.matches, ...packaged.matches].flatMap(match => {
+      if (!match || seen.has(match.source.id)) return [];
+      seen.add(match.source.id);
+      return [match];
+    }) };
+  });
+
 function extractJsonObject(text: string) {
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
   const raw = fenced ?? text;

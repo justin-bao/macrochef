@@ -16,3 +16,4 @@
 - Use request-scoped Responses AI SDK calls with streaming, strict output schemas and gateway run IDs; provider denials remain durably paused until service access is restored.
 - Keep nutrition evidence scoring in a shared pure module; cite only retrieved records or provided labels/menu excerpts, persist evidence with logged items, and distinguish evidence scores from calibrated accuracy probabilities to prevent unsupported precision.
 - Represent complex meals as one parent with nested ingredient evidence; sum inferred ingredient totals once, preserve published meal totals separately, and invalidate breakdowns after manual parent edits to avoid double counting or stale contributions.
+- Keep hybrid single-food search database-only with explicit record selection; use shared pure diary-editing functions for proportional portions, ingredient totals and atomic meal moves so edits cannot duplicate intake.

@@ -16,7 +16,7 @@ vi.mock("@tanstack/react-start", () => ({
 }));
 
 vi.mock("../integrations/supabase/auth-middleware", () => ({ requireSupabaseAuth: {} }));
-import { estimateFoodNutrition, estimateFoodWithTools, getFoodAiSetup } from "./food-nutrition.functions";
+import { estimateFoodNutrition, estimateFoodWithTools, getFoodAiSetup, searchSingleFoods } from "./food-nutrition.functions";
 
 const fetchMock = vi.fn<typeof fetch>();
 const ingredient = {
@@ -55,6 +55,14 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllEnvs(); vi.unstubAllGlobals(); vi.restoreAllMocks(); fetchMock.mockReset(); });
 
 describe("AI meal logging handlers", () => {
+  it("hybrid search retrieves USDA and packaged records without calling AI", async () => {
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ foods: [food] })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ products: [{ code: "12345", product_name: "Rice pack", nutriments: { "energy-kcal_100g": 140, proteins_100g: 3, carbohydrates_100g: 30, fat_100g: 1 } }] })));
+    const result = await searchSingleFoods({ data: { query: "rice" } });
+    expect(result.matches.map(m => m.source.id)).toEqual(["fdc-123", "off-12345"]);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls.every(([url]) => !String(url).includes("chat/completions"))).toBe(true);
+  });
   it("returns only setup state, never credentials or configuration values", async () => {
     expect(await getFoodAiSetup()).toEqual({ state: "configured" });
     expect(fetchMock).not.toHaveBeenCalled();
