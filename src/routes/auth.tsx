@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,28 +44,34 @@ function AuthPage() {
       return;
     }
     setLoading(true);
-    const { error } =
-      mode === "signin"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({
-            email,
-            password,
-            options: { emailRedirectTo: window.location.origin },
-          });
-    setLoading(false);
-    if (error) toast.error(error.message);
-    else if (mode === "signup")
-      toast.success("Account created. Check your email to confirm your account.");
+    try {
+      const { error } =
+        mode === "signin"
+          ? await supabase.auth.signInWithPassword({ email: email.trim(), password })
+          : await supabase.auth.signUp({
+              email: email.trim(),
+              password,
+              options: { emailRedirectTo: window.location.origin },
+            });
+      if (error) toast.error(error.message);
+      else if (mode === "signup")
+        toast.success("Account created. Check your email to confirm your account.");
+    } catch {
+      toast.error("Unable to connect to sign-in. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const google = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: window.location.origin,
-      },
-    });
-    if (error) toast.error(error.message);
+    try {
+      const { error } = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (error) toast.error(error.message);
+    } catch {
+      toast.error("Unable to connect to Google sign-in. Please try again.");
+    }
   };
 
   return (
