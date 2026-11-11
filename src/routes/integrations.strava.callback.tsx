@@ -2,8 +2,6 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Card } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
-import { connectStrava } from "@/lib/activity-integrations.functions";
 
 export const Route = createFileRoute("/integrations/strava/callback")({
   head: () => ({
@@ -23,31 +21,8 @@ function StravaCallbackPage() {
 
   useEffect(() => {
     const finish = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
-      const state = params.get("state");
-      const expectedState = window.localStorage.getItem("macrochef-strava-oauth-state");
-      window.localStorage.removeItem("macrochef-strava-oauth-state");
-
-      if (!code || !state || state !== expectedState) {
-        throw new Error("Strava authorization could not be verified.");
-      }
-
-      const { data } = await supabase.auth.getSession();
-      const accessToken = data.session?.access_token;
-      if (!accessToken) throw new Error("Sign in before connecting Strava.");
-
-      await connectStrava({
-        data: {
-          accessToken,
-          code,
-          redirectUri: `${window.location.origin}/integrations/strava/callback`,
-        },
-      });
-      window.localStorage.setItem("macrochef-strava-sync-pending", "1");
-      setMessage("Strava connected. Returning to your profile...");
-      toast.success("Strava connected.");
-      setTimeout(() => navigate({ to: "/profile" }), 600);
+      window.history.replaceState(null, "", window.location.pathname);
+      setMessage("This connection link has expired. Connect Strava again from Profile.");
     };
 
     finish().catch((error) => {

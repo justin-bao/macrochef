@@ -13,6 +13,7 @@ import {
   Weight,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
 import { MacroInputs } from "@/components/MacroInputs";
 import { MealGoalsEditor } from "@/components/MealGoalsEditor";
@@ -32,6 +33,8 @@ import {
   disconnectActivityProvider,
   fetchConnectedActivities,
   getActivityConnections,
+  startStravaConnect,
+  connectStrava as completeStravaConnect,
 } from "@/lib/activity-integrations.functions";
 import { normalizeImportedActivity } from "@/lib/activity-imports";
 import { useAuth } from "@/lib/auth";
@@ -77,6 +80,11 @@ export const Route = createFileRoute("/profile")({
 });
 
 function ProfilePage() {
+  const checkConnections = useServerFn(getActivityConnections);
+  const beginStrava = useServerFn(startStravaConnect);
+  const completeStrava = useServerFn(completeStravaConnect);
+  const disconnectProvider = useServerFn(disconnectActivityProvider);
+  const fetchActivities = useServerFn(fetchConnectedActivities);
   const { user, loading } = useAuth();
   const { addActivities, settings, updateSettings } = useLocalTracking();
   const navigate = useNavigate();
@@ -100,6 +108,7 @@ function ProfilePage() {
     { provider: "strava", connected: false },
   ]);
   const [connectionsBusy, setConnectionsBusy] = useState(false);
+  const [stravaConfigured, setStravaConfigured] = useState(false);
   const [syncBusy, setSyncBusy] = useState(false);
   const autoSyncAttempted = useRef(false);
   const heightFeet = Math.floor(profile.height / 12);
@@ -155,11 +164,8 @@ function ProfilePage() {
   }, [user]);
 
   const loadConnections = async () => {
-    const { data } = await supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
-    if (!accessToken) return;
-
-    const result = await getActivityConnections({ data: { accessToken } });
+    const result = await checkConnections();
+    setStravaConfigured(result.configured);
     setConnections(result.connections);
   };
 
@@ -196,36 +202,38 @@ function ProfilePage() {
     else toast.success("Profile saved.");
   };
 
-  const connectStrava = () => {
-    const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID;
-    if (!clientId) {
-      toast.error("Set VITE_STRAVA_CLIENT_ID to enable Strava connections.");
-      return;
-    }
-
-    const redirectUri = `${window.location.origin}/integrations/strava/callback`;
-    const state = crypto.randomUUID();
-    window.localStorage.setItem("macrochef-strava-oauth-state", state);
-    window.location.href =
-      `https://www.strava.com/oauth/authorize?` +
-      new URLSearchParams({
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        response_type: "code",
-        approval_prompt: "auto",
-        scope: "activity:read_all",
-        state,
-      }).toString();
+  const connectStrava = async () => {
+    const popup = window.open("", "macrochef-strava", "width=600,height=720");
+    if (!popup) { toast.error("Allow popups to connect Strava."); return; }
+    setConnectionsBusy(true);
+    try {
+      const { authorizationUrl, state } = await beginStrava({ data: { origin: window.location.origin } });
+      const result = await new Promise<{ code: string; scope: string }>((resolve, reject) => {
+        const cleanup = () => { window.removeEventListener("message", receive); window.clearInterval(poll); window.clearTimeout(timeout); };
+        const receive = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin || event.source !== popup || event.data?.type !== "strava-oauth-result" || event.data?.state !== state) return;
+          cleanup();
+          if (typeof event.data.code !== "string" || event.data.error) reject(new Error("Strava connection was not approved."));
+          else resolve({ code: event.data.code, scope: event.data.scope ?? "" });
+        };
+        window.addEventListener("message", receive);
+        const poll = window.setInterval(() => { if (popup.closed) { cleanup(); reject(new Error("Strava window closed before approval.")); } }, 500);
+        const timeout = window.setTimeout(() => { cleanup(); reject(new Error("Strava connection timed out. Try again.")); }, 10 * 60_000);
+        popup.location.href = authorizationUrl;
+      });
+      await completeStrava({ data: { ...result, state } });
+      window.localStorage.setItem(STRAVA_PENDING_SYNC_KEY, "1");
+      autoSyncAttempted.current = false;
+      await loadConnections();
+      toast.success("Strava connected.");
+    } catch (error) { toast.error(error instanceof Error ? error.message : "Could not connect Strava."); }
+    finally { popup.close(); setConnectionsBusy(false); }
   };
 
   const disconnectStrava = async () => {
-    const { data } = await supabase.auth.getSession();
-    const accessToken = data.session?.access_token;
-    if (!accessToken) return;
-
     setConnectionsBusy(true);
     try {
-      await disconnectActivityProvider({ data: { accessToken, provider: "strava" } });
+      await disconnectProvider();
       await loadConnections();
       toast.success("Strava disconnected.");
     } catch (error) {
@@ -237,13 +245,9 @@ function ProfilePage() {
 
   const syncStravaActivities = useCallback(
     async (options?: { silent?: boolean }) => {
-      const { data } = await supabase.auth.getSession();
-      const accessToken = data.session?.access_token;
-      if (!accessToken) return;
-
       setSyncBusy(true);
       try {
-        const result = await fetchConnectedActivities({ data: { accessToken, days: 30 } });
+        const result = await fetchActivities({ data: { days: 30 } });
         const activityProfile = {
           weight: profile.weight,
           height: profile.height,
@@ -255,7 +259,8 @@ function ProfilePage() {
 
         for (const imported of result.activities) {
           const normalized = normalizeImportedActivity(imported, activityProfile);
-          const dateKey = normalized.loggedAt.slice(0, 10);
+          const instant = new Date(normalized.loggedAt);
+          const dateKey = `${instant.getFullYear()}-${String(instant.getMonth() + 1).padStart(2, "0")}-${String(instant.getDate()).padStart(2, "0")}`;
           const bucket = byDate.get(dateKey) ?? [];
           bucket.push(normalized);
           byDate.set(dateKey, bucket);
@@ -269,6 +274,7 @@ function ProfilePage() {
         window.localStorage.removeItem(STRAVA_PENDING_SYNC_KEY);
         if (!options?.silent || result.activities.length > 0) {
           toast.success(`Synced ${result.activities.length} Strava activities.`);
+          if (result.truncated) toast.warning("Imported the latest 1,000 workouts. Choose a shorter period for older entries.");
         }
       } catch (error) {
         if (!options?.silent) {
@@ -278,7 +284,7 @@ function ProfilePage() {
         setSyncBusy(false);
       }
     },
-    [addActivities, profile.age, profile.height, profile.sex, profile.unitSystem, profile.weight],
+    [addActivities, fetchActivities, profile.age, profile.height, profile.sex, profile.unitSystem, profile.weight],
   );
 
   useEffect(() => {
@@ -500,7 +506,7 @@ function ProfilePage() {
                     <div className="mt-1 text-xs text-muted-foreground">
                       {strava?.connected
                         ? `Connected${strava.providerUsername ? ` as ${strava.providerUsername}` : ""}`
-                        : "Connect once to automatically import recent runs."}
+                        : stravaConfigured ? "Not connected" : "Strava setup incomplete"}
                     </div>
                   </div>
                   {strava?.connected ? (
@@ -514,7 +520,7 @@ function ProfilePage() {
                       Disconnect
                     </Button>
                   ) : (
-                    <Button size="sm" onClick={connectStrava}>
+                    <Button size="sm" onClick={connectStrava} disabled={!stravaConfigured || connectionsBusy}>
                       <LinkIcon className="mr-1.5 h-4 w-4" />
                       Connect
                     </Button>
