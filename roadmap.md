@@ -1,7 +1,8 @@
 # Logging pathway tests
+- [x] Save AI_API_KEY through the encrypted secret form; use a request-time server-only helper, authenticated status/estimate calls, HTTPS configuration validation, secret-free setup responses and logs, and visible setup/error/validated states. All 69 tests pass.
+- [ ] Verify live AI meal logging — encrypted key is saved, but the running preview server still reports missing_key after a supervised refresh; requires secret propagation to the preview runtime. Check setup exposes the blocker without claiming provider validation.
 - [x] Add 29 handler regression tests covering AI text/photo/label estimates, USDA/Open Food Facts follow-ups, ingredient totals, evidence, invalid output, HTTP failures, and diary serialization; all 67 project tests pass.
 - [x] Exercise signed-in text logging through real USDA fallback (312 kcal, two nested ingredients, evidence retained after reload) and manual logging (220 kcal, 20g protein, 25g carbs, 5g fat retained and visible after reload).
-- [ ] Verify live AI generation — food logging uses AI_API_KEY, which is absent; the available Lovable gateway key is not used by this existing pathway. Simulated AI tests pass but do not establish live generation.
 - [ ] Resolve existing Dashboard hydration mismatch — signed-in logging works, but reload emits a server/client mismatch in locally stored diary/settings. Kept outside this tests-only change.
 
 # Numeric entry
@@ -24,7 +25,7 @@
 - [x] Break complex estimates into nested ingredients with separate portions, macro contributions, confidence, and sources; 18 tests pass. Verified real three-ingredient USDA lookup, logging/reload, phone layout, and live menu AI decomposition.
 - [x] Add evidence-based confidence scores and source details to food logging and nearby meal estimates.
 - [x] Test source validation and complex-dish uncertainty; 13 tests pass. Verify real USDA lookup, logging, and evidence persistence after reload.
-- [ ] Verify live AI text/photo for dish-name or photo decomposition — the existing text/photo AI service key is not configured. Explicit ingredient lists use USDA and are verified.
+- [ ] Verify live AI text/photo for dish-name or photo decomposition — key is securely saved but not yet visible to the preview runtime. Explicit ingredient lists use USDA and are verified.
 
 # Restaurant map search
 - [x] Add authenticated Google restaurant search and interactive map.

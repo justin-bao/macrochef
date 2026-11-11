@@ -2,6 +2,9 @@ import { IngredientBreakdown } from "@/components/IngredientBreakdown";
 import { ingredientTotals, ingredientMealEvidence, type MealIngredient } from "@/lib/meal-ingredients";
 import { confidenceLabel } from "@/lib/nutrition-evidence";
 import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { useAuth } from "@/lib/auth";
 import { NutritionEvidence } from "@/components/NutritionEvidence";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -14,6 +17,7 @@ import type { FoodLogItem } from "@/lib/tracking";
 import {
   estimateFoodNutrition,
   estimateFoodWithTools,
+  getFoodAiSetup,
 } from "@/lib/food-nutrition.functions";
 import { Camera, FileScan, PenLine, Plus, Sparkles } from "lucide-react";
 
@@ -79,6 +83,11 @@ export function FoodLogModal({
   onAdd: (items: FoodLogItem[]) => void;
 }) {
   const { settings } = useLocalTracking();
+  const { user } = useAuth();
+  const checkSetup = useServerFn(getFoodAiSetup);
+  const estimateAi = useServerFn(estimateFoodWithTools);
+  const setup = useQuery({ queryKey: ["food-ai-setup", user?.id], queryFn: () => checkSetup(), enabled: open && Boolean(user), retry: false, staleTime: 0 });
+  const [liveValidated, setLiveValidated] = useState(false);
   const [manual, setManual] = useState<FoodLogItem>(emptyItem);
   const [description, setDescription] = useState("");
   const [parsed, setParsed] = useState<FoodLogItem[]>([]);
@@ -160,7 +169,7 @@ export function FoodLogModal({
     setQuickStatus("Identifying ingredients…");
 
     try {
-      const result = await estimateFoodWithTools({
+      const result = await estimateAi({
         data: {
           description,
           context: buildContext(),
@@ -202,6 +211,7 @@ export function FoodLogModal({
       }
 
       setParsed(aiItemsToLogItems(result.items));
+      setLiveValidated(true);
       setQuickStatus(null);
     } catch (err) {
       setEstimateError(err instanceof Error ? err.message : "Estimation failed.");
@@ -225,14 +235,14 @@ export function FoodLogModal({
     file: File | undefined,
     mode: "meal_photo" | "nutrition_label",
   ) => {
-    if (!file) return;
+    if (!file || !user || setup.data?.state !== "configured") return;
     setEstimateError(null);
     setEstimatingImage(true);
     setParsed([]);
 
     try {
       const imageDataUrl = await readImageDataUrl(file);
-      const result = await estimateFoodWithTools({
+      const result = await estimateAi({
         data: {
           imageDataUrl,
           mode,
@@ -248,6 +258,7 @@ export function FoodLogModal({
         mode === "nutrition_label"
           ? "Read from nutrition facts label. Review serving size before logging."
           : "Estimated from photo. Review portions before logging.";
+      setLiveValidated(true);
       setParsed(
         aiItemsToLogItems(result.items).map((item) => ({
           ...item,
@@ -296,6 +307,13 @@ export function FoodLogModal({
         <DialogHeader>
           <DialogTitle>Log food</DialogTitle>
         </DialogHeader>
+
+        <div className="flex items-center justify-between gap-3 border-b pb-3" role="status">
+          <p className="text-sm text-muted-foreground">
+            {!user ? "Sign in to use AI meal estimates." : setup.isFetching ? "Checking AI connection…" : setup.isError ? "AI connection check failed." : setup.data?.state === "missing_key" ? "AI setup required: service key missing." : setup.data?.state === "invalid_endpoint" ? "AI setup required: service address is invalid." : liveValidated ? "Live AI estimate received." : "AI key configured · live estimate not yet validated."}
+          </p>
+          <Button type="button" size="sm" variant="outline" disabled={!user || setup.isFetching} onClick={() => { setLiveValidated(false); void setup.refetch(); }}>Check setup</Button>
+        </div>
 
         <div className="flex flex-wrap items-center gap-2 border-b pb-3">
           {(["homemade", "restaurant", "packaged"] as const).map((s) => (
@@ -350,12 +368,13 @@ export function FoodLogModal({
                 />
                 <Button
                   className="w-full"
-                  disabled={!description.trim() || quickStatus !== null}
+                  disabled={!user || !description.trim() || quickStatus !== null || setup.isFetching || setup.isError || setup.data?.state === "invalid_endpoint"}
                   onClick={estimateQuickItems}
                 >
                   <Sparkles className="mr-2 h-4 w-4" />
                   {quickStatus ?? "Estimate macros"}
                 </Button>
+                {estimateError && <p className="text-sm text-destructive" role="alert">{estimateError}</p>}
               </>
             ) : (
               <>
@@ -441,7 +460,7 @@ export function FoodLogModal({
                     type="file"
                     accept="image/*"
                     className="mt-2"
-                    disabled={estimatingImage}
+                    disabled={estimatingImage || !user || setup.isFetching || setup.data?.state !== "configured"}
                     onChange={(event) => estimateImageItems(event.target.files?.[0], "meal_photo")}
                   />
                   <p className="mt-2 text-xs text-muted-foreground">
@@ -478,7 +497,7 @@ export function FoodLogModal({
                     type="file"
                     accept="image/*"
                     className="mt-2"
-                    disabled={estimatingImage}
+                    disabled={estimatingImage || !user || setup.isFetching || setup.data?.state !== "configured"}
                     onChange={(event) =>
                       estimateImageItems(event.target.files?.[0], "nutrition_label")
                     }

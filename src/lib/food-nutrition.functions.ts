@@ -1,5 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "../integrations/supabase/auth-middleware";
+import { readFoodAiConfig, foodAiSetupState } from "./food-ai-config.server";
 import { assessNutritionEvidence, confidenceLabel, resolveNutritionSources, aiNutritionSource, type NutritionEvidence, type NutritionSource } from "./nutrition-evidence";
 
 import { resolveIngredients, ingredientTotals, ingredientMealEvidence, type MealIngredient } from "./meal-ingredients";
@@ -423,7 +425,12 @@ const SEARCH_OFF_TOOL = {
 // for each, then returns parent meals with nested ingredient evidence.
 // Falls back to an error when AI_API_KEY is not configured so the caller
 // can fall back to the regex + USDA path.
+export const getFoodAiSetup = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async () => foodAiSetupState());
+
 export const estimateFoodWithTools = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator(
     z.object({
       description: z.string().trim().max(500).optional(),
@@ -439,11 +446,10 @@ export const estimateFoodWithTools = createServerFn({ method: "POST" })
     }).parse,
   )
   .handler(async ({ data }): Promise<{ items: ImageFoodEstimate[]; error: string | null }> => {
-    const aiKey = process.env.AI_API_KEY;
-    const aiBaseUrl = (process.env.AI_BASE_URL ?? "https://api.openai.com/v1").replace(/\/$/, "");
-    const aiModel = process.env.AI_MODEL ?? "gpt-4.1-mini";
+    const { key: aiKey, baseUrl: aiBaseUrl, model: aiModel, validEndpoint } = readFoodAiConfig();
 
     if (!aiKey) return { items: [], error: "AI_API_KEY is not configured." };
+    if (!validEndpoint) return { items: [], error: "AI service address must be a valid HTTPS address." };
 
     const contextParts: string[] = [];
     if (data.context?.setting === "homemade")
@@ -521,8 +527,8 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
     // Round 0: let the AI make tool calls (or go direct if tools are disabled).
     const res0 = await callAI(messages, withTools);
     if (!res0.ok) {
-      const text = await res0.text();
-      console.error("AI estimation failed (round 0)", res0.status, text);
+      await res0.text();
+      console.error("AI estimation failed (round 0)", res0.status);
       return { items: [], error: `AI estimation failed (${res0.status})` };
     }
 
@@ -571,8 +577,8 @@ Return only JSON with an items array: name, quantity, unit, kcal, protein_g, car
     // Round 1: get the final JSON answer with no further tool calls.
     const res1 = await callAI(messages, false);
     if (!res1.ok) {
-      const text = await res1.text();
-      console.error("AI estimation failed (round 1)", res1.status, text);
+      await res1.text();
+      console.error("AI estimation failed (round 1)", res1.status);
       return { items: [], error: `AI estimation failed (${res1.status})` };
     }
 
