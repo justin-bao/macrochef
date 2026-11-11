@@ -223,7 +223,7 @@ describe("other logging pathways and saved totals", () => {
   });
   it("does not treat a USDA HTTP failure as an estimate", async () => {
     fetchMock.mockResolvedValueOnce(new Response("Unavailable", { status: 429 }));
-    expect(await estimateFoodNutrition({ data: { name: "rice", quantity: 1, unit: "g" } })).toEqual({ estimate: null, error: "USDA nutrition lookup failed (429)" });
+    expect(await estimateFoodNutrition({ data: { name: "rice", quantity: 1, unit: "g" } })).toEqual({ estimate: null, error: "USDA's lookup limit has been reached. Try again later or use a personal USDA API key for higher limits. You can still enter macros manually." });
   });
   it("rejects invalid USDA quantities", async () => {
     await expect(estimateFoodNutrition({ data: { name: "rice", quantity: -1, unit: "g" } })).rejects.toThrow();
