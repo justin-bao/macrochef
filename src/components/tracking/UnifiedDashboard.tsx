@@ -236,6 +236,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
 
           <div className={focus === "activity" ? "lg:col-span-2" : ""}>
             <ActivityPanel
+              key={format(date, "yyyy-MM-dd")}
               day={day}
               profile={profile}
               onSetAppleHealthSummary={(summary) => setAppleHealthSummary(date, summary)}

@@ -1,4 +1,6 @@
 # Architecture
+- Use authenticated, popup-based custom Strava OAuth with one-time owner-bound state and server-only AES-GCM token storage; built-in per-user Strava connectors are unavailable and browser credentials must never be used.
+- Compute net active workout energy separately from resting expenditure, accepting imported energy only with an explicit active basis; subtract walking/running workout distance from daily walking distance or estimated step distance so cycling never erases walking energy.
 - Use request-time USDA secrets in server-only request headers for manual, hybrid and AI ingredient searches; protect personal-quota calls with auth and return setup state only to avoid browser or URL credential exposure.
 - Keep food AI credentials in a request-time server-only configuration helper; authenticated setup checks return only configuration state, and a real estimate—not key presence—establishes live validation.
 - Declare allowlisted environment variable names as preview-only Cloudflare worker secrets so supervisor credentials reach request-time handlers without copying values into files, browser defines, or production build configuration.

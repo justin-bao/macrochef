@@ -301,6 +301,51 @@ export type Database = {
         }
         Relationships: []
       }
+      strava_oauth_attempts: {
+        Row: {
+          created_at: string
+          expires_at: string
+          state_hash: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          state_hash: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          state_hash?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      strava_oauth_connections: {
+        Row: {
+          connected_at: string
+          provider_username: string | null
+          token_ciphertext: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          connected_at?: string
+          provider_username?: string | null
+          token_ciphertext: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          connected_at?: string
+          provider_username?: string | null
+          token_ciphertext?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_profiles: {
         Row: {
           age: number

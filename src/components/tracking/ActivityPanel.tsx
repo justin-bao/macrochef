@@ -3,8 +3,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { getGarminCalorieBreakdown } from "@/lib/garmin-calories";
+import { workoutActiveCalories } from "@/lib/activity-energy";
 import type { ActivityLogItem, AppleHealthSummary, TrackingDay, UserActivityProfile } from "@/lib/tracking";
-import { Activity, Dumbbell, Flame, Heart, Plus, RotateCcw, Route, X } from "lucide-react";
+import { Activity, Dumbbell, Flame, Footprints, Plus, RotateCcw, Route, X } from "lucide-react";
 
 const LABELS: Record<string, string> = {
   run: "Run",
@@ -48,31 +49,37 @@ export function ActivityPanel({
   const healthSummary = day.appleHealthSummary ?? day.garminSummary;
 
   const [distanceInput, setDistanceInput] = useState(
-    healthSummary ? String(healthSummary.totalDistanceMi) : "",
+    healthSummary ? String(healthSummary.totalDistanceMi * (profile.unitSystem === "metric" ? 1.60934 : 1)) : "",
   );
   const [activeCalInput, setActiveCalInput] = useState(
     healthSummary?.activeCalories != null ? String(healthSummary.activeCalories) : "",
   );
+  const [stepsInput, setStepsInput] = useState(healthSummary?.totalSteps != null ? String(healthSummary.totalSteps) : "");
+  const [movementMode, setMovementMode] = useState<"distance" | "steps">(healthSummary?.movementInput ?? "distance");
 
   const bd = getGarminCalorieBreakdown(day, profile);
 
   const liftingCount = activities.filter((a) => a.kind === "strength" || a.kind === "gym").length;
   const cardioCount = activities.length - liftingCount;
 
-  function commitHealthInputs(newDistStr?: string, newCalStr?: string) {
+  function commitHealthInputs(newDistStr?: string, newCalStr?: string, mode = movementMode) {
     const distStr = newDistStr ?? distanceInput;
     const calStr  = newCalStr  ?? activeCalInput;
     const dist    = parseFloat(distStr);
     const cal     = parseFloat(calStr);
+    const steps = Number(stepsInput);
+    const hasSteps = stepsInput.trim() !== "" && Number.isInteger(steps) && steps >= 0;
 
     const hasDistance = distStr.trim() !== "" && !isNaN(dist) && dist >= 0;
     const hasCal      = calStr.trim()  !== "" && !isNaN(cal)  && cal  >= 0;
 
-    if (!hasDistance && !hasCal) {
+    if (!(mode === "distance" ? hasDistance : hasSteps) && !hasCal) {
       setHealthSummary(undefined);
     } else {
       setHealthSummary({
-        totalDistanceMi: hasDistance ? dist : 0,
+        totalDistanceMi: mode === "distance" && hasDistance ? (profile.unitSystem === "metric" ? dist / 1.60934 : dist) : 0,
+        totalSteps: mode === "steps" && hasSteps ? steps : undefined,
+        movementInput: mode,
         ...(hasCal ? { activeCalories: cal } : {}),
         updatedAt: new Date().toISOString(),
       });
@@ -82,6 +89,7 @@ export function ActivityPanel({
   function clearHealthData() {
     setDistanceInput("");
     setActiveCalInput("");
+    setStepsInput("");
     setHealthSummary(undefined);
   }
 
@@ -120,7 +128,7 @@ export function ActivityPanel({
         <div className="mb-2 flex items-center justify-between">
           <div className="flex items-center gap-1.5 text-xs font-medium">
             <Route className="h-3.5 w-3.5 text-primary" />
-            Total distance
+            Daily movement
           </div>
           {healthSummary && (
             <Button
@@ -134,10 +142,13 @@ export function ActivityPanel({
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {/* Distance */}
           <div>
-            <p className="mb-1 text-[10px] text-muted-foreground">Distance</p>
+            <div className="mb-1 flex gap-1" role="group" aria-label="Daily movement input">
+              <Button variant={movementMode === "distance" ? "secondary" : "ghost"} size="sm" className="h-6 px-2 text-xs" aria-pressed={movementMode === "distance"} onClick={() => { setMovementMode("distance"); commitHealthInputs(undefined, undefined, "distance"); }}><Route className="mr-1 h-3 w-3" />Distance</Button>
+              <Button variant={movementMode === "steps" ? "secondary" : "ghost"} size="sm" className="h-6 px-2 text-xs" aria-pressed={movementMode === "steps"} onClick={() => { setMovementMode("steps"); commitHealthInputs(undefined, undefined, "steps"); }}><Footprints className="mr-1 h-3 w-3" />Steps</Button>
+            </div>
             <div className="relative">
               <Input
                 type="number"
@@ -145,13 +156,14 @@ export function ActivityPanel({
                 step="0.01"
                 placeholder="0.00"
                 className="h-8 pr-8 text-sm"
-                value={distanceInput}
-                onChange={(e) => setDistanceInput(e.target.value)}
+                aria-label={movementMode === "distance" ? "Total daily walking and running distance" : "Total daily steps"}
+                value={movementMode === "distance" ? distanceInput : stepsInput}
+                onChange={(e) => movementMode === "distance" ? setDistanceInput(e.target.value) : setStepsInput(e.target.value)}
                 onBlur={() => commitHealthInputs()}
                 onKeyDown={(e) => e.key === "Enter" && commitHealthInputs()}
               />
               <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground">
-                mi
+                {movementMode === "steps" ? "steps" : profile.unitSystem === "metric" ? "km" : "mi"}
               </span>
             </div>
           </div>
@@ -159,7 +171,7 @@ export function ActivityPanel({
           {/* Active calories (optional) */}
           <div>
             <p className="mb-1 text-[10px] text-muted-foreground">
-              Active calories{" "}
+              Daily active calories{" "}
               <span className="text-muted-foreground/60">(optional)</span>
             </p>
             <div className="relative">
@@ -169,6 +181,7 @@ export function ActivityPanel({
                 placeholder="auto"
                 className="h-8 pr-9 text-sm"
                 value={activeCalInput}
+                aria-label="Whole-day active calories including workouts"
                 onChange={(e) => setActiveCalInput(e.target.value)}
                 onBlur={() => commitHealthInputs()}
                 onKeyDown={(e) => e.key === "Enter" && commitHealthInputs()}
@@ -182,23 +195,23 @@ export function ActivityPanel({
 
         {/* Burn summary */}
         <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] text-muted-foreground">
-          <span>BMR</span>
+          <span>Estimated RMR</span>
           <span className="text-right tabular-nums">{bd.bmrPerDay} kcal/day</span>
           {bd.walkingCalories > 0 && (
             <>
               <span>
                 {bd.activeCaloriesFromHealthKit
-                  ? "Apple Health active"
+                  ? "Non-workout active"
                   : `Walking (${bd.effectiveWalkingDistanceMi} mi)`}
               </span>
-              <span className="text-right tabular-nums text-pink-600">
+              <span className="text-right tabular-nums text-primary">
                 +{bd.walkingCalories} kcal
               </span>
             </>
           )}
           {bd.activityActiveCalories > 0 && (
             <>
-              <span>Logged activities</span>
+              <span>Workouts · active only</span>
               <span className="text-right tabular-nums">+{bd.activityActiveCalories} kcal</span>
             </>
           )}
@@ -224,14 +237,14 @@ export function ActivityPanel({
               <div className="flex items-center justify-between gap-3 py-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Heart className="h-3.5 w-3.5 shrink-0 text-pink-500" />
+                    <Footprints className="h-3.5 w-3.5 shrink-0 text-primary" />
                     <span className="font-medium">
                       {bd.activeCaloriesFromHealthKit
-                        ? "Apple Health active calories"
+                        ? "Non-workout active calories"
                         : "Daily steps / walking"}
                     </span>
-                    <span className="rounded-full bg-pink-100 px-2 py-0.5 text-[10px] text-pink-700 dark:bg-pink-950 dark:text-pink-300">
-                      Apple Health
+                    <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                      Daily total
                     </span>
                   </div>
                   <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
@@ -244,11 +257,11 @@ export function ActivityPanel({
                       </>
                     )}
                     {bd.activeCaloriesFromHealthKit && (
-                      <span>Direct from Apple Health</span>
+                      <span>Workouts excluded</span>
                     )}
                   </div>
                 </div>
-                <div className="shrink-0 pr-2 text-sm font-semibold text-pink-600 tabular-nums">
+                <div className="shrink-0 pr-2 text-sm font-semibold text-primary tabular-nums">
                   {bd.walkingCalories} kcal
                 </div>
               </div>
@@ -261,7 +274,7 @@ export function ActivityPanel({
               >
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <Activity className="h-3.5 w-3.5 shrink-0 text-orange-500" />
+                    <Activity className="h-3.5 w-3.5 shrink-0 text-primary" />
                     <span className="font-medium">{activity.name || LABELS[activity.kind]}</span>
                     <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
                       {LABELS[activity.kind]}
@@ -269,6 +282,7 @@ export function ActivityPanel({
                   </div>
                   <div className="mt-1 flex flex-wrap gap-2 text-xs text-muted-foreground">
                     <span>{activity.durationMin} min</span>
+                    <span>Active calories{activity.source === "strava" && activity.estimateMethod !== "provider_reported_active" ? " · estimated" : ""}</span>
                     {activity.distance != null && (
                       <span>
                         {activity.distance} {activity.distanceUnit}
@@ -294,14 +308,16 @@ export function ActivityPanel({
                       type="number"
                       min="0"
                       className="h-8 pr-8 text-right text-sm font-semibold text-destructive"
-                      value={activity.caloriesBurned}
+                      aria-label={`Active calories for ${activity.name}`}
+                      value={workoutActiveCalories(activity, profile)}
                       onChange={(event) => {
                         const caloriesBurned = Math.max(0, Number(event.target.value) || 0);
                         onUpdate({
                           ...activity,
                           caloriesBurned,
+                          calorieBasis: "active",
                           estimatedCaloriesBurned:
-                            activity.estimatedCaloriesBurned ?? activity.caloriesBurned,
+                            workoutActiveCalories(activity, profile),
                           manualCaloriesBurned: caloriesBurned,
                           estimateMethod:
                             activity.estimateMethod === "provider_reported"
@@ -326,6 +342,7 @@ export function ActivityPanel({
                           ...activity,
                           caloriesBurned: estimatedCaloriesBurned,
                           estimatedCaloriesBurned,
+                          calorieBasis: "active",
                           manualCaloriesBurned: undefined,
                         });
                       }}

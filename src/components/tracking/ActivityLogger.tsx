@@ -81,6 +81,7 @@ export function ActivityLogger({
       source: "manual",
       estimateMethod: estimate.method,
       caloriesBurned: estimate.calories,
+      calorieBasis: "active",
       estimatedCaloriesBurned: estimate.calories,
       sets: Number(sets) || undefined,
       reps: Number(reps) || undefined,

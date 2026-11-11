@@ -23,6 +23,7 @@ import { Route as ApiFoodSearchRouteImport } from './routes/api/food/search'
 import { Route as ApiRecipesIdRouteImport } from './routes/api/recipes/$id'
 import { Route as ApiRecipesSearchRouteImport } from './routes/api/recipes/search'
 import { Route as IntegrationsStravaCallbackRouteImport } from './routes/integrations.strava.callback'
+import { Route as ApiPublicStravaReturnRouteImport } from './routes/api/public/strava/return'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -95,6 +96,11 @@ const IntegrationsStravaCallbackRoute =
     path: '/integrations/strava/callback',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicStravaReturnRoute = ApiPublicStravaReturnRouteImport.update({
+  id: '/api/public/strava/return',
+  path: '/api/public/strava/return',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -111,6 +117,7 @@ export interface FileRoutesByFullPath {
   '/api/recipes/$id': typeof ApiRecipesIdRoute
   '/api/recipes/search': typeof ApiRecipesSearchRoute
   '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
+  '/api/public/strava/return': typeof ApiPublicStravaReturnRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -127,6 +134,7 @@ export interface FileRoutesByTo {
   '/api/recipes/$id': typeof ApiRecipesIdRoute
   '/api/recipes/search': typeof ApiRecipesSearchRoute
   '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
+  '/api/public/strava/return': typeof ApiPublicStravaReturnRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/api/recipes/$id': typeof ApiRecipesIdRoute
   '/api/recipes/search': typeof ApiRecipesSearchRoute
   '/integrations/strava/callback': typeof IntegrationsStravaCallbackRoute
+  '/api/public/strava/return': typeof ApiPublicStravaReturnRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/api/recipes/$id'
     | '/api/recipes/search'
     | '/integrations/strava/callback'
+    | '/api/public/strava/return'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -178,6 +188,7 @@ export interface FileRouteTypes {
     | '/api/recipes/$id'
     | '/api/recipes/search'
     | '/integrations/strava/callback'
+    | '/api/public/strava/return'
   id:
     | '__root__'
     | '/'
@@ -194,6 +205,7 @@ export interface FileRouteTypes {
     | '/api/recipes/$id'
     | '/api/recipes/search'
     | '/integrations/strava/callback'
+    | '/api/public/strava/return'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -211,6 +223,7 @@ export interface RootRouteChildren {
   ApiRecipesIdRoute: typeof ApiRecipesIdRoute
   ApiRecipesSearchRoute: typeof ApiRecipesSearchRoute
   IntegrationsStravaCallbackRoute: typeof IntegrationsStravaCallbackRoute
+  ApiPublicStravaReturnRoute: typeof ApiPublicStravaReturnRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -313,6 +326,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IntegrationsStravaCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/strava/return': {
+      id: '/api/public/strava/return'
+      path: '/api/public/strava/return'
+      fullPath: '/api/public/strava/return'
+      preLoaderRoute: typeof ApiPublicStravaReturnRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -331,6 +351,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiRecipesIdRoute: ApiRecipesIdRoute,
   ApiRecipesSearchRoute: ApiRecipesSearchRoute,
   IntegrationsStravaCallbackRoute: IntegrationsStravaCallbackRoute,
+  ApiPublicStravaReturnRoute: ApiPublicStravaReturnRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
