@@ -29,6 +29,13 @@
       "when": 1794330181652,
       "tag": "0003_saved_per_meal_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794440686690,
+      "tag": "0004_secure_strava_oauth",
+      "breakpoints": true
     }
   ]
 }
