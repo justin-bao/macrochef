@@ -1,3 +1,9 @@
+# Logging pathway tests
+- [x] Add 29 handler regression tests covering AI text/photo/label estimates, USDA/Open Food Facts follow-ups, ingredient totals, evidence, invalid output, HTTP failures, and diary serialization; all 67 project tests pass.
+- [x] Exercise signed-in text logging through real USDA fallback (312 kcal, two nested ingredients, evidence retained after reload) and manual logging (220 kcal, 20g protein, 25g carbs, 5g fat retained and visible after reload).
+- [ ] Verify live AI generation — food logging uses AI_API_KEY, which is absent; the available Lovable gateway key is not used by this existing pathway. Simulated AI tests pass but do not establish live generation.
+- [ ] Resolve existing Dashboard hydration mismatch — signed-in logging works, but reload emits a server/client mismatch in locally stored diary/settings. Kept outside this tests-only change.
+
 # Numeric entry
 - [x] Replace numeric steppers with plain entry; five regression tests pass, desktop/phone typing and replacement preserve signed decimals and pasted precision, and automatic build passes.
 

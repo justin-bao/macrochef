@@ -1,4 +1,5 @@
 # Architecture
+- Test nutrition server-function validators and handlers with a lightweight RPC-builder mock and mocked external responses; keep real signed-in logging checks separate so simulated AI success is never mistaken for provider verification.
 - Keep numeric editing drafts in the shared Input, separate from parsed form values, so signed decimals, clearing, and pasted precision survive rerenders without native steppers.
 - Store optional per-meal goals separately from daily net-calorie targets; share owner-scoped query hooks and a picker across search modes so meal calories remain gross intake and blank nutrients stay unset.
 - Reuse the same meal-goal editor in Profile and the Dashboard Food log dialog so saved targets and validation remain consistent.
