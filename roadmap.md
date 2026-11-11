@@ -1,3 +1,7 @@
+# Food navigation and resting baseline
+- [x] Explain that the existing Mifflin–St Jeor formula estimates resting expenditure despite its BMR name; leave calorie calculations unchanged.
+- [ ] Group Saved and Find food under the Food menu and verify desktop/mobile navigation.
+
 # Default meal allocation
 - [x] Derive unsaved meal targets from daily intake and macros while preserving saved overrides and blanks.
 - [x] Verify all four percentage rules and signed-in defaults after reload; a saved breakfast override persists, untouched meals retain defaults, and original settings were restored. All 102 tests pass; automatic build OK.

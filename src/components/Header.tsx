@@ -1,7 +1,8 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Activity, BarChart2, BookmarkCheck, LogIn, LogOut, Salad, Search, UserRound } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Activity, BarChart2, BookmarkCheck, ChevronDown, LogIn, LogOut, Salad, Search, UserRound } from "lucide-react";
 
 export function Header() {
   const { user, signOut } = useAuth();
@@ -23,11 +24,25 @@ export function Header() {
               Dashboard
             </Button>
           </Link>
-          <Link to="/search" search={{ mode: "recipes", q: "", subs: true }}>
-            <Button variant={isActive("/search") ? "secondary" : "ghost"} size="sm">
-              <Search className="mr-1.5 h-4 w-4" /> Food
-            </Button>
-          </Link>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant={isActive("/search") || isActive("/saved") ? "secondary" : "ghost"} size="sm">
+                <Search className="mr-1.5 h-4 w-4" /> Food <ChevronDown className="ml-1.5 h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              <DropdownMenuItem asChild>
+                <Link to="/search" search={{ mode: "recipes", q: "", subs: true }} aria-current={isActive("/search") ? "page" : undefined}>
+                  <Search /> Find food
+                </Link>
+              </DropdownMenuItem>
+              {user && <DropdownMenuItem asChild>
+                <Link to="/saved" aria-current={isActive("/saved") ? "page" : undefined}>
+                  <BookmarkCheck /> Saved
+                </Link>
+              </DropdownMenuItem>}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Link to="/activity">
             <Button variant={isActive("/activity") ? "secondary" : "ghost"} size="sm">
               <Activity className="mr-1.5 h-4 w-4" /> Activity
@@ -40,11 +55,6 @@ export function Header() {
           </Link>
           {user ? (
             <>
-              <Link to="/saved">
-                <Button variant={isActive("/saved") ? "secondary" : "ghost"} size="sm">
-                  <BookmarkCheck className="mr-1.5 h-4 w-4" /> Saved
-                </Button>
-              </Link>
               <Link to="/profile">
                 <Button variant={isActive("/profile") ? "secondary" : "ghost"} size="sm">
                   <UserRound className="mr-1.5 h-4 w-4" /> Profile
