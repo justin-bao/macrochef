@@ -1,3 +1,8 @@
+# Sign-in repair
+- [x] Restore explicit public sign-in configuration; four missing/private-key safeguards pass, automatic build passes, and browser login reaches the account service without runtime errors.
+- [x] Replace legacy Google sign-in with managed login; confirm Google and email providers are enabled and return addresses are allowed.
+- [ ] Verify successful account sign-in and Google consent — no auth users exist to mint a test session; requires the user's signup and Google consent.
+
 # Saved per-meal goals
 - [x] Save optional breakfast, lunch, dinner, and snack targets on Profile.
 - [x] Add a meal picker to all search modes, preserving manual overrides and blank targets.
