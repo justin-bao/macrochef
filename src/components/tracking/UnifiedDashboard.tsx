@@ -4,6 +4,7 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ActivityLogger } from "@/components/tracking/ActivityLogger";
 import { ActivityPanel } from "@/components/tracking/ActivityPanel";
 import { FoodLogModal } from "@/components/tracking/FoodLogModal";
+import { FoodEstimateEditor } from "@/components/tracking/FoodEstimateEditor";
 import { FuelSummary } from "@/components/tracking/FuelSummary";
 import { MealLogSection } from "@/components/tracking/MealLogSection";
 import { MealGoalsEditor } from "@/components/MealGoalsEditor";
@@ -16,7 +17,7 @@ import { MacroInputs, type MacrosOptional } from "@/components/MacroInputs";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { getGarminCalorieBreakdown } from "@/lib/garmin-calories";
 import { useLocalTracking } from "@/hooks/useLocalTracking";
-import { getDayTotals, type MealType } from "@/lib/tracking";
+import { getDayTotals, type FoodLogItem, type MealType } from "@/lib/tracking";
 import {
   CalendarDays,
   ChefHat,
@@ -31,6 +32,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
   const navigate = useNavigate();
   const [date, setDate] = useState(new Date());
   const [foodOpen, setFoodOpen] = useState(false);
+  const [editingFood, setEditingFood] = useState<{ item: FoodLogItem; meal: MealType } | null>(null);
   const [activityOpen, setActivityOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [activeMeal, setActiveMeal] = useState<MealType>("breakfast");
@@ -40,6 +42,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
     getDay,
     addFoodItems,
     removeFoodItem,
+    updateFoodItem,
     addActivity,
     removeActivity,
     updateActivity,
@@ -225,6 +228,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
                   meal={meal}
                   onAdd={openFood}
                   onRemove={(mealType, itemId) => removeFoodItem(date, mealType, itemId)}
+                  onEdit={(meal, item) => setEditingFood({ meal, item })}
                 />
               ))}
             </div>
@@ -267,6 +271,7 @@ export function UnifiedDashboard({ focus = "all" }: { focus?: "all" | "activity"
         onAdd={(activity) => addActivity(date, activity)}
         profile={profile}
       />
+      {editingFood && <FoodEstimateEditor key={editingFood.item.id} item={editingFood.item} meal={editingFood.meal} onClose={() => setEditingFood(null)} onSave={(item, meal) => { updateFoodItem(date, editingFood.meal, meal, item); setEditingFood(null); }} />}
     </div>
   );
 }

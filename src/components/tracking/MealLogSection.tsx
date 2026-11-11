@@ -3,24 +3,27 @@ import { useState } from "react";
 import { NutritionEvidence } from "@/components/NutritionEvidence";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { MEAL_LABELS, sumFood, type MealLog, type MealType } from "@/lib/tracking";
-import { ChevronDown, Plus, X } from "lucide-react";
+import { MEAL_LABELS, sumFood, type FoodLogItem, type MealLog, type MealType } from "@/lib/tracking";
+import { ChevronDown, Pencil, Plus, X } from "lucide-react";
 
 export function MealLogSection({
   meal,
   onAdd,
   onRemove,
+  onEdit,
 }: {
   meal: MealLog;
   onAdd: (mealType: MealType) => void;
   onRemove: (mealType: MealType, itemId: string) => void;
+  onEdit: (mealType: MealType, item: FoodLogItem) => void;
 }) {
   const [open, setOpen] = useState(true);
   const totals = sumFood(meal.items);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen} className="rounded-lg border bg-card">
-      <CollapsibleTrigger className="flex w-full items-center justify-between gap-3 px-4 py-3 hover:bg-muted/40">
+      <div className="flex w-full items-center justify-between gap-3 px-4 py-3">
+      <CollapsibleTrigger className="min-w-0 flex-1 text-left">
         <div className="flex min-w-0 items-center gap-3">
           <ChevronDown
             className={`h-4 w-4 shrink-0 text-muted-foreground transition ${open ? "" : "-rotate-90"}`}
@@ -32,6 +35,7 @@ export function MealLogSection({
             </span>
           )}
         </div>
+      </CollapsibleTrigger>
         <Button
           type="button"
           variant="ghost"
@@ -45,7 +49,7 @@ export function MealLogSection({
           <Plus className="h-3.5 w-3.5" />
           Add
         </Button>
-      </CollapsibleTrigger>
+      </div>
       <CollapsibleContent>
         <div className="px-4 pb-3">
           {meal.items.length === 0 ? (
@@ -76,15 +80,19 @@ export function MealLogSection({
                     {item.note && <p className="mt-1 text-xs text-muted-foreground">{item.note}</p>}
                     {(item.evidence || item.source === "ai" || item.source === "usda" || item.source === "restaurant") && <NutritionEvidence evidence={item.evidence} />}
                   </div>
+                  <div className="flex shrink-0 gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" aria-label={`Edit ${item.name}`} title="Edit food" onClick={() => onEdit(meal.type, item)}><Pencil className="h-3.5 w-3.5" /></Button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
                     className="h-7 w-7 shrink-0 opacity-70 transition hover:opacity-100"
                     onClick={() => onRemove(meal.type, item.id)}
+                    aria-label={`Remove ${item.name}`}
                   >
                     <X className="h-3.5 w-3.5" />
                   </Button>
+                  </div>
                 </div>
               ))}
             </div>
