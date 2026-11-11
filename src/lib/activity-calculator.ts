@@ -1,4 +1,4 @@
-import type { ActivityIntensity, ActivityKind, UserActivityProfile } from "@/lib/tracking";
+import type { ActivityIntensity, ActivityKind, UserActivityProfile } from "./tracking";
 
 type EstimateInput = {
   activityKind: ActivityKind;

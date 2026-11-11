@@ -1,5 +1,5 @@
-import { calculateBMR, caloriesPerMileWalking } from "@/lib/activity-calculator";
-import type { AppleHealthSummary, TrackingDay, UserActivityProfile } from "@/lib/tracking";
+import { calculateBMR, caloriesPerMileWalking } from "./activity-calculator";
+import type { AppleHealthSummary, TrackingDay, UserActivityProfile } from "./tracking";
 import { stepsToMiles, workoutActiveCalories } from "./activity-energy";
 
 export interface GarminCalorieBreakdown {

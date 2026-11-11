@@ -1,4 +1,4 @@
-import { estimateActivityCalories } from "@/lib/activity-calculator";
+import { estimateActivityCalories } from "./activity-calculator";
 import type {
   ActivityKind,
   ActivityLogItem,

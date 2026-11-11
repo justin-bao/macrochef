@@ -49,7 +49,7 @@ export function ActivityPanel({
   const healthSummary = day.appleHealthSummary ?? day.garminSummary;
 
   const [distanceInput, setDistanceInput] = useState(
-    healthSummary ? String(healthSummary.totalDistanceMi) : "",
+    healthSummary ? String(healthSummary.totalDistanceMi * (profile.unitSystem === "metric" ? 1.60934 : 1)) : "",
   );
   const [activeCalInput, setActiveCalInput] = useState(
     healthSummary?.activeCalories != null ? String(healthSummary.activeCalories) : "",
