@@ -230,7 +230,7 @@ export function FoodLogModal({
     setManual(estimated);
     setEstimatingManual(false);
     if (estimated.kcal <= 0) {
-      setEstimateError("USDA did not return a close match. Enter the macros manually.");
+      setEstimateError(estimated.note ?? "No USDA match found. Enter the macros manually.");
     }
   };
 

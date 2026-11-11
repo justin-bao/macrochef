@@ -33,6 +33,11 @@ export function confidenceLabel(score: number): "high" | "medium" | "low" {
   return score >= 80 ? "high" : score >= 50 ? "medium" : "low";
 }
 
+// Display categories only; retain existing stored evidence and legacy enums.
+export function confidenceLevel(score: number) {
+  return score >= 85 ? "very-high" as const : score >= 70 ? "high" as const : score >= 50 ? "moderate" as const : score >= 30 ? "low" as const : "very-low" as const;
+}
+
 export function resolveNutritionSources(ids: unknown, available: NutritionSource[]) {
   const requested = z.array(z.string()).safeParse(ids);
   return requested.success ? available.filter((s, index) => requested.data.includes(s.id) && available.findIndex((other) => other.id === s.id) === index) : [];

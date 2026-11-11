@@ -1,3 +1,8 @@
+# USDA lookup and evidence presentation
+- [x] Diagnose manual USDA failure as live HTTP 429 from shared DEMO_KEY access; preserve actual lookup errors in the form rather than overwriting them as no match, handle connection failures, and avoid provider-body logging.
+- [x] Move Add ingredient below constituents and overall food evidence above Ingredients; replace displayed numeric scores with five colored/icon confidence levels. Desktop and phone verified; 90 tests pass.
+- [ ] Restore live USDA lookup success — requires shared demo quota recovery or a personal USDA key; no USDA key is configured.
+
 # Food search and logged estimates
 - [x] Add AI / database-only hybrid selection for single foods with explicit USDA/Open Food Facts record picking and gram portions; mocked handler verifies both sources without AI calls.
 - [x] Add logged-food editing for proportional servings, constituent names/amounts/macros, ingredient addition/removal, and atomic moves between meals. Live signed-in AI ingredient edits/removal and moving to Lunch survive reload; desktop and phone checked.

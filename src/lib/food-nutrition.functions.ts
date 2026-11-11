@@ -197,7 +197,8 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
   .handler(
     async ({ data }): Promise<{ estimate: FoodNutritionEstimate | null; error: string | null }> => {
       const params = new URLSearchParams({ api_key: fdcApiKey() });
-      const res = await fetch(`${FDC_BASE}/foods/search?${params}`, {
+      let res: Response;
+      try { res = await fetch(`${FDC_BASE}/foods/search?${params}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -205,12 +206,15 @@ export const estimateFoodNutrition = createServerFn({ method: "POST" })
           pageSize: 12,
           requireAllWords: false,
         }),
-      });
+      }); } catch {
+        return { estimate: null, error: "USDA cannot be reached right now. Try again later or enter macros manually." };
+      }
 
       if (!res.ok) {
-        const text = await res.text();
-        console.error("USDA FDC search failed", res.status, text);
-        return { estimate: null, error: `USDA nutrition lookup failed (${res.status})` };
+        console.error("USDA FDC search failed", res.status);
+        return { estimate: null, error: res.status === 429
+          ? "USDA's lookup limit has been reached. Try again later or use a personal USDA API key for higher limits. You can still enter macros manually."
+          : `USDA nutrition lookup is unavailable (${res.status}). Try again later or enter macros manually.` };
       }
 
       const json = (await res.json()) as FdcSearchResponse;
