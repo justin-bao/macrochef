@@ -1,3 +1,6 @@
+# Numeric entry
+- [x] Replace numeric steppers with plain entry; five regression tests pass, desktop/phone typing and replacement preserve signed decimals and pasted precision, and automatic build passes.
+
 # Sign-in repair
 - [x] Add public defaults and resolve final client/SSR settings for isolated preview builds; ten regression tests pass, actual app config resolves without local settings, and sign-in reaches the account service without runtime errors.
 - [x] Defer validation until managed preview injection; seven regression tests and actual Vite config resolution pass, and automatic build reports build OK.
