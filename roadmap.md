@@ -1,6 +1,6 @@
 # Logging pathway tests
 - [x] Save AI_API_KEY through the encrypted secret form; use a request-time server-only helper, authenticated status/estimate calls, HTTPS configuration validation, secret-free setup responses and logs, and visible setup/error/validated states. All 69 tests pass.
-- [ ] Verify live AI meal logging — refreshed the signed-in preview again and the authenticated setup check still returns missing_key. Encrypted key is saved, but secret propagation to the preview runtime remains blocked; no AI request or persistence claim was made.
+- [x] Diagnose preview key access: Wrangler loaded only .env, excluding the supervisor's securely supplied environment. Add preview-only, allowlisted secret-name declarations (no values or browser defines); 34 focused tests and automatic build pass. Verify signed-in live AI rice bowl logging: 390 kcal, three ingredients and evidence retained unchanged and visible after reload in browser-local diary storage.
 - [x] Add 29 handler regression tests covering AI text/photo/label estimates, USDA/Open Food Facts follow-ups, ingredient totals, evidence, invalid output, HTTP failures, and diary serialization; all 67 project tests pass.
 - [x] Exercise signed-in text logging through real USDA fallback (312 kcal, two nested ingredients, evidence retained after reload) and manual logging (220 kcal, 20g protein, 25g carbs, 5g fat retained and visible after reload).
 - [ ] Resolve existing Dashboard hydration mismatch — signed-in logging works, but reload emits a server/client mismatch in locally stored diary/settings. Kept outside this tests-only change.
@@ -25,7 +25,8 @@
 - [x] Break complex estimates into nested ingredients with separate portions, macro contributions, confidence, and sources; 18 tests pass. Verified real three-ingredient USDA lookup, logging/reload, phone layout, and live menu AI decomposition.
 - [x] Add evidence-based confidence scores and source details to food logging and nearby meal estimates.
 - [x] Test source validation and complex-dish uncertainty; 13 tests pass. Verify real USDA lookup, logging, and evidence persistence after reload.
-- [ ] Verify live AI text/photo for dish-name or photo decomposition — key is securely saved but not yet visible to the preview runtime. Explicit ingredient lists use USDA and are verified.
+- [x] Verify live AI text decomposition — signed-in real AI rice bowl estimate produces three ingredients, evidence and 390 kcal; logged item persists after reload.
+- [ ] Verify live AI photo decomposition — not exercised in the text logging check.
 
 # Restaurant map search
 - [x] Add authenticated Google restaurant search and interactive map.
