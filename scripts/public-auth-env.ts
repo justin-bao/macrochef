@@ -36,13 +36,16 @@ export function publicAuthDefines(
 export function publicAuthConfigurationPlugin(defaults: Record<string, string>): Plugin {
   return {
     name: "public-auth-configuration",
+    config: () => ({ define: {} }),
     configResolved: {
       order: "post",
       handler(config) {
         // Vite loads env files after config hooks. Resolve the final values here,
         // using public defaults when the isolated build has no local env file.
         const env = { ...defaults, ...config.env };
-        config.define = { ...config.define, ...publicAuthDefines(env, config.define) };
+        const define = config.define;
+        if (!define) throw new Error("Public sign-in define map was not initialized.");
+        Object.assign(define, publicAuthDefines(env, define));
         // Environment options are already resolved; keep client and SSR aligned.
         for (const environment of Object.values(config.environments)) {
           environment.define = {
