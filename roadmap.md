@@ -1,3 +1,8 @@
+# Strava workouts and daily movement
+- [ ] Connect each user's Strava account securely and verify workout imports; confirm available OAuth setup and provider access.
+- [ ] Support manual daily walking/running distance or steps; exclude workout-covered movement and use active-only workout calories.
+- [ ] Add regression coverage and verify daily movement logging and reload.
+
 # Food navigation and resting baseline
 - [x] Explain that the existing Mifflin–St Jeor formula estimates resting expenditure despite its BMR name; leave calorie calculations unchanged.
 - [x] Group Saved and Find food under Food; signed-in desktop and phone checks confirm both destinations and removal of top-level Saved. Automatic build OK.
