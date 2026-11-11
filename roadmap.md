@@ -1,3 +1,7 @@
+# Default meal allocation
+- [x] Derive unsaved meal targets from daily intake and macros while preserving saved overrides and blanks.
+- [ ] Verify percentage rules and signed-in meal-goal defaults and editing after reload.
+
 # USDA lookup and evidence presentation
 - [x] Store the personal USDA key through the encrypted form, show state-only setup checks, and use server-side authenticated requests with regression coverage.
 - [x] Verify personal-key state and real signed-in manual USDA lookup (150g, 161 kcal); logged food survives browser-local diary reload. Desktop/mobile checked; all 96 tests pass.

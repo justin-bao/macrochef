@@ -14,8 +14,15 @@ export const optionalMealMacrosSchema = z.object({
 });
 export const emptyMealMacros = (): MacrosOptional => ({ kcal: null, protein_g: null, carbs_g: null, fat_g: null });
 export type PerMealGoals = Record<GoalMeal, MacrosOptional>;
-export function goalsFromRows(rows: Array<{ meal: string } & MacrosOptional>): PerMealGoals {
-  const goals: PerMealGoals = { breakfast: emptyMealMacros(), lunch: emptyMealMacros(), dinner: emptyMealMacros(), snacks: emptyMealMacros() };
+export const MEAL_SHARES: Record<GoalMeal, number> = {
+  breakfast: 0.2, lunch: 0.3, dinner: 0.4, snacks: 0.1,
+};
+export function goalsFromRows(rows: Array<{ meal: string } & MacrosOptional>, daily: MacrosOptional = emptyMealMacros()): PerMealGoals {
+  const portion = (meal: GoalMeal): MacrosOptional => {
+    const scale = (value: number | null) => value === null ? null : Math.round(Math.max(0, value) * MEAL_SHARES[meal] * 10) / 10;
+    return { kcal: scale(daily.kcal), protein_g: scale(daily.protein_g), carbs_g: scale(daily.carbs_g), fat_g: scale(daily.fat_g) };
+  };
+  const goals: PerMealGoals = { breakfast: portion("breakfast"), lunch: portion("lunch"), dinner: portion("dinner"), snacks: portion("snacks") };
   for (const row of rows) {
     const meal = MEALS.find((meal) => meal === row.meal);
     if (meal) goals[meal] = optionalMealMacrosSchema.parse(row);

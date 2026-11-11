@@ -6,6 +6,7 @@
 - Keep numeric editing drafts in the shared Input, separate from parsed form values, so signed decimals, clearing, and pasted precision survive rerenders without native steppers.
 - Store optional per-meal goals separately from daily net-calorie targets; share owner-scoped query hooks and a picker across search modes so meal calories remain gross intake and blank nutrients stay unset.
 - Reuse the same meal-goal editor in Profile and the Dashboard Food log dialog so saved targets and validation remain consistent.
+- Derive unsaved meal goals from the current daily gross intake budget (projected burn plus net calorie target) and daily macros; persist only edited meal overrides so untouched defaults follow daily changes and saved blanks remain optional.
 - Create the shared query client per root mount, never in a module global, to isolate SSR requests and support meal-goal queries.
 - Build with the Cloudflare Vite plugin and its `ssr` environment, not Nitro's Vercel preset, so Lovable receives the deployable `dist/` output.
 - Resolve allowlisted public auth values in configResolved after Vite loads settings, with checked-in public connection defaults for isolated builds; preserve wrapper overrides in client and SSR and reject missing/private keys without serializing the full environment.
