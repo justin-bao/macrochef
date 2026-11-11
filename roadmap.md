@@ -1,5 +1,5 @@
 # Numeric entry
-- [ ] Replace numeric steppers with plain entry, preserve typed/pasted drafts, and verify signed decimals and replacement.
+- [x] Replace numeric steppers with plain entry; five regression tests pass, desktop/phone typing and replacement preserve signed decimals and pasted precision, and automatic build passes.
 
 # Sign-in repair
 - [x] Add public defaults and resolve final client/SSR settings for isolated preview builds; ten regression tests pass, actual app config resolves without local settings, and sign-in reaches the account service without runtime errors.
