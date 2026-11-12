@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "../integrations/supabase/auth-middleware";
 import { decryptStravaTokens, encryptStravaTokens, hashOAuthState, normalizeStravaActivity, stravaRequest } from "./strava.server";
 import type { ImportedActivity } from "./activity-imports";
+import { validateStravaReturnOrigin } from "./strava-return-origin";
 
 const TOKEN_URL = "https://www.strava.com/oauth/token";
 
@@ -29,16 +30,14 @@ export const startStravaConnect = createServerFn({ method: "POST" })
   .inputValidator(z.object({ origin: z.string().url() }).parse)
   .handler(async ({ data, context }) => {
     const { clientId } = config();
-    const origin = new URL(data.origin);
     const { getRequest } = await import("@tanstack/react-start/server");
     const request = getRequest();
-    const requestOrigin = request.headers.get("origin") ?? new URL(request.url).origin;
-    if (origin.origin !== requestOrigin || (origin.protocol !== "https:" && origin.hostname !== "localhost")) throw new Error("Invalid Strava return address.");
+    const origin = validateStravaReturnOrigin(data.origin, request);
     const state = crypto.randomUUID();
     const { supabaseAdmin } = await import("../integrations/supabase/client.server");
     const { error } = await supabaseAdmin.from("strava_oauth_attempts").insert({ state_hash: await hashOAuthState(state), user_id: context.userId, expires_at: new Date(Date.now() + 10 * 60_000).toISOString() });
     if (error) throw new Error("Could not start Strava connection.");
-    const params = new URLSearchParams({ client_id: clientId, redirect_uri: `${origin.origin}/api/public/strava/return`, response_type: "code", approval_prompt: "force", scope: "activity:read_all", state });
+    const params = new URLSearchParams({ client_id: clientId, redirect_uri: `${origin}/api/public/strava/return`, response_type: "code", approval_prompt: "force", scope: "activity:read_all", state });
     return { authorizationUrl: `https://www.strava.com/oauth/authorize?${params}`, state };
   });
 
