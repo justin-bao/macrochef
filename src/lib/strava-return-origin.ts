@@ -6,11 +6,12 @@ export function validateStravaReturnOrigin(value: string, request: Request): str
   const origin = new URL(value);
   if (origin.username || origin.password || origin.pathname !== "/" || origin.search || origin.hash ||
       (origin.protocol !== "https:" && !(origin.protocol === "http:" && origin.hostname === "localhost"))) {
-    throw new Error("Invalid Strava return address.");
+    // Only the origin is reported: never include codes, query strings or credentials.
+    throw new Error(`Invalid Strava return address: ${origin.origin}. Use a secure page address without a path (check v2).`);
   }
   const requestOrigin = request.headers.get("origin") ?? new URL(request.url).origin;
   if (origin.origin !== requestOrigin && origin.origin !== PREVIEW_ORIGIN) {
-    throw new Error("Invalid Strava return address.");
+    throw new Error(`Invalid Strava return address: ${origin.origin}. Open this app at ${PREVIEW_ORIGIN}/profile and reconnect (check v2).`);
   }
   return origin.origin;
 }

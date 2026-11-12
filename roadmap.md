@@ -1,5 +1,6 @@
 # Strava workouts and daily movement
-- [x] Repair Preview's proxy-rewritten return-origin check with an exact app-owned origin exception; 14 focused tests pass, including callback construction and unrelated-host rejection. Signed-in localhost consent launch passes; the browser proxy simulation still uses the previous rejection and hosted Preview needs a retry.
+- [x] Repair Preview's proxy-rewritten return-origin check with an exact app-owned origin exception; signed-in browser proxy simulation now reaches Strava with the public Preview address. Add versioned, origin-only rejection details to distinguish a different host from an outdated hosted check.
+- [ ] Confirm the user's hosted rejection origin/version — hosted Preview redirects the test browser to Lovable login, and runtime logs contain no Strava failure. Await the new error details if rejection persists.
 - [x] Save Strava client credentials securely; implement authenticated popup OAuth, owner-bound one-time state, encrypted server-only tokens, refresh/revoke, and multi-sport imports. Signed-in configuration check and real Strava consent launch verified.
 - [ ] Verify consent completion and real workout imports — requires the user's Strava login/approval and callback-domain configuration in their Strava app.
 - [x] Support manual daily walking/running distance or steps; subtract walking/running workout distance, never cycling distance, and use net active workout estimates when provider calories have no documented active basis. Whole-day active energy excludes workout overlap.
