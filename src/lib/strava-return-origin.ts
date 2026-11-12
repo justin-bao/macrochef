@@ -10,6 +10,7 @@ export function validateStravaReturnOrigin(value: string, request: Request): str
   }
   const requestOrigin = request.headers.get("origin") ?? new URL(request.url).origin;
   if (origin.origin !== requestOrigin && origin.origin !== PREVIEW_ORIGIN) {
+    console.warn("Strava return origin rejected", { returnOrigin: origin.origin, requestOrigin });
     throw new Error("Invalid Strava return address.");
   }
   return origin.origin;
